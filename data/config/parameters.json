@@ -1,0 +1,61 @@
+{
+  "languages": [
+    "Spanish",
+    "French",
+    "German",
+    "Italian",
+    "Portuguese",
+    "Mandarin",
+    "Japanese",
+    "Korean",
+    "Arabic",
+    "Russian",
+    "English"
+  ],
+  "complexities": [
+    "beginner",
+    "intermediate",
+    "advanced"
+  ],
+  "vocabulary_levels": [
+    "low",
+    "medium",
+    "high"
+  ],
+  "age_groups": [
+    "0-3 years",
+    "4-7 years",
+    "8-12 years",
+    "13+ years"
+  ],
+  "page_counts": [
+    3,
+    5,
+    8,
+    10,
+    15,
+    20
+  ],
+  "genres": [
+    "Adventure",
+    "Fantasy",
+    "Science Fiction",
+    "Mystery",
+    "Friendship",
+    "Family",
+    "Animals",
+    "Nature",
+    "Educational",
+    "Bedtime Story"
+  ],
+  "art_styles": [
+    "watercolor children's book illustration",
+    "digital cartoon illustration",
+    "pencil sketch style",
+    "oil painting style",
+    "anime/manga style",
+    "realistic digital art",
+    "whimsical illustration",
+    "vintage storybook style"
+  ]
+}

@@ -205,3 +205,27 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Project-specific - Story Generator
+# Generated story projects (keep directory structure)
+data/projects/*
+!data/projects/.gitkeep
+
+# Generated images
+data/images/*
+!data/images/.gitkeep
+
+# User-specific config with API keys
+data/config/config.json
+
+# Generated exports
+*.pdf
+output/
+exports/
+
+# API Keys and Secrets
+.env.local
+secrets.json
+
+# macOS
+.DS_Store
