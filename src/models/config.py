@@ -19,8 +19,9 @@ class TextProvider(str, Enum):
 
 class ImageProvider(str, Enum):
     """Image generation provider options"""
-    DALLE2 = "dall-e-2"
-    DALLE3 = "dall-e-3"
+    GPT_IMAGE = "gpt-image-1"
+    DALLE2 = "dall-e-2"  # Legacy support
+    DALLE3 = "dall-e-3"  # Legacy support
     STABLE_DIFFUSION = "stable-diffusion"
 
 
@@ -53,7 +54,7 @@ class ClaudeConfig:
 class AIProviderConfig:
     """AI provider configuration"""
     text_provider: TextProvider = TextProvider.OLLAMA
-    image_provider: ImageProvider = ImageProvider.DALLE3
+    image_provider: ImageProvider = ImageProvider.GPT_IMAGE
     ollama: Optional[OllamaConfig] = None
     openai: Optional[OpenAIConfig] = None
     claude: Optional[ClaudeConfig] = None

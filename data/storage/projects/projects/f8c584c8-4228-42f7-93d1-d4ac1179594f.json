@@ -1,0 +1,47 @@
+{
+  "id": "f8c584c8-4228-42f7-93d1-d4ac1179594f",
+  "name": "A kid scientist running an experiment",
+  "status": "completed",
+  "story": {
+    "id": "f8c584c8-4228-42f7-93d1-d4ac1179594f",
+    "metadata": {
+      "title": "A kid scientist running an experiment",
+      "language": "Spanish",
+      "complexity": "beginner",
+      "vocabulary_diversity": "medium",
+      "age_group": "4-7 years",
+      "num_pages": 3,
+      "genre": "Adventure",
+      "art_style": "watercolor children's book illustration",
+      "user_prompt": null
+    },
+    "pages": [
+      {
+        "page_number": 1,
+        "text": "Había una vez en un pequeño pueblo llamado Solis, tres amigos muy especiales: Lila la liebre, Bruno el oso y Mia la mariposa. Un día, decidieron ir a buscar las estrellas que habían caído del cielo y se perdido en el bosque encantado. Con sus corazones llenos de valor, partieron temprano en la mañana.",
+        "image_url": null,
+        "image_prompt": null
+      },
+      {
+        "page_number": 2,
+        "text": "En su camino, encontraron un río ancho y misterioso. Lila saltó sobre piedras para cruzar, mientras Bruno construyó un puente con ramas y Mia voló al otro lado para asegurarse de que estaba seguro. Juntos, se sintieron más valientes y continuaron su búsqueda por el bosque lleno de maravillas.",
+        "image_url": null,
+        "image_prompt": null
+      },
+      {
+        "page_number": 3,
+        "text": "Finalmente, llegaron a una colina donde brillaban las estrellas perdidas como farolitos dorados. Los amigos trabajaron juntos para recoger cada estrella y colocarlas cuidadosamente en el cielo nocturno. Al ver sus esfuerzos recompensados con un cielo tan hermoso, se dieron cuenta de que la verdadera aventura era su amistad.",
+        "image_url": null,
+        "image_prompt": null
+      }
+    ],
+    "vocabulary": [],
+    "characters": null,
+    "created_at": "2026-01-13T06:58:48.998178",
+    "updated_at": "2026-01-13T06:58:48.998186"
+  },
+  "character_profiles": [],
+  "image_prompts": [],
+  "created_at": "2026-01-13T06:58:48.998198",
+  "updated_at": "2026-01-13T06:58:48.998200"
+}

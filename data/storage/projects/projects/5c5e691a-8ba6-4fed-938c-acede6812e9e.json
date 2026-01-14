@@ -1,0 +1,47 @@
+{
+  "id": "5c5e691a-8ba6-4fed-938c-acede6812e9e",
+  "name": "A kid scientist running an experiment",
+  "status": "completed",
+  "story": {
+    "id": "5c5e691a-8ba6-4fed-938c-acede6812e9e",
+    "metadata": {
+      "title": "A kid scientist running an experiment",
+      "language": "Spanish",
+      "complexity": "beginner",
+      "vocabulary_diversity": "medium",
+      "age_group": "4-7 years",
+      "num_pages": 3,
+      "genre": "Adventure",
+      "art_style": "watercolor children's book illustration",
+      "user_prompt": "A kid scientist running an experiment. He wants answers, makes a hypothesis, design a experiment and gets his answer. "
+    },
+    "pages": [
+      {
+        "page_number": 1,
+        "text": "Érase una vez un niño llamado Leo que adoraba la ciencia. Un día decidió hacer un experimento para descubrir qué tipo de suelo ayuda mejor a las plantas a crecer más rápido. Leo tenía muchas preguntas, como ¿qué hará que las plantas sean más fuertes? Así que formó una hipótesis: \"Creo que el suelo con abono ayudará a mis plantas a crecer más alto\".",
+        "image_url": null,
+        "image_prompt": null
+      },
+      {
+        "page_number": 2,
+        "text": "Leo diseñó su experimento. Tomó tres macetas, llenó cada una con un tipo diferente de suelo: uno con tierra normal, otro con suelo arenoso y la última con suelo enriquecido con abono. Plantó semillas de girasol en cada maceta y las regó igualmente todos los días. Leo estaba muy emocionado y revisaba sus plantas cada mañana para ver cuál crecía más rápido.",
+        "image_url": null,
+        "image_prompt": null
+      },
+      {
+        "page_number": 3,
+        "text": "Después de algunas semanas, ¡los resultados fueron sorprendentes! La planta en el suelo con abono había crecido mucho más alto que las otras dos. Leo saltó de alegría, porque su hipótesis era correcta. Entonces, aprendió que el abono es muy importante para ayudar a las plantas a ser fuertes y saludables. Desde ese día, Leo continuó siendo un gran científico, siempre buscando nuevas preguntas y respuestas en su aventura de descubrir cómo funciona el mundo.",
+        "image_url": null,
+        "image_prompt": null
+      }
+    ],
+    "vocabulary": [],
+    "characters": null,
+    "created_at": "2026-01-13T07:01:23.103816",
+    "updated_at": "2026-01-13T07:01:23.103846"
+  },
+  "character_profiles": [],
+  "image_prompts": [],
+  "created_at": "2026-01-13T07:01:23.103885",
+  "updated_at": "2026-01-13T07:01:23.103887"
+}

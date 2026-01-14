@@ -1,0 +1,201 @@
+"""
+Story Routes for REST API.
+
+Handles endpoints for story generation and management.
+"""
+
+import asyncio
+from flask import Blueprint, request, jsonify, current_app
+from werkzeug.exceptions import BadRequest
+
+from src.models.story import StoryMetadata
+
+# Create blueprint
+story_bp = Blueprint('stories', __name__)
+
+
+def run_async(coroutine):
+    """
+    Helper to run async functions in Flask routes.
+
+    Flask routes are synchronous but our services are async,
+    so we need to run them in an event loop.
+    """
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        return loop.run_until_complete(coroutine)
+    finally:
+        loop.close()
+
+
+@story_bp.route('', methods=['POST'])
+def create_story():
+    """
+    POST /api/stories - Create a new story
+
+    Request body:
+    {
+        "title": str (required),
+        "language": str (optional),
+        "complexity": str (optional),
+        "vocabulary_diversity": str (optional),
+        "age_group": str (optional),
+        "num_pages": int (optional),
+        "genre": str (optional),
+        "art_style": str (optional),
+        "theme": str (optional),
+        "custom_prompt": str (optional)
+    }
+
+    Returns:
+        201: Story created successfully
+        400: Invalid request
+        500: Server error
+    """
+    try:
+        # Validate request
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+
+        try:
+            data = request.get_json()
+        except BadRequest:
+            return jsonify({'error': 'Invalid JSON'}), 400
+
+        # Validate required fields
+        if 'title' not in data:
+            return jsonify({'error': 'Missing required field: title'}), 400
+
+        # Get app config for defaults
+        app_config = current_app.config['APP_CONFIG']
+        defaults = app_config.defaults
+
+        # Build metadata with defaults
+        metadata = StoryMetadata(
+            title=data['title'],
+            language=data.get('language', defaults.language),
+            complexity=data.get('complexity', defaults.complexity),
+            vocabulary_diversity=data.get('vocabulary_diversity', defaults.vocabulary_diversity),
+            age_group=data.get('age_group', defaults.age_group),
+            num_pages=data.get('num_pages', defaults.num_pages),
+            genre=data.get('genre', defaults.genre),
+            art_style=data.get('art_style', defaults.art_style),
+            user_prompt=data.get('custom_prompt')
+        )
+
+        # Get optional parameters
+        theme = data.get('theme')
+        custom_prompt = data.get('custom_prompt')
+
+        # Get story generator service
+        story_generator = current_app.config['SERVICES']['story_generator']
+
+        # Generate story (async)
+        story = run_async(story_generator.generate_story(
+            metadata,
+            theme=theme,
+            custom_prompt=custom_prompt
+        ))
+
+        # Debug logging
+        print(f"[STORY ROUTES] Story generated: ID={story.id}")
+        print(f"[STORY ROUTES] Pages: {len(story.pages)}")
+        print(f"[STORY ROUTES] Characters: {len(story.characters) if story.characters else 0}")
+        if len(story.pages) == 0:
+            print("="*80)
+            print("[STORY ROUTES] ERROR: Story has 0 pages!")
+            print("="*80)
+        for i, page in enumerate(story.pages[:3]):  # Show first 3 pages
+            print(f"[STORY ROUTES] Page {page.page_number}: {page.text[:100]}...")
+
+        # Convert to JSON-serializable dict
+        response = {
+            'id': story.id,
+            'metadata': {
+                'title': story.metadata.title,
+                'language': story.metadata.language,
+                'complexity': story.metadata.complexity,
+                'vocabulary_diversity': story.metadata.vocabulary_diversity,
+                'age_group': story.metadata.age_group,
+                'num_pages': story.metadata.num_pages,
+                'genre': story.metadata.genre,
+                'art_style': story.metadata.art_style,
+                'user_prompt': story.metadata.user_prompt
+            },
+            'pages': [
+                {
+                    'page_number': page.page_number,
+                    'text': page.text,
+                    'image_url': page.image_url,
+                    'image_prompt': page.image_prompt
+                }
+                for page in story.pages
+            ],
+            'characters': [
+                {
+                    'name': char.name,
+                    'species': char.species,
+                    'physical_description': char.physical_description,
+                    'clothing': char.clothing,
+                    'distinctive_features': char.distinctive_features,
+                    'personality_traits': char.personality_traits
+                }
+                for char in (story.characters or [])
+            ],
+            'vocabulary': story.vocabulary,
+            'created_at': story.created_at.isoformat(),
+            'updated_at': story.updated_at.isoformat()
+        }
+
+        return jsonify(response), 201
+
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        current_app.logger.error(f"Error creating story: {e}\n{error_details}")
+        # Return more specific error message to help with debugging
+        return jsonify({'error': f'Failed to generate story: {str(e)}'}), 500
+
+
+@story_bp.route('/<story_id>', methods=['GET'])
+def get_story(story_id):
+    """
+    GET /api/stories/:id - Retrieve a story by ID
+
+    Returns:
+        200: Story found
+        404: Story not found
+        500: Server error
+    """
+    try:
+        # Get config repository
+        config_repo = current_app.config['REPOSITORIES']['config']
+
+        # Retrieve story metadata (synchronous method)
+        metadata = config_repo.get(story_id)
+
+        if metadata is None:
+            return jsonify({'error': 'Story not found'}), 404
+
+        # Return story data
+        return jsonify({
+            'id': story_id,
+            'metadata': {
+                'title': metadata.title,
+                'language': metadata.language,
+                'complexity': metadata.complexity,
+                'vocabulary_diversity': metadata.vocabulary_diversity,
+                'age_group': metadata.age_group,
+                'num_pages': metadata.num_pages,
+                'genre': metadata.genre,
+                'art_style': metadata.art_style,
+                'user_prompt': metadata.user_prompt
+            }
+        }), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error retrieving story: {e}")
+        return jsonify({'error': 'Internal server error'}), 500

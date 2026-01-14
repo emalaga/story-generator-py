@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Story Generator - AI-Powered Children's Stories</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 AI Story Generator</h1>
+            <p class="subtitle">Create magical stories for children with AI</p>
+        </header>
+
+        <!-- Tab Navigation -->
+        <div class="tabs">
+            <button class="tab-button active" data-tab="text-generation">Text Generation</button>
+            <button class="tab-button" data-tab="image-generation">Image Generation</button>
+        </div>
+
+        <main>
+            <!-- TEXT GENERATION TAB -->
+            <div id="text-generation-tab" class="tab-content active">
+                <div class="two-column-layout">
+                    <!-- LEFT PANEL: Parameters -->
+                    <aside class="left-panel">
+                        <section class="card">
+                            <h2>Story Parameters</h2>
+
+                            <form id="story-form">
+                                <!-- Title -->
+                                <div class="form-group">
+                                    <label for="title">Story Title <span class="required">*</span></label>
+                                    <input type="text" id="title" name="title" required
+                                           placeholder="Enter a title for your story">
+                                </div>
+
+                                <!-- Language -->
+                                <div class="form-group">
+                                    <label for="language">Language</label>
+                                    <select id="language" name="language">
+                                        <!-- Populated dynamically -->
+                                    </select>
+                                </div>
+
+                                <!-- Age Group -->
+                                <div class="form-group">
+                                    <label for="age-group">Age Group</label>
+                                    <select id="age-group" name="age_group">
+                                        <!-- Populated dynamically -->
+                                    </select>
+                                </div>
+
+                                <!-- Complexity -->
+                                <div class="form-group">
+                                    <label for="complexity">Complexity</label>
+                                    <select id="complexity" name="complexity">
+                                        <!-- Populated dynamically -->
+                                    </select>
+                                </div>
+
+                                <!-- Vocabulary Diversity -->
+                                <div class="form-group">
+                                    <label for="vocabulary">Vocabulary Level</label>
+                                    <select id="vocabulary" name="vocabulary_diversity">
+                                        <!-- Populated dynamically -->
+                                    </select>
+                                </div>
+
+                                <!-- Number of Pages -->
+                                <div class="form-group">
+                                    <label for="num-pages">Number of Pages</label>
+                                    <select id="num-pages" name="num_pages">
+                                        <!-- Populated dynamically -->
+                                    </select>
+                                </div>
+
+                                <!-- Genre -->
+                                <div class="form-group">
+                                    <label for="genre">Genre</label>
+                                    <select id="genre" name="genre">
+                                        <!-- Populated dynamically -->
+                                    </select>
+                                </div>
+
+                                <!-- Art Style -->
+                                <div class="form-group">
+                                    <label for="art-style">Art Style</label>
+                                    <select id="art-style" name="art_style">
+                                        <!-- Populated dynamically -->
+                                    </select>
+                                </div>
+
+                                <!-- Theme (Optional) -->
+                                <div class="form-group">
+                                    <label for="theme">Theme (Optional)</label>
+                                    <input type="text" id="theme" name="theme"
+                                           placeholder="e.g., friendship, courage, kindness">
+                                </div>
+
+                                <!-- Custom Prompt (Optional) -->
+                                <div class="form-group">
+                                    <label for="custom-prompt">Custom Story Idea (Optional)</label>
+                                    <textarea id="custom-prompt" name="custom_prompt" rows="3"
+                                              placeholder="Describe your story idea..."></textarea>
+                                </div>
+
+                                <!-- Submit Button -->
+                                <button type="submit" class="btn btn-primary" id="generate-btn">
+                                    Generate Story
+                                </button>
+                            </form>
+
+                            <!-- Loading Indicator -->
+                            <div id="loading" class="loading hidden">
+                                <div class="spinner"></div>
+                                <p>Generating your magical story...</p>
+                            </div>
+
+                            <!-- Error Display -->
+                            <div id="error-message" class="error hidden"></div>
+                        </section>
+
+                        <!-- Projects List -->
+                        <section class="card">
+                            <h2>Saved Projects</h2>
+                            <div id="projects-list" class="projects-list">
+                                <!-- Projects populated dynamically -->
+                            </div>
+                            <button id="load-projects-btn" class="btn btn-secondary btn-full">
+                                Refresh Projects
+                            </button>
+                        </section>
+                    </aside>
+
+                    <!-- RIGHT PANEL: Story Display -->
+                    <section class="right-panel">
+                        <div id="story-display-section" class="card hidden">
+                            <h2>Your Story</h2>
+
+                            <div id="story-metadata" class="story-metadata">
+                                <!-- Populated dynamically -->
+                            </div>
+
+                            <div id="story-pages" class="story-pages">
+                                <!-- Story pages populated dynamically -->
+                            </div>
+
+                            <div id="story-characters" class="story-characters">
+                                <!-- Characters populated dynamically -->
+                            </div>
+
+                            <div class="story-actions">
+                                <button id="save-project-btn" class="btn btn-secondary">
+                                    Save Project
+                                </button>
+                                <button id="new-story-btn" class="btn btn-secondary">
+                                    Create New Story
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Placeholder when no story is generated -->
+                        <div id="no-story-placeholder" class="card placeholder-card">
+                            <div class="placeholder-content">
+                                <h3>No Story Yet</h3>
+                                <p>Fill in the parameters on the left and click "Generate Story" to create your magical story!</p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- IMAGE GENERATION TAB -->
+            <div id="image-generation-tab" class="tab-content">
+                <section class="card">
+                    <h2>Generate Images for Your Story</h2>
+
+                    <div id="image-gen-no-story" class="placeholder-card">
+                        <div class="placeholder-content">
+                            <h3>No Story Loaded</h3>
+                            <p>Please generate a story in the "Text Generation" tab first.</p>
+                        </div>
+                    </div>
+
+                    <div id="image-gen-content" class="hidden">
+                        <div id="image-story-info" class="story-info-bar">
+                            <!-- Story title and info -->
+                        </div>
+
+                        <div id="image-pages-list" class="image-pages-list">
+                            <!-- Image generation for each page -->
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <footer>
+            <p>Powered by AI &bull; Built with ❤️ for storytelling</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
