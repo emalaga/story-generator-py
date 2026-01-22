@@ -8,6 +8,9 @@ import asyncio
 from flask import Blueprint, request, jsonify, current_app
 from werkzeug.exceptions import BadRequest
 
+from src.models.character import CharacterProfile
+from src.models.art_bible import ArtBible, CharacterReference
+
 # Create blueprint
 prompt_bp = Blueprint('prompts', __name__)
 
@@ -94,11 +97,42 @@ def generate_image_prompt():
         ))
         current_app.logger.info(f"AI scene summary ({len(scene_summary)} chars): {scene_summary}")
 
-        # Generate the prompt with the AI-summarized scene
+        # Parse art bible if present
+        art_bible = None
+        if 'art_bible' in data and data['art_bible']:
+            art_bible_data = data['art_bible']
+            art_bible = ArtBible(
+                prompt=art_bible_data.get('prompt', ''),
+                image_url=art_bible_data.get('image_url'),
+                art_style=art_bible_data.get('art_style', art_style),
+                style_notes=art_bible_data.get('style_notes'),
+                color_palette=art_bible_data.get('color_palette'),
+                lighting_style=art_bible_data.get('lighting_style'),
+                brush_technique=art_bible_data.get('brush_technique')
+            )
+
+        # Parse character references if present
+        character_references = []
+        if 'character_references' in data and data['character_references']:
+            for char_ref_data in data['character_references']:
+                char_ref = CharacterReference(
+                    character_name=char_ref_data.get('character_name', ''),
+                    prompt=char_ref_data.get('prompt', ''),
+                    image_url=char_ref_data.get('image_url'),
+                    species=char_ref_data.get('species'),
+                    physical_description=char_ref_data.get('physical_description'),
+                    clothing=char_ref_data.get('clothing'),
+                    distinctive_features=char_ref_data.get('distinctive_features')
+                )
+                character_references.append(char_ref)
+
+        # Generate the prompt with the AI-summarized scene, art bible, and character references
         prompt = prompt_builder.build_image_prompt(
             scene_summary,
             character_objects,
-            art_style
+            art_style,
+            art_bible=art_bible,
+            character_references=character_references if character_references else None
         )
 
         current_app.logger.info(f"Generated prompt ({len(prompt)} chars): {prompt[:200]}...")

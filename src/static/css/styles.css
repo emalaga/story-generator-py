@@ -226,6 +226,22 @@ header h1 {
     margin-right: 0;
 }
 
+.btn-large {
+    font-size: 1.1rem;
+    padding: 14px 32px;
+    font-weight: 600;
+}
+
+/* ===== Top Actions (Generate Button) ===== */
+.top-actions {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.top-actions .btn {
+    min-width: 200px;
+}
+
 /* ===== Loading Spinner ===== */
 .loading {
     text-align: center;
@@ -565,6 +581,15 @@ header h1 {
     background-color: #059669;
 }
 
+.save-image-btn {
+    background-color: #3b82f6;
+    margin-top: 10px;
+}
+
+.save-image-btn:hover {
+    background-color: #2563eb;
+}
+
 .image-loading {
     display: flex;
     align-items: center;
@@ -588,6 +613,132 @@ header h1 {
 .image-loading span {
     color: var(--text-muted);
     font-size: 0.9rem;
+}
+
+/* ===== VISUAL CONSISTENCY TAB ===== */
+.visual-section {
+    background-color: var(--bg-color);
+    padding: 25px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    border-left: 4px solid var(--secondary-color);
+}
+
+.visual-section h3 {
+    color: var(--secondary-color);
+    margin-bottom: 10px;
+    font-size: 1.3rem;
+}
+
+.section-description {
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+}
+
+.visual-controls {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.prompt-edit-section {
+    margin-bottom: 20px;
+}
+
+.prompt-edit-section label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-color);
+    font-size: 0.95rem;
+}
+
+.prompt-textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    line-height: 1.6;
+    resize: vertical;
+}
+
+.prompt-textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.reference-preview {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.reference-preview img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    margin-bottom: 15px;
+}
+
+.character-ref-card {
+    background-color: var(--card-bg);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 2px solid var(--border-color);
+}
+
+.character-ref-card h4 {
+    color: var(--primary-color);
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+
+.character-ref-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.character-ref-prompt {
+    margin-bottom: 15px;
+}
+
+.character-ref-preview {
+    text-align: center;
+    margin-top: 15px;
+}
+
+.character-ref-preview img {
+    max-width: 100%;
+    max-height: 400px;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+}
+
+input[type="file"] {
+    display: none;
+}
+
+.upload-label {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: var(--success-color);
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+}
+
+.upload-label:hover {
+    background-color: #059669;
 }
 
 /* ===== Footer ===== */

@@ -10,6 +10,7 @@ from typing import Optional, List, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.models.character import Character
+    from src.models.art_bible import ArtBible, CharacterReference
 
 
 @dataclass
@@ -24,6 +25,7 @@ class StoryMetadata:
     genre: Optional[str] = None
     art_style: Optional[str] = None
     user_prompt: Optional[str] = None
+    words_per_page: Optional[int] = 50
 
 
 @dataclass
@@ -33,6 +35,7 @@ class StoryPage:
     text: str
     image_url: Optional[str] = None
     image_prompt: Optional[str] = None
+    local_image_path: Optional[str] = None
 
 
 @dataclass
@@ -43,5 +46,7 @@ class Story:
     pages: List[StoryPage]
     vocabulary: List[str] = field(default_factory=list)
     characters: Optional[List["Character"]] = None
+    art_bible: Optional["ArtBible"] = None
+    character_references: Optional[List["CharacterReference"]] = None
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)

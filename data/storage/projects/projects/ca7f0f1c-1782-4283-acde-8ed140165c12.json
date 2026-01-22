@@ -1,0 +1,87 @@
+{
+  "id": "ca7f0f1c-1782-4283-acde-8ed140165c12",
+  "name": "The little rocket",
+  "status": "completed",
+  "story": {
+    "id": "ca7f0f1c-1782-4283-acde-8ed140165c12",
+    "metadata": {
+      "title": "The little rocket",
+      "language": "Spanish",
+      "complexity": "beginner",
+      "vocabulary_diversity": "medium",
+      "age_group": "4-7 years",
+      "num_pages": 3,
+      "genre": "Adventure",
+      "art_style": "watercolor children's book illustration",
+      "user_prompt": "A little rocket gets lost in space and a friendly alien helps him get back home",
+      "words_per_page": 100
+    },
+    "pages": [
+      {
+        "page_number": 1,
+        "text": "Érase una vez, un pequeño cohete llamado Roco que amaba explorar el universo. Un día, mientras zumbaba entre las estrellas y los planetas, Roco se desvió de su ruta. Miró a su alrededor y todo lo que vio fue la oscuridad infinita del espacio. Roco se sintió muy asustado y solo. \"¿Cómo voy a encontrar mi camino de regreso a casa?\" pensó nerviosamente. Justo cuando estaba a punto de perder toda esperanza, una luz brillante apareció en la distancia.",
+        "image_url": null,
+        "image_prompt": null,
+        "local_image_path": null
+      },
+      {
+        "page_number": 2,
+        "text": "La luz brillante resultó ser un amistoso alienígena llamado Alfi. Tenía una sonrisa amigable y una piel de color verde brillante. Alfi vio a Roco solo y asustado, y decidió ayudarlo. \"Hola, pequeño cohete\", dijo Alfi. \"Pareces perdido. ¿Necesitas ayuda para encontrar tu camino a casa?\" Roco asintió, agradecido. Alfi era muy inteligente y conocía todos los caminos del universo. Juntos, comenzaron a buscar la ruta hacia casa de Roco.",
+        "image_url": null,
+        "image_prompt": null,
+        "local_image_path": null
+      },
+      {
+        "page_number": 3,
+        "text": "Después de pasar por hermosas nebulosas y cinturones de asteroides, finalmente pudieron ver a lo lejos el planeta azul y verde - la casa de Roco. Roco estaba emocionado y agradecido. \"¡Gracias, Alfi! ¡No podría haberlo hecho sin ti!\" Alfi sonrió y respondió, \"Eso es lo que hacen los amigos, Roco. Siempre están allí el uno para el otro.\" Roco se despidió de su nuevo amigo y prometió volver para más aventuras. A partir de ese día, el pequeño cohete ya no tenía miedo de perderse, porque sabía que siempre tendría un amigo en el universo.",
+        "image_url": null,
+        "image_prompt": null,
+        "local_image_path": null
+      }
+    ],
+    "vocabulary": [],
+    "characters": [
+      {
+        "name": "Roco",
+        "species": "Rocket",
+        "physical_description": "Roco is a small rocket, about the size of a school bus. He is primarily red with white stripes running vertically down his sides. His nose cone is a shiny silver and his thrusters are a dark grey. He has two small, round windows near the top that serve as his eyes, which are always wide and curious.",
+        "clothing": null,
+        "distinctive_features": "Roco's distinctive features include his bright red color, his white stripes, and his silver nose cone. His round windows as eyes give him a friendly and approachable appearance.",
+        "personality_traits": "Roco's wide and curious eyes reflect his adventurous and inquisitive nature. His shiny nose cone and well-kept appearance suggest he takes pride in his explorations and is always ready for a new adventure."
+      },
+      {
+        "name": "Alfi",
+        "species": "Alien",
+        "physical_description": "Alfi is a friendly alien with bright green skin. He is medium-sized, with a round body, long, thin arms, and three fingers on each hand. His eyes are large and round, glowing with a soft blue light. His head is slightly larger than his body, with two small antennae sticking out from the top. His feet are small and round, with three toes each.",
+        "clothing": "Alfi wears a silver spacesuit with a large, round glass helmet that allows his antennae to stick out. The suit is adorned with various patches representing different galaxies and star systems he has visited.",
+        "distinctive_features": "Alfi's bright green skin, large blue eyes, and antennae are his most distinctive features. His friendly smile is also a key aspect of his character.",
+        "personality_traits": "Alfi's intelligence and friendliness are evident in his appearance. His eyes have a curious and knowledgeable sparkle, and his constant smile shows his friendly nature."
+      }
+    ],
+    "art_bible": null,
+    "character_references": null,
+    "created_at": "2026-01-21T16:37:58.646281",
+    "updated_at": "2026-01-21T16:37:58.646301"
+  },
+  "character_profiles": [
+    {
+      "name": "Roco",
+      "species": "Rocket",
+      "physical_description": "Roco is a small rocket, about the size of a school bus. He is primarily red with white stripes running vertically down his sides. His nose cone is a shiny silver and his thrusters are a dark grey. He has two small, round windows near the top that serve as his eyes, which are always wide and curious.",
+      "clothing": null,
+      "distinctive_features": "Roco's distinctive features include his bright red color, his white stripes, and his silver nose cone. His round windows as eyes give him a friendly and approachable appearance.",
+      "personality_traits": "Roco's wide and curious eyes reflect his adventurous and inquisitive nature. His shiny nose cone and well-kept appearance suggest he takes pride in his explorations and is always ready for a new adventure."
+    },
+    {
+      "name": "Alfi",
+      "species": "Alien",
+      "physical_description": "Alfi is a friendly alien with bright green skin. He is medium-sized, with a round body, long, thin arms, and three fingers on each hand. His eyes are large and round, glowing with a soft blue light. His head is slightly larger than his body, with two small antennae sticking out from the top. His feet are small and round, with three toes each.",
+      "clothing": "Alfi wears a silver spacesuit with a large, round glass helmet that allows his antennae to stick out. The suit is adorned with various patches representing different galaxies and star systems he has visited.",
+      "distinctive_features": "Alfi's bright green skin, large blue eyes, and antennae are his most distinctive features. His friendly smile is also a key aspect of his character.",
+      "personality_traits": "Alfi's intelligence and friendliness are evident in his appearance. His eyes have a curious and knowledgeable sparkle, and his constant smile shows his friendly nature."
+    }
+  ],
+  "image_prompts": [],
+  "created_at": "2026-01-21T16:37:58.646346",
+  "updated_at": "2026-01-21T16:37:58.646350"
+}

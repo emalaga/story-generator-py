@@ -6,6 +6,15 @@ let currentTab = 'text-generation';
 // ===== API Base URL =====
 const API_BASE = '/api';
 
+// ===== Image URL Helper =====
+// Converts local_image_path to API URL, or falls back to original URL
+function getImageUrl(localPath, fallbackUrl) {
+    if (localPath) {
+        return `${API_BASE}/${localPath}`;  // Convert 'images/...' to '/api/images/...'
+    }
+    return fallbackUrl;
+}
+
 // ===== DOM Elements =====
 const storyForm = document.getElementById('story-form');
 const generateBtn = document.getElementById('generate-btn');
@@ -53,8 +62,10 @@ function switchTab(tabName) {
 
     currentTab = tabName;
 
-    // Update image generation tab if story exists
-    if (tabName === 'image-generation') {
+    // Update tabs based on which one is selected
+    if (tabName === 'visual-consistency') {
+        updateVisualConsistencyTab();
+    } else if (tabName === 'image-generation') {
         updateImageGenerationTab();
     }
 }
@@ -91,8 +102,9 @@ function updateImageGenerationTab() {
             <div class="image-page-content">
                 <div class="image-preview-section">
                     <div id="page-${page.page_number}-image-preview">
-                        ${page.image_url
-                            ? `<img src="${page.image_url}" alt="Page ${page.page_number} illustration">`
+                        ${(page.local_image_path || page.image_url)
+                            ? `<img src="${getImageUrl(page.local_image_path, page.image_url)}" alt="Page ${page.page_number} illustration">
+                               <button class="btn-small save-image-btn" onclick="savePageImage(${page.page_number})">Save Image</button>`
                             : '<div class="image-placeholder">No image generated yet</div>'
                         }
                     </div>
@@ -115,7 +127,7 @@ function updateImageGenerationTab() {
                     </div>
                     <div class="image-actions">
                         <button class="btn-small" onclick="generatePageImage(${page.page_number})">
-                            ${page.image_url ? 'Regenerate' : 'Generate'} Image
+                            ${(page.local_image_path || page.image_url) ? 'Regenerate' : 'Generate'} Image
                         </button>
                     </div>
                 </div>
@@ -149,7 +161,7 @@ function populateFormFields() {
     populateSelect('age-group', parameters.age_groups, defaults.age_group);
     populateSelect('complexity', parameters.complexities, defaults.complexity);
     populateSelect('vocabulary', parameters.vocabulary_levels, defaults.vocabulary_diversity);
-    populateSelect('num-pages', parameters.page_counts, defaults.num_pages);
+    // num-pages is now a text input, not a dropdown
     populateSelect('genre', parameters.genres, defaults.genre);
     populateSelect('art-style', parameters.art_styles, defaults.art_style);
 }
@@ -190,6 +202,7 @@ async function handleStoryGeneration(e) {
         complexity: formData.get('complexity'),
         vocabulary_diversity: formData.get('vocabulary_diversity'),
         num_pages: parseInt(formData.get('num_pages')),
+        words_per_page: parseInt(formData.get('words_per_page')) || 50,
         genre: formData.get('genre'),
         art_style: formData.get('art_style'),
     };
@@ -226,6 +239,9 @@ async function handleStoryGeneration(e) {
         console.log('Story ID:', currentStory.id);
         console.log('Characters:', currentStory.characters);
         console.log('Number of characters:', (currentStory.characters || []).length);
+
+        // Reset Visual Consistency tab for new story
+        resetVisualConsistencyTab();
 
         displayStory(currentStory);
         hideLoading();
@@ -340,10 +356,12 @@ async function generateImagePrompt(pageNumber) {
     }
 
     try {
-        // Build the prompt using the character profiles and scene description
+        // Build the prompt using the character profiles, art bible, character references, and scene description
         const scene_description = page.text;
         const character_profiles = currentStory.characters || [];
         const art_style = currentStory.metadata.art_style || 'cartoon';
+        const art_bible = currentStory.art_bible || null;
+        const character_references = currentStory.character_references || null;
 
         // Call API to generate the prompt
         const response = await fetch(`${API_BASE}/prompts/image`, {
@@ -354,7 +372,9 @@ async function generateImagePrompt(pageNumber) {
             body: JSON.stringify({
                 scene_description: scene_description,
                 character_profiles: character_profiles,
-                art_style: art_style
+                art_style: art_style,
+                art_bible: art_bible,
+                character_references: character_references
             }),
         });
 
@@ -400,7 +420,9 @@ async function generatePageImage(pageNumber) {
         const requestData = {
             scene_description: page.text,
             character_profiles: currentStory.characters || [],
-            art_style: currentStory.metadata.art_style || 'cartoon'
+            art_style: currentStory.metadata.art_style || 'cartoon',
+            art_bible: currentStory.art_bible || null,
+            character_references: currentStory.character_references || null
         };
 
         const response = await fetch(`${API_BASE}/images/stories/${currentStory.id}/pages/${pageNumber}`, {
@@ -424,11 +446,17 @@ async function generatePageImage(pageNumber) {
         // Update the display
         const previewSection = document.getElementById(`page-${pageNumber}-image-preview`);
         if (previewSection) {
-            previewSection.innerHTML = `<img src="${result.image_url}" alt="Page ${pageNumber} illustration">`;
+            previewSection.innerHTML = `
+                <img src="${result.image_url}" alt="Page ${pageNumber} illustration">
+                <button class="btn-small save-image-btn" onclick="savePageImage(${pageNumber})">Save Image</button>
+            `;
         }
 
         // Hide loading indicator
         loadingDiv.classList.add('hidden');
+
+        // Auto-save the image immediately (OpenAI URLs expire quickly)
+        await savePageImage(pageNumber);
     } catch (error) {
         loadingDiv.classList.add('hidden');
         showError(`Failed to generate image for page ${pageNumber}: ${error.message}`);
@@ -488,38 +516,42 @@ async function loadProjects() {
         const response = await fetch(`${API_BASE}/projects`);
         if (!response.ok) throw new Error('Failed to load projects');
 
-        const projectIds = await response.json();
-        displayProjects(projectIds);
+        const projects = await response.json();
+        displayProjects(projects);
     } catch (error) {
         showError('Failed to load projects: ' + error.message);
     }
 }
 
 // ===== Display Projects =====
-function displayProjects(projectIds) {
+function displayProjects(projects) {
     const projectsList = document.getElementById('projects-list');
 
-    if (projectIds.length === 0) {
+    if (projects.length === 0) {
         projectsList.innerHTML = '<p>No saved projects yet.</p>';
         return;
     }
 
     projectsList.innerHTML = '';
-    projectIds.forEach(id => {
+    projects.forEach(project => {
         const projectDiv = document.createElement('div');
         projectDiv.className = 'project-item';
+
+        // Format creation date
+        const createdDate = project.created_at ? new Date(project.created_at).toLocaleDateString() : 'Unknown';
+
         projectDiv.innerHTML = `
             <div class="project-info">
-                <h4>Project: ${id}</h4>
-                <p>Click to load</p>
+                <h4>${project.title || 'Untitled'}</h4>
+                <p class="project-date">Created: ${createdDate}</p>
             </div>
             <div class="project-actions">
-                <button class="btn-delete" onclick="deleteProject('${id}')">Delete</button>
+                <button class="btn-delete" onclick="deleteProject('${project.id}')">Delete</button>
             </div>
         `;
         projectDiv.onclick = (e) => {
             if (!e.target.classList.contains('btn-delete')) {
-                loadProject(id);
+                loadProject(project.id);
             }
         };
         projectsList.appendChild(projectDiv);
@@ -534,6 +566,10 @@ async function loadProject(projectId) {
 
         const project = await response.json();
         currentStory = project.story;
+
+        // Reset Visual Consistency tab for loaded project
+        resetVisualConsistencyTab();
+
         displayStory(currentStory);
         switchTab('text-generation');
     } catch (error) {
@@ -581,4 +617,521 @@ function showError(message) {
 
 function hideError() {
     errorDiv.classList.add('hidden');
+}
+
+// ===== VISUAL CONSISTENCY TAB FUNCTIONS =====
+
+function resetVisualConsistencyTab() {
+    // Clear art bible data
+    if (currentStory && currentStory.art_bible) {
+        currentStory.art_bible = null;
+    }
+
+    // Clear character references
+    if (currentStory && currentStory.character_references) {
+        currentStory.character_references = [];
+    }
+
+    // Clear any displayed prompts and images in the UI
+    const artBiblePrompt = document.getElementById('art-bible-prompt');
+    const artBibleImagePreview = document.getElementById('art-bible-image-preview');
+    if (artBiblePrompt) artBiblePrompt.value = '';
+    if (artBibleImagePreview) artBibleImagePreview.innerHTML = '';
+}
+
+function updateVisualConsistencyTab() {
+    const noStoryDiv = document.getElementById('visual-no-story');
+    const contentDiv = document.getElementById('visual-content');
+
+    if (!currentStory || !currentStory.characters || currentStory.characters.length === 0) {
+        noStoryDiv.classList.remove('hidden');
+        contentDiv.classList.add('hidden');
+        return;
+    }
+
+    noStoryDiv.classList.add('hidden');
+    contentDiv.classList.remove('hidden');
+
+    // Update story info bar
+    const infoBar = document.getElementById('visual-story-info');
+    infoBar.innerHTML = `
+        <h3>${currentStory.metadata.title}</h3>
+        <p>Art Style: ${currentStory.metadata.art_style || 'cartoon'} &bull; ${currentStory.characters.length} character(s)</p>
+    `;
+
+    // Setup art bible section
+    setupArtBibleSection();
+
+    // Setup character references
+    setupCharacterReferences();
+}
+
+function setupArtBibleSection() {
+    // Display existing art bible if available
+    if (currentStory.art_bible) {
+        const artBible = currentStory.art_bible;
+
+        // Show art bible section if there's a prompt
+        if (artBible.prompt) {
+            document.getElementById('art-bible-section').classList.remove('hidden');
+            document.getElementById('art-bible-prompt').value = artBible.prompt;
+        }
+
+        // Display existing art bible image
+        if (artBible.local_image_path || artBible.image_url) {
+            const previewDiv = document.getElementById('art-bible-preview');
+            previewDiv.classList.remove('hidden');
+            previewDiv.innerHTML = `
+                <img src="${getImageUrl(artBible.local_image_path, artBible.image_url)}" alt="Art Bible Reference">
+                <button class="btn-small save-image-btn" onclick="saveArtBibleImage()">Save Image</button>
+                <p>Art Bible reference loaded.</p>
+            `;
+        }
+    }
+
+    // Setup event listeners for art bible
+    const generatePromptBtn = document.getElementById('generate-art-bible-prompt-btn');
+    const generateImageBtn = document.getElementById('generate-art-bible-image-btn');
+    const uploadBtn = document.getElementById('upload-art-bible-btn');
+
+    // Generate art bible prompt
+    generatePromptBtn.onclick = async () => {
+        try {
+            const response = await fetch(`${API_BASE}/visual-consistency/art-bible/generate-prompt`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    art_style: currentStory.metadata.art_style || 'cartoon',
+                    genre: currentStory.metadata.genre,
+                    story_title: currentStory.metadata.title
+                }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to generate prompt');
+            }
+
+            const result = await response.json();
+
+            // Show art bible section and populate prompt
+            document.getElementById('art-bible-section').classList.remove('hidden');
+            document.getElementById('art-bible-prompt').value = result.prompt;
+
+            // Store art bible in story if not present
+            if (!currentStory.art_bible) {
+                currentStory.art_bible = {
+                    prompt: result.prompt,
+                    art_style: result.art_style
+                };
+            }
+
+        } catch (error) {
+            showError(`Failed to generate art bible prompt: ${error.message}`);
+        }
+    };
+
+    // Generate art bible image
+    generateImageBtn.onclick = async () => {
+        const prompt = document.getElementById('art-bible-prompt').value;
+        if (!prompt) {
+            showError('Please generate or enter an art bible prompt first');
+            return;
+        }
+
+        const loadingDiv = document.getElementById('art-bible-loading');
+        loadingDiv.classList.remove('hidden');
+
+        try {
+            const response = await fetch(`${API_BASE}/visual-consistency/art-bible/generate-image`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    prompt: prompt,
+                    art_style: currentStory.metadata.art_style || 'cartoon'
+                }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to generate image');
+            }
+
+            const result = await response.json();
+
+            // Update art bible with image URL
+            if (!currentStory.art_bible) {
+                currentStory.art_bible = {};
+            }
+            currentStory.art_bible.image_url = result.image_url;
+            currentStory.art_bible.prompt = prompt;
+
+            // Display art bible image
+            const previewDiv = document.getElementById('art-bible-preview');
+            previewDiv.classList.remove('hidden');
+            previewDiv.innerHTML = `
+                <img src="${result.image_url}" alt="Art Bible Reference">
+                <button class="btn-small save-image-btn" onclick="saveArtBibleImage()">Save Image</button>
+                <p>Art Bible generated successfully! This will be used as a style reference for all story illustrations.</p>
+            `;
+
+            loadingDiv.classList.add('hidden');
+
+            // Auto-save the image immediately (OpenAI URLs expire quickly)
+            await saveArtBibleImage();
+
+        } catch (error) {
+            loadingDiv.classList.add('hidden');
+            showError(`Failed to generate art bible image: ${error.message}`);
+        }
+    };
+
+    // Upload custom art bible (placeholder for now)
+    uploadBtn.onclick = () => {
+        alert('Image upload functionality coming soon! For now, please use the generated art bible.');
+    };
+}
+
+function setupCharacterReferences() {
+    const charactersList = document.getElementById('character-references-list');
+    charactersList.innerHTML = '';
+
+    if (!currentStory.characters || currentStory.characters.length === 0) {
+        charactersList.innerHTML = '<p>No characters found in this story.</p>';
+        return;
+    }
+
+    // Initialize character_references array if not present
+    if (!currentStory.character_references) {
+        currentStory.character_references = [];
+    }
+
+    currentStory.characters.forEach((character, index) => {
+        const charCard = document.createElement('div');
+        charCard.className = 'character-ref-card';
+        charCard.id = `char-ref-${index}`;
+
+        // Find existing reference for this character
+        const existingRef = currentStory.character_references.find(
+            ref => ref.character_name === character.name
+        );
+
+        charCard.innerHTML = `
+            <h4>${character.name} (${character.species || 'Character'})</h4>
+
+            <div class="character-ref-controls">
+                <button class="btn-small" onclick="generateCharacterPrompt(${index})">
+                    Generate Reference Prompt
+                </button>
+                <button class="btn-small" onclick="uploadCharacterRef(${index})">
+                    Upload Custom Reference
+                </button>
+            </div>
+
+            <div id="char-ref-prompt-${index}" class="character-ref-prompt hidden">
+                <label>Character Reference Prompt (editable):</label>
+                <textarea id="char-prompt-${index}" class="prompt-textarea" rows="5">${existingRef ? existingRef.prompt : ''}</textarea>
+                <div class="character-options" style="margin-top: 10px;">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="use-artbible-${index}" checked>
+                        Use art bible style for this character reference
+                    </label>
+                </div>
+                <div class="image-actions" style="margin-top: 10px;">
+                    <button class="btn-small" onclick="generateCharacterImage(${index})">
+                        Generate Reference Image
+                    </button>
+                </div>
+            </div>
+
+            <div class="image-loading hidden" id="char-loading-${index}">
+                <div class="spinner-small"></div>
+                <span>Generating character reference...</span>
+            </div>
+
+            <div id="char-preview-${index}" class="character-ref-preview ${existingRef && (existingRef.local_image_path || existingRef.image_url) ? '' : 'hidden'}">
+                ${existingRef && (existingRef.local_image_path || existingRef.image_url) ? `
+                    <img src="${getImageUrl(existingRef.local_image_path, existingRef.image_url)}" alt="${character.name} Reference">
+                    <button class="btn-small save-image-btn" onclick="saveCharacterImage(${index})">Save Image</button>
+                ` : ''}
+            </div>
+        `;
+
+        charactersList.appendChild(charCard);
+    });
+}
+
+async function generateCharacterPrompt(charIndex) {
+    const character = currentStory.characters[charIndex];
+
+    try {
+        const response = await fetch(`${API_BASE}/visual-consistency/character-reference/generate-prompt`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                character: {
+                    name: character.name,
+                    species: character.species,
+                    physical_description: character.physical_description,
+                    clothing: character.clothing,
+                    distinctive_features: character.distinctive_features,
+                    personality_traits: character.personality_traits
+                },
+                art_style: currentStory.metadata.art_style || 'cartoon',
+                include_turnaround: true
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to generate prompt');
+        }
+
+        const result = await response.json();
+
+        // Show prompt section and populate it
+        document.getElementById(`char-ref-prompt-${charIndex}`).classList.remove('hidden');
+        document.getElementById(`char-prompt-${charIndex}`).value = result.prompt;
+
+        // Store in character_references
+        if (!currentStory.character_references) {
+            currentStory.character_references = [];
+        }
+
+        // Update or create character reference
+        const existingIndex = currentStory.character_references.findIndex(
+            ref => ref.character_name === character.name
+        );
+
+        if (existingIndex >= 0) {
+            currentStory.character_references[existingIndex].prompt = result.prompt;
+        } else {
+            currentStory.character_references.push({
+                character_name: character.name,
+                prompt: result.prompt,
+                species: character.species,
+                physical_description: character.physical_description
+            });
+        }
+
+    } catch (error) {
+        showError(`Failed to generate prompt for ${character.name}: ${error.message}`);
+    }
+}
+
+async function generateCharacterImage(charIndex) {
+    const character = currentStory.characters[charIndex];
+    const prompt = document.getElementById(`char-prompt-${charIndex}`).value;
+
+    if (!prompt) {
+        showError('Please generate or enter a character reference prompt first');
+        return;
+    }
+
+    // Check if we should use art bible as reference
+    const useArtBible = document.getElementById(`use-artbible-${charIndex}`).checked;
+
+    const loadingDiv = document.getElementById(`char-loading-${charIndex}`);
+    loadingDiv.classList.remove('hidden');
+
+    try {
+        // Prepare request body
+        const requestBody = {
+            prompt: prompt,
+            character_name: character.name,
+            include_turnaround: true
+        };
+
+        // Include art bible if checkbox is checked and art bible exists
+        if (useArtBible && currentStory.art_bible && currentStory.art_bible.image_url) {
+            requestBody.art_bible_url = currentStory.art_bible.image_url;
+        }
+
+        const response = await fetch(`${API_BASE}/visual-consistency/character-reference/generate-image`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to generate image');
+        }
+
+        const result = await response.json();
+
+        // Update character reference with image URL
+        const existingIndex = currentStory.character_references.findIndex(
+            ref => ref.character_name === character.name
+        );
+
+        if (existingIndex >= 0) {
+            currentStory.character_references[existingIndex].image_url = result.image_url;
+        } else {
+            currentStory.character_references.push({
+                character_name: character.name,
+                prompt: prompt,
+                image_url: result.image_url
+            });
+        }
+
+        // Display character reference image
+        const previewDiv = document.getElementById(`char-preview-${charIndex}`);
+        previewDiv.classList.remove('hidden');
+        previewDiv.innerHTML = `
+            <img src="${result.image_url}" alt="${character.name} Reference">
+            <button class="btn-small save-image-btn" onclick="saveCharacterImage(${charIndex})">Save Image</button>
+            <p>Reference image for ${character.name} generated successfully!</p>
+        `;
+
+        loadingDiv.classList.add('hidden');
+
+        // Auto-save the image immediately (OpenAI URLs expire quickly)
+        await saveCharacterImage(charIndex);
+
+    } catch (error) {
+        loadingDiv.classList.add('hidden');
+        showError(`Failed to generate image for ${character.name}: ${error.message}`);
+    }
+}
+
+function uploadCharacterRef(charIndex) {
+    alert('Image upload functionality coming soon! For now, please use the generated character references.');
+}
+
+// ===== Save Image Functions =====
+async function saveArtBibleImage() {
+    if (!currentStory || !currentStory.art_bible || !currentStory.art_bible.image_url) {
+        showError('No art bible image to save');
+        return;
+    }
+
+    try {
+        const filename = `art_bible_${Date.now()}.png`;
+
+        const response = await fetch(`${API_BASE}/images/save`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                image_url: currentStory.art_bible.image_url,
+                project_id: currentStory.id,
+                image_type: 'art_bible',
+                filename: filename
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to save image');
+        }
+
+        const result = await response.json();
+
+        // Update art bible with local path
+        currentStory.art_bible.local_image_path = result.local_path;
+
+        console.log('Art Bible image saved successfully to:', result.local_path);
+    } catch (error) {
+        showError(`Failed to save art bible image: ${error.message}`);
+    }
+}
+
+async function saveCharacterImage(charIndex) {
+    if (!currentStory || !currentStory.characters || !currentStory.characters[charIndex]) {
+        showError('Character not found');
+        return;
+    }
+
+    const character = currentStory.characters[charIndex];
+    const charRef = currentStory.character_references.find(ref => ref.character_name === character.name);
+
+    if (!charRef || !charRef.image_url) {
+        showError('No character reference image to save');
+        return;
+    }
+
+    try {
+        const filename = `character_${character.name.replace(/\s+/g, '_')}_${Date.now()}.png`;
+
+        const response = await fetch(`${API_BASE}/images/save`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                image_url: charRef.image_url,
+                project_id: currentStory.id,
+                image_type: 'character',
+                filename: filename
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to save image');
+        }
+
+        const result = await response.json();
+
+        // Update character reference with local path
+        charRef.local_image_path = result.local_path;
+
+        console.log(`Character reference image for ${character.name} saved to:`, result.local_path);
+    } catch (error) {
+        showError(`Failed to save character image: ${error.message}`);
+    }
+}
+
+async function savePageImage(pageNumber) {
+    if (!currentStory) {
+        showError('No story loaded');
+        return;
+    }
+
+    const page = currentStory.pages.find(p => p.page_number === pageNumber);
+    if (!page || !page.image_url) {
+        showError('No page image to save');
+        return;
+    }
+
+    try {
+        const filename = `page_${pageNumber}_${Date.now()}.png`;
+
+        const response = await fetch(`${API_BASE}/images/save`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                image_url: page.image_url,
+                project_id: currentStory.id,
+                image_type: 'page',
+                filename: filename
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to save image');
+        }
+
+        const result = await response.json();
+
+        // Update page with local path
+        page.local_image_path = result.local_path;
+
+        console.log(`Page ${pageNumber} image saved to:`, result.local_path);
+    } catch (error) {
+        showError(`Failed to save page image: ${error.message}`);
+    }
 }

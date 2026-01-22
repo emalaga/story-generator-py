@@ -1,0 +1,71 @@
+{
+  "id": "9dcd55c9-1969-4710-9fc5-929d34e74853",
+  "name": "The missing piece",
+  "status": "completed",
+  "story": {
+    "id": "9dcd55c9-1969-4710-9fc5-929d34e74853",
+    "metadata": {
+      "title": "The missing piece",
+      "language": "Spanish",
+      "complexity": "beginner",
+      "vocabulary_diversity": "medium",
+      "age_group": "4-7 years",
+      "num_pages": 3,
+      "genre": "Adventure",
+      "art_style": "watercolor children's book illustration",
+      "user_prompt": "A kid is building a puzzle and starts and adventure to find a missing piece to eventually find it in an unexpected place",
+      "words_per_page": 200
+    },
+    "pages": [
+      {
+        "page_number": 1,
+        "text": "Había una vez, un niño llamado Miguel que amaba los rompecabezas. Tenía una gran colección de ellos, de todo tipo, formas y colores. Un día, decidió enfrentarse a su rompecabezas más grande y complicado, uno con mil piezas que mostraba un hermoso arco iris sobre un campo lleno de flores.\n\nDurante días, Miguel trabajó sin parar en el rompecabezas, encontrando el lugar correcto para cada pieza. Pero cuando llegó al final, notó que faltaba una pieza. ¡Oh, no! El rompecabezas estaba casi completado, pero sin la última pieza, no se vería completo.",
+        "image_url": null,
+        "image_prompt": null,
+        "local_image_path": null
+      },
+      {
+        "page_number": 2,
+        "text": "Miguel buscó por todas partes. Buscó debajo de su cama y dentro de su armario. Buscó en la cocina y debajo del sofá. Incluso miró en el jardín, pero la pieza del rompecabezas no estaba en ningún lado. Pero Miguel era un niño persistente y no estaba dispuesto a rendirse.\n\nDecidió embarcarse en una gran aventura, como un valiente pirata en busca de un tesoro perdido, para encontrar la pieza perdida. Eso significaba buscar en los lugares más inesperados. Así que, con su linterna en la mano, exploró el desván, los rincones más oscuros de la casa e incluso debajo de las escaleras.",
+        "image_url": null,
+        "image_prompt": null,
+        "local_image_path": null
+      },
+      {
+        "page_number": 3,
+        "text": "Su búsqueda continuó sin descanso, hasta que finalmente, en el lugar más inesperado, encontró la pieza perdida. Estaba en el bolsillo de su chaqueta, que había quedado olvidada en el perchero. ¡Qué sorpresa! De todas las aventuras, la pieza había estado con él todo el tiempo.\n\nMiguel se rió al darse cuenta de esto y corrió a su habitación para completarlo. Y así, la última pieza del rompecabezas encontró su lugar, completando el hermoso arco iris. Miguel sonrió, orgulloso de su trabajo y de su persistencia.\n\nA través de esta gran aventura, Miguel aprendió que no importa lo difícil que pueda parecer una tarea, con persistencia y esfuerzo, siempre podemos encontrar una solución. Y a veces, lo que estamos buscando puede estar más cerca de lo que creemos.",
+        "image_url": null,
+        "image_prompt": null,
+        "local_image_path": null
+      }
+    ],
+    "vocabulary": [],
+    "characters": [
+      {
+        "name": "Miguel",
+        "species": "Human",
+        "physical_description": "Miguel is a 9-year-old boy with a medium build and average height for his age. He has short, curly, dark brown hair and bright green eyes that sparkle with curiosity. His skin is a warm tan color, and he has a smattering of freckles across his nose and cheeks. His hands are often seen holding a puzzle piece.",
+        "clothing": "Miguel typically wears a red and white striped t-shirt, blue jeans that are slightly worn at the knees, and a pair of comfortable, well-loved sneakers in a vibrant shade of green. He also has a small, round, silver pendant around his neck, a gift from his grandmother, which he never takes off.",
+        "distinctive_features": "Miguel's most distinctive feature is his bright green eyes, which are always full of curiosity and determination. His curly hair is also quite distinctive, as well as the silver pendant he always wears.",
+        "personality_traits": "Miguel's adventurous and persistent nature can be seen in his determined expression and the way he is often seen tackling a puzzle. His love for puzzles and adventure can also be seen in the way his eyes light up when he finds a piece that fits or when he is embarking on a new adventure."
+      }
+    ],
+    "art_bible": null,
+    "character_references": null,
+    "created_at": "2026-01-14T15:43:07.696164",
+    "updated_at": "2026-01-14T15:43:07.696187"
+  },
+  "character_profiles": [
+    {
+      "name": "Miguel",
+      "species": "Human",
+      "physical_description": "Miguel is a 9-year-old boy with a medium build and average height for his age. He has short, curly, dark brown hair and bright green eyes that sparkle with curiosity. His skin is a warm tan color, and he has a smattering of freckles across his nose and cheeks. His hands are often seen holding a puzzle piece.",
+      "clothing": "Miguel typically wears a red and white striped t-shirt, blue jeans that are slightly worn at the knees, and a pair of comfortable, well-loved sneakers in a vibrant shade of green. He also has a small, round, silver pendant around his neck, a gift from his grandmother, which he never takes off.",
+      "distinctive_features": "Miguel's most distinctive feature is his bright green eyes, which are always full of curiosity and determination. His curly hair is also quite distinctive, as well as the silver pendant he always wears.",
+      "personality_traits": "Miguel's adventurous and persistent nature can be seen in his determined expression and the way he is often seen tackling a puzzle. His love for puzzles and adventure can also be seen in the way his eyes light up when he finds a piece that fits or when he is embarking on a new adventure."
+    }
+  ],
+  "image_prompts": [],
+  "created_at": "2026-01-14T15:43:07.696217",
+  "updated_at": "2026-01-14T15:43:07.696219"
+}

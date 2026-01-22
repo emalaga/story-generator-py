@@ -81,7 +81,8 @@ def create_story():
             num_pages=data.get('num_pages', defaults.num_pages),
             genre=data.get('genre', defaults.genre),
             art_style=data.get('art_style', defaults.art_style),
-            user_prompt=data.get('custom_prompt')
+            user_prompt=data.get('custom_prompt'),
+            words_per_page=data.get('words_per_page', 50)
         )
 
         # Get optional parameters
@@ -119,6 +120,7 @@ def create_story():
                 'vocabulary_diversity': story.metadata.vocabulary_diversity,
                 'age_group': story.metadata.age_group,
                 'num_pages': story.metadata.num_pages,
+                'words_per_page': story.metadata.words_per_page,
                 'genre': story.metadata.genre,
                 'art_style': story.metadata.art_style,
                 'user_prompt': story.metadata.user_prompt
@@ -190,6 +192,7 @@ def get_story(story_id):
                 'vocabulary_diversity': metadata.vocabulary_diversity,
                 'age_group': metadata.age_group,
                 'num_pages': metadata.num_pages,
+                'words_per_page': metadata.words_per_page,
                 'genre': metadata.genre,
                 'art_style': metadata.art_style,
                 'user_prompt': metadata.user_prompt

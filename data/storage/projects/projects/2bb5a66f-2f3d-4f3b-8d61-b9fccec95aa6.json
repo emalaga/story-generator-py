@@ -1,0 +1,143 @@
+{
+  "id": "2bb5a66f-2f3d-4f3b-8d61-b9fccec95aa6",
+  "name": "The wet dog",
+  "status": "completed",
+  "story": {
+    "id": "2bb5a66f-2f3d-4f3b-8d61-b9fccec95aa6",
+    "metadata": {
+      "title": "The wet dog",
+      "language": "Spanish",
+      "complexity": "beginner",
+      "vocabulary_diversity": "medium",
+      "age_group": "4-7 years",
+      "num_pages": 3,
+      "genre": "Adventure",
+      "art_style": "watercolor children's book illustration",
+      "user_prompt": "A dog gets separated from his human family chasing a squirrel but then finds its way back home",
+      "words_per_page": 200
+    },
+    "pages": [
+      {
+        "page_number": 1,
+        "text": "Había una vez un perro llamado Manchas que amaba perseguir ardillas. Manchas vivía con su familia humana amada en una hermosa casa con un gran jardín. Un día, mientras jugaba en el jardín, vio una ardilla corriendo cerca del árbol. A Manchas siempre le encantaba el juego de corretear ardillas, así que se puso muy emocionado y comenzó a perseguirla.\n\nLa ardilla saltó por la verja del jardín y se adentró en el bosque. Sin pensar en nada más, Manchas la siguió inmediatamente. Corrió y corrió, pero la ardilla era muy rápida y pronto se perdió de vista. Cuando Manchas finalmente se detuvo, se dio cuenta de que estaba en un lugar desconocido. Había perseguido a la ardilla tan lejos que ahora estaba perdido.",
+        "image_url": "https://oaidalleapiprodscus.blob.core.windows.net/private/org-T4c8su9nHfYesFLpeVvHZBBg/user-MXgRkEiJnubwHOjtMNKenDR4/img-PwS10TSxExGlbLnm0MNQ9gn0.png?st=2026-01-14T22%3A04%3A02Z&se=2026-01-15T00%3A04%3A02Z&sp=r&sv=2024-08-04&sr=b&rscd=inline&rsct=image/png&skoid=9346e9b9-5d29-4d37-a0a9-c6f95f09f79d&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-01-14T23%3A04%3A02Z&ske=2026-01-15T23%3A04%3A02Z&sks=b&skv=2024-08-04&sig=hyNh0VL1E/kPLcvRbKnmpOrWeBKNKS51%2BEq%2BAO8r63A%3D",
+        "image_prompt": "A watercolor children's book illustration style children's book illustration. CRITICAL STYLE REQUIREMENTS: This image MUST exactly match the established art bible style - use the same line weight, shading approach, and color palette throughout. showing Manchas (MUST match character reference exactly: a Dog, Manchas is a medium-sized dog with a robust and athletic build, suitable for running and playing., Manchas' most distinctive feature is his patchy black and, Manchas' energetic and playful nature is evident in his) and Ardilla (MUST match character reference exactly: a Squirrel, Ardilla is a small, agile squirrel with a body length of about 9 inches, not including her bushy, Ardilla has a distinctive white patch on her chest in the, Ardilla's personality is evident in her alert, bright eyes) in this scene: Manchas the dog is excitedly chasing Ardilla the squirrel from his large garden into the unknown forest. Manchas' human family's beautiful house is visible in the background. Manchas looks determined . IMPORTANT: Maintain perfect visual consistency with the art bible style (exact same line weight, shading approach, and colors) and character references (exact same character appearance and outfits unless the scene explicitly requires changes like costume transformations). Vibrant colors, child-friendly, professional children's book illustration.",
+        "local_image_path": null
+      },
+      {
+        "page_number": 2,
+        "text": "Manchas miró a su alrededor y todo le pareció extraño. Se sentía asustado y solo en el gran bosque. Pero Manchas era un perro valiente. Decidió no rendirse y encontrar su camino de regreso a casa.\n\nEmpezó a caminar y a olfatear, tratando de reconocer algún olor familiar. Caminó durante horas y horas. Aunque estaba cansado y tenía hambre, no dejó de buscar su casa. Finalmente, encontró un pequeño arroyo que le resultó familiar. Le recordó al arroyo que fluía cerca de su casa. Decidió seguir el arroyo y ver a dónde lo llevaba.",
+        "image_url": null,
+        "image_prompt": null,
+        "local_image_path": null
+      },
+      {
+        "page_number": 3,
+        "text": "Siguiendo el arroyo, Manchas empezó a reconocer más y más cosas. Vio el viejo roble donde solía jugar con su pelota, el campo de margaritas donde a menudo se tumbaba a descansar y finalmente, a lo lejos, vio su querida casa.\n\nCuando llegó al jardín, su familia estaba allí, muy preocupada por él. Al verlo, todos se pusieron muy felices y corrieron a abrazarlo. Manchas también estaba muy contento de volver a casa. Prometió nunca más perseguir ardillas fuera del jardín. Aunque fue una aventura emocionante, definitivamente prefería estar en casa con su familia.\n\nY así, Manchas aprendió una gran lección ese día. Desde entonces, siempre se quedaba cerca de casa, disfrutando de sus juegos sin alejarse demasiado. Y cada vez que veía a una ardilla, simplemente la miraba correr y sonreía.",
+        "image_url": null,
+        "image_prompt": null,
+        "local_image_path": null
+      }
+    ],
+    "vocabulary": [],
+    "characters": [
+      {
+        "name": "Manchas",
+        "species": "Dog",
+        "physical_description": "Manchas is a medium-sized dog with a robust and athletic build, suitable for running and playing. His fur is a mix of black and white, with distinctive black spots scattered all over his body, hence the name 'Manchas' which means 'spots' in Spanish. His ears are floppy and his tail is long and wavy. His eyes are a bright, expressive brown, full of energy and curiosity.",
+        "clothing": null,
+        "distinctive_features": "Manchas' most distinctive feature is his patchy black and white fur. He also has a small scar on his right ear from a playful tussle when he was a puppy.",
+        "personality_traits": "Manchas' energetic and playful nature is evident in his alert eyes and perked up ears. His bravery is shown by his upright tail and confident stance. Despite his adventurous spirit, his loving and loyal personality can be seen in the way he often looks back towards his home and family."
+      },
+      {
+        "name": "Ardilla",
+        "species": "Squirrel",
+        "physical_description": "Ardilla is a small, agile squirrel with a body length of about 9 inches, not including her bushy tail which is about 7 inches long. She has soft, thick fur that is a vibrant mix of chestnut brown and soft cream. Her belly is a lighter cream color, almost white. She has round, black eyes that are full of mischief and curiosity. Her ears are small and rounded, with tufts of fur at the tips. Her paws are tiny but strong, perfect for climbing trees and holding onto nuts.",
+        "clothing": null,
+        "distinctive_features": "Ardilla has a distinctive white patch on her chest in the shape of a star. Her tail is exceptionally bushy and fluffy, making her stand out among other squirrels. She also has a small scar on her right ear from a past adventure.",
+        "personality_traits": "Ardilla's personality is evident in her alert, bright eyes and the energetic way she carries herself. She is always on the move, darting from one place to another, which shows her lively and playful nature. Her alertness and quick movements reflect her sharp instincts and intelligence."
+      },
+      {
+        "name": "Familia de Manchas",
+        "species": "Human",
+        "physical_description": "The family consists of four members: a father, mother, son, and daughter. The father is tall and has short, curly brown hair and a beard. He has a strong build and wears glasses. The mother has long, wavy blonde hair and blue eyes. She is of average height and has a slim build. The son is a teenager with short, straight brown hair and green eyes. He is of average height and has a lean build. The daughter is a young girl with long, curly blonde hair and blue eyes. She is short and has a petite build.",
+        "clothing": "The father wears a blue shirt and khaki pants. The mother wears a red dress with a white apron. The son wears a green t-shirt and black jeans. The daughter wears a pink dress with white socks and black shoes.",
+        "distinctive_features": "The father's distinctive feature is his glasses and beard. The mother's distinctive feature is her long, wavy blonde hair. The son's distinctive feature is his green eyes. The daughter's distinctive feature is her curly blonde hair.",
+        "personality_traits": "The father appears to be kind and intelligent. The mother appears to be caring and loving. The son appears to be adventurous and curious. The daughter appears to be cheerful and playful."
+      }
+    ],
+    "art_bible": {
+      "prompt": "Create a sample scene illustration in watercolor children's book illustration style for a children's book. The scene should fit a Adventure story for children. This is a reference illustration for a story titled 'The wet dog'. The scene should showcase the visual style, colors, lighting, and artistic approach that will be used throughout the book. No text, labels, color swatches, or technical diagrams. Just a beautiful example illustration that demonstrates the artistic direction.",
+      "image_url": "https://oaidalleapiprodscus.blob.core.windows.net/private/org-T4c8su9nHfYesFLpeVvHZBBg/user-MXgRkEiJnubwHOjtMNKenDR4/img-VDNLp36B09zaKX1UMSOiaIYv.png?st=2026-01-14T22%3A00%3A54Z&se=2026-01-15T00%3A00%3A54Z&sp=r&sv=2024-08-04&sr=b&rscd=inline&rsct=image/png&skoid=f1dafa11-a0c2-4092-91d4-10981fbda051&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-01-14T23%3A00%3A54Z&ske=2026-01-15T23%3A00%3A54Z&sks=b&skv=2024-08-04&sig=woeb1xhGW2ncLc1A7uBJ43DXBqizLEfJNIwar4q1mRQ%3D",
+      "local_image_path": null,
+      "art_style": "watercolor children's book illustration",
+      "style_notes": null,
+      "color_palette": null,
+      "lighting_style": null,
+      "brush_technique": null
+    },
+    "character_references": [
+      {
+        "character_name": "Manchas",
+        "prompt": "A watercolor children's book illustration style illustration of Manchas who is a Dog with this appearance: Manchas is a medium-sized dog with a robust and athletic build, suitable for running and playing. His fur is a mix of black and white, with with distinctive features: Manchas' most distinctive feature is his patchy black and white fur. He also has a small scar on showing a Manchas' energetic and playful nature is evident in his alert eyes and perked expression Create a single image of the character in a natural standing or sitting pose with a plain white background. No text, No lines, No other elements.",
+        "image_url": "https://oaidalleapiprodscus.blob.core.windows.net/private/org-T4c8su9nHfYesFLpeVvHZBBg/user-MXgRkEiJnubwHOjtMNKenDR4/img-EQktc7qaJ1yNTapo8pzESUth.png?st=2026-01-14T22%3A01%3A39Z&se=2026-01-15T00%3A01%3A39Z&sp=r&sv=2024-08-04&sr=b&rscd=inline&rsct=image/png&skoid=7daae675-7b42-4e2e-ab4c-8d8419a28d99&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-01-14T23%3A01%3A39Z&ske=2026-01-15T23%3A01%3A39Z&sks=b&skv=2024-08-04&sig=HB368Ecdc%2BmTgvZ3Oo0PqGFq8xvmwyGYnBzfjHKJAh8%3D",
+        "local_image_path": null,
+        "species": "Dog",
+        "physical_description": "Manchas is a medium-sized dog with a robust and athletic build, suitable for running and playing. His fur is a mix of black and white, with distinctive black spots scattered all over his body, hence the name 'Manchas' which means 'spots' in Spanish. His ears are floppy and his tail is long and wavy. His eyes are a bright, expressive brown, full of energy and curiosity.",
+        "clothing": null,
+        "distinctive_features": null
+      },
+      {
+        "character_name": "Ardilla",
+        "prompt": "A watercolor children's book illustration style illustration of Ardilla who is a Squirrel with this appearance: Ardilla is a small, agile squirrel with a body length of about 9 inches, not including her bushy tail which is about 7 inches long. She has soft, with distinctive features: Ardilla has a distinctive white patch on her chest in the shape of a star. Her tail is showing a Ardilla's personality is evident in her alert, bright eyes and the energetic expression Create a single image of the character in a natural standing or sitting pose with a plain white background. No text, No lines, No other elements.",
+        "image_url": "https://oaidalleapiprodscus.blob.core.windows.net/private/org-T4c8su9nHfYesFLpeVvHZBBg/user-MXgRkEiJnubwHOjtMNKenDR4/img-7ZbCe5T5pDe4O6yRoZDN5yfP.png?st=2026-01-14T22%3A02%3A19Z&se=2026-01-15T00%3A02%3A19Z&sp=r&sv=2024-08-04&sr=b&rscd=inline&rsct=image/png&skoid=ed3ea2f9-5e38-44be-9a1b-7c1e65e4d54f&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-01-14T23%3A02%3A19Z&ske=2026-01-15T23%3A02%3A19Z&sks=b&skv=2024-08-04&sig=hYGXgerjkxq7SGPoyPoW%2BiaLe4cZ8FQ48JRbqRhzMUc%3D",
+        "local_image_path": null,
+        "species": "Squirrel",
+        "physical_description": "Ardilla is a small, agile squirrel with a body length of about 9 inches, not including her bushy tail which is about 7 inches long. She has soft, thick fur that is a vibrant mix of chestnut brown and soft cream. Her belly is a lighter cream color, almost white. She has round, black eyes that are full of mischief and curiosity. Her ears are small and rounded, with tufts of fur at the tips. Her paws are tiny but strong, perfect for climbing trees and holding onto nuts.",
+        "clothing": null,
+        "distinctive_features": null
+      },
+      {
+        "character_name": "Familia de Manchas",
+        "prompt": "A watercolor children's book illustration style illustration of Familia de Manchas who is a Human with this appearance: The family consists of four members: a father, mother, son, and daughter. The father is tall and has short, curly brown hair and a beard. He has a wearing The father wears a blue shirt and khaki pants. The mother wears a red dress with a white apron. The with distinctive features: The father's distinctive feature is his glasses and beard. The mother's distinctive feature is her showing a The father appears to be kind and intelligent. The mother appears to be caring expression Create a single image of the character in a natural standing or sitting pose with a plain white background. No text, No lines, No other elements.",
+        "image_url": "https://oaidalleapiprodscus.blob.core.windows.net/private/org-T4c8su9nHfYesFLpeVvHZBBg/user-MXgRkEiJnubwHOjtMNKenDR4/img-U5ME0G0TUQoDg61FSsnkaG0b.png?st=2026-01-14T22%3A03%3A12Z&se=2026-01-15T00%3A03%3A12Z&sp=r&sv=2024-08-04&sr=b&rscd=inline&rsct=image/png&skoid=f1dafa11-a0c2-4092-91d4-10981fbda051&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-01-14T22%3A28%3A31Z&ske=2026-01-15T22%3A28%3A31Z&sks=b&skv=2024-08-04&sig=nxbg7cuMiTIZsV2KI6lOJSbKB5kMBQr%2BiteulSTRpG4%3D",
+        "local_image_path": null,
+        "species": "Human",
+        "physical_description": "The family consists of four members: a father, mother, son, and daughter. The father is tall and has short, curly brown hair and a beard. He has a strong build and wears glasses. The mother has long, wavy blonde hair and blue eyes. She is of average height and has a slim build. The son is a teenager with short, straight brown hair and green eyes. He is of average height and has a lean build. The daughter is a young girl with long, curly blonde hair and blue eyes. She is short and has a petite build.",
+        "clothing": null,
+        "distinctive_features": null
+      }
+    ],
+    "created_at": "2026-01-14T15:05:53.643789",
+    "updated_at": "2026-01-14T15:05:53.643804"
+  },
+  "character_profiles": [
+    {
+      "name": "Manchas",
+      "species": "Dog",
+      "physical_description": "Manchas is a medium-sized dog with a robust and athletic build, suitable for running and playing. His fur is a mix of black and white, with distinctive black spots scattered all over his body, hence the name 'Manchas' which means 'spots' in Spanish. His ears are floppy and his tail is long and wavy. His eyes are a bright, expressive brown, full of energy and curiosity.",
+      "clothing": null,
+      "distinctive_features": "Manchas' most distinctive feature is his patchy black and white fur. He also has a small scar on his right ear from a playful tussle when he was a puppy.",
+      "personality_traits": "Manchas' energetic and playful nature is evident in his alert eyes and perked up ears. His bravery is shown by his upright tail and confident stance. Despite his adventurous spirit, his loving and loyal personality can be seen in the way he often looks back towards his home and family."
+    },
+    {
+      "name": "Ardilla",
+      "species": "Squirrel",
+      "physical_description": "Ardilla is a small, agile squirrel with a body length of about 9 inches, not including her bushy tail which is about 7 inches long. She has soft, thick fur that is a vibrant mix of chestnut brown and soft cream. Her belly is a lighter cream color, almost white. She has round, black eyes that are full of mischief and curiosity. Her ears are small and rounded, with tufts of fur at the tips. Her paws are tiny but strong, perfect for climbing trees and holding onto nuts.",
+      "clothing": null,
+      "distinctive_features": "Ardilla has a distinctive white patch on her chest in the shape of a star. Her tail is exceptionally bushy and fluffy, making her stand out among other squirrels. She also has a small scar on her right ear from a past adventure.",
+      "personality_traits": "Ardilla's personality is evident in her alert, bright eyes and the energetic way she carries herself. She is always on the move, darting from one place to another, which shows her lively and playful nature. Her alertness and quick movements reflect her sharp instincts and intelligence."
+    },
+    {
+      "name": "Familia de Manchas",
+      "species": "Human",
+      "physical_description": "The family consists of four members: a father, mother, son, and daughter. The father is tall and has short, curly brown hair and a beard. He has a strong build and wears glasses. The mother has long, wavy blonde hair and blue eyes. She is of average height and has a slim build. The son is a teenager with short, straight brown hair and green eyes. He is of average height and has a lean build. The daughter is a young girl with long, curly blonde hair and blue eyes. She is short and has a petite build.",
+      "clothing": "The father wears a blue shirt and khaki pants. The mother wears a red dress with a white apron. The son wears a green t-shirt and black jeans. The daughter wears a pink dress with white socks and black shoes.",
+      "distinctive_features": "The father's distinctive feature is his glasses and beard. The mother's distinctive feature is her long, wavy blonde hair. The son's distinctive feature is his green eyes. The daughter's distinctive feature is her curly blonde hair.",
+      "personality_traits": "The father appears to be kind and intelligent. The mother appears to be caring and loving. The son appears to be adventurous and curious. The daughter appears to be cheerful and playful."
+    }
+  ],
+  "image_prompts": [],
+  "created_at": "2026-01-14T15:05:53.643861",
+  "updated_at": "2026-01-14T15:05:53.643864"
+}

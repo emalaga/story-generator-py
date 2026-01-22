@@ -206,7 +206,8 @@ def create_app(config: AppConfig = None) -> Flask:
     app.config['SERVICES'] = {
         'story_generator': story_generator,
         'image_generator': image_generator,
-        'project_orchestrator': project_orchestrator
+        'project_orchestrator': project_orchestrator,
+        'image_client': image_client
     }
 
     # Store prompt builder for prompt generation API
@@ -250,12 +251,14 @@ def create_app(config: AppConfig = None) -> Flask:
     from src.routes.config_routes import config_bp
     from src.routes.image_routes import image_bp
     from src.routes.prompt_routes import prompt_bp
+    from src.routes.visual_consistency_routes import visual_bp
 
     app.register_blueprint(story_bp, url_prefix='/api/stories')
     app.register_blueprint(project_bp, url_prefix='/api/projects')
     app.register_blueprint(config_bp, url_prefix='/api/config')
     app.register_blueprint(image_bp, url_prefix='/api/images')
     app.register_blueprint(prompt_bp, url_prefix='/api/prompts')
+    app.register_blueprint(visual_bp, url_prefix='/api/visual-consistency')
 
     return app
 

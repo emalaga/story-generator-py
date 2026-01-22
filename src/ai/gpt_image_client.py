@@ -3,12 +3,16 @@ GPT-Image Client for generating images using OpenAI's GPT-Image model.
 
 This client interfaces with OpenAI's Image Generation API to create
 illustrations for story pages using the gpt-image-1 model.
+Supports both image generation and image editing with reference images.
 """
 
 import httpx
 import os
 import asyncio
-from typing import Optional
+import base64
+from typing import Optional, List, Union
+from pathlib import Path
+from io import BytesIO
 
 from src.ai.base_client import BaseImageClient
 from src.models.config import OpenAIConfig
@@ -50,6 +54,9 @@ class GPTImageClient(BaseImageClient):
                 - quality (str): "standard" or "hd"
                 - style (str): "vivid" or "natural"
                 - n (int): Number of images to generate (default: 1)
+                - input_fidelity (str): "low", "medium", or "high" (default: "high")
+                                       Controls how closely the model follows prompt details.
+                                       "high" provides maximum consistency with the prompt.
 
         Returns:
             URL to the generated image
@@ -76,8 +83,11 @@ class GPTImageClient(BaseImageClient):
         # Add optional quality and style parameters
         if 'quality' in kwargs:
             request_data['quality'] = kwargs['quality']
-        if 'style' in kwargs:
-            request_data['style'] = kwargs['style']
+
+        # Use 'natural' style for better consistency with detailed prompts
+        # 'natural' is less dramatic and creative than 'vivid', making it more likely
+        # to follow the specific details in the prompt accurately
+        request_data['style'] = kwargs.get('style', 'natural')
 
         # Prepare headers with API key
         headers = {
@@ -154,3 +164,149 @@ class GPTImageClient(BaseImageClient):
             except Exception as e:
                 # Unexpected errors
                 raise httpx.HTTPError(f"Unexpected error calling GPT-Image API: {str(e)}")
+
+    async def generate_image_with_references(
+        self,
+        prompt: str,
+        reference_image_urls: List[str],
+        **kwargs
+    ) -> str:
+        """
+        Generate an image using GPT-Image edits endpoint with reference images.
+
+        This method uses the images.edits endpoint which accepts reference images
+        to maintain visual consistency across illustrations.
+
+        Args:
+            prompt: The text prompt for image generation
+            reference_image_urls: List of URLs to reference images (art bible, character refs)
+            **kwargs: Additional parameters:
+                - size (str): Image size (e.g., "1024x1024", "1024x1792", "1792x1024")
+                - quality (str): "standard" or "hd"
+
+        Returns:
+            URL to the generated image
+
+        Raises:
+            httpx.HTTPError: If the API request fails after retries
+            ValueError: If API key is missing or no reference images provided
+        """
+        if not self.api_key:
+            raise ValueError(
+                "OpenAI API key not found. Please set OPENAI_API_KEY in your .env file"
+            )
+
+        if not reference_image_urls:
+            raise ValueError("At least one reference image URL must be provided")
+
+        # Download reference images
+        reference_images_data = []
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            for url in reference_image_urls:
+                try:
+                    response = await client.get(url)
+                    if response.status_code == 200:
+                        reference_images_data.append(response.content)
+                    else:
+                        print(f"Warning: Failed to download reference image from {url}")
+                        print(f"  Status code: {response.status_code}")
+                        print(f"  Response: {response.text[:200]}")
+                except Exception as e:
+                    print(f"Warning: Error downloading reference image: {e}")
+                    import traceback
+                    traceback.print_exc()
+
+        if not reference_images_data:
+            raise ValueError("Failed to download any reference images")
+
+        # Prepare multipart form data for images.edits endpoint
+        files = []
+        for i, img_data in enumerate(reference_images_data):
+            files.append(('image', (f'ref_{i}.png', img_data, 'image/png')))
+
+        # Build form data
+        data = {
+            'model': self.model,
+            'prompt': prompt,
+            'size': kwargs.get('size', '1024x1024'),
+            'response_format': 'url'  # Can be 'url' or 'b64_json'
+        }
+
+        # Add optional quality parameter
+        if 'quality' in kwargs:
+            data['quality'] = kwargs['quality']
+
+        # Prepare headers with API key (no Content-Type for multipart)
+        headers = {
+            "Authorization": f"Bearer {self.api_key}"
+        }
+
+        # Retry logic for transient server errors
+        max_retries = 3
+        retry_delay = 2  # seconds
+
+        for attempt in range(max_retries):
+            try:
+                # Make API request to images.edits endpoint
+                async with httpx.AsyncClient(timeout=self.timeout) as client:
+                    response = await client.post(
+                        f"{self.API_BASE_URL}/images/edits",
+                        headers=headers,
+                        data=data,
+                        files=files
+                    )
+
+                    # Check for errors
+                    if response.status_code == 200:
+                        # Success! Parse response
+                        response_data = response.json()
+
+                        # API returns an array of image objects
+                        if 'data' not in response_data or len(response_data['data']) == 0:
+                            raise ValueError("No image was generated by GPT-Image edits")
+
+                        image_url = response_data['data'][0]['url']
+                        return image_url
+
+                    # Handle different error types
+                    error_detail = response.text
+                    try:
+                        error_json = response.json()
+                        if 'error' in error_json and 'message' in error_json['error']:
+                            error_detail = error_json['error']['message']
+                    except:
+                        pass
+
+                    # Retry on server errors (500-599)
+                    if 500 <= response.status_code < 600:
+                        if attempt < max_retries - 1:
+                            print(f"GPT-Image edits server error (attempt {attempt + 1}/{max_retries}). Retrying in {retry_delay}s...")
+                            await asyncio.sleep(retry_delay)
+                            retry_delay *= 2  # Exponential backoff
+                            continue
+                        else:
+                            raise httpx.HTTPError(
+                                f"GPT-Image edits API error after {max_retries} attempts: {response.status_code} - {error_detail}"
+                            )
+
+                    # Don't retry on client errors (400-499)
+                    raise httpx.HTTPError(
+                        f"GPT-Image edits API error: {response.status_code} - {error_detail}"
+                    )
+
+            except httpx.TimeoutException as e:
+                if attempt < max_retries - 1:
+                    print(f"GPT-Image edits timeout (attempt {attempt + 1}/{max_retries}). Retrying in {retry_delay}s...")
+                    await asyncio.sleep(retry_delay)
+                    retry_delay *= 2
+                    continue
+                else:
+                    raise httpx.HTTPError(f"GPT-Image edits API timeout after {max_retries} attempts")
+
+            except httpx.HTTPError:
+                # Re-raise HTTP errors without retry (already handled above)
+                raise
+
+            except Exception as e:
+                # Unexpected errors
+                raise httpx.HTTPError(f"Unexpected error calling GPT-Image edits API: {str(e)}")

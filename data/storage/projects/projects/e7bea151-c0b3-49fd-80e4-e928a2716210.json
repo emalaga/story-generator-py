@@ -1,0 +1,85 @@
+{
+  "id": "e7bea151-c0b3-49fd-80e4-e928a2716210",
+  "name": "The little caterpillar",
+  "status": "completed",
+  "story": {
+    "id": "e7bea151-c0b3-49fd-80e4-e928a2716210",
+    "metadata": {
+      "title": "The little caterpillar",
+      "language": "Spanish",
+      "complexity": "beginner",
+      "vocabulary_diversity": "medium",
+      "age_group": "4-7 years",
+      "num_pages": 3,
+      "genre": "Adventure",
+      "art_style": "watercolor children's book illustration",
+      "user_prompt": "The story of a little worm getting lost and finding its way back home"
+    },
+    "pages": [
+      {
+        "page_number": 1,
+        "text": "Había una vez un pequeño gusano llamado Timoteo. A Timoteo le encantaba explorar, y un día decidió aventurarse más allá de su hogar en la manzana.",
+        "image_url": "https://oaidalleapiprodscus.blob.core.windows.net/private/org-T4c8su9nHfYesFLpeVvHZBBg/user-MXgRkEiJnubwHOjtMNKenDR4/img-5hIaBEAH8A2hZPP68CfiiGPa.png?st=2026-01-14T21%3A13%3A39Z&se=2026-01-14T23%3A13%3A39Z&sp=r&sv=2024-08-04&sr=b&rscd=inline&rsct=image/png&skoid=8b33a531-2df9-46a3-bc02-d4b1430a422c&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-01-14T22%3A13%3A39Z&ske=2026-01-15T22%3A13%3A39Z&sks=b&skv=2024-08-04&sig=mQXXuMzKAFRjmgo/oXPs7ZZqO6NSFlyHEaP5wKOBdYg%3D",
+        "image_prompt": "A watercolor children's book illustration style children's book illustration. CRITICAL STYLE REQUIREMENTS: This image MUST exactly match the established art bible style - use the same line weight, shading approach, and color palette throughout. showing Timoteo (MUST match character reference exactly: a Worm, Timoteo is a small worm, about 2 inches long. He has a soft, segmented body that is a vibrant shade, Timoteo's vibrant green color makes him stand out. His eyes, Timoteo's large, sparkling eyes and permanent smile reflect) in this scene: Timoteo the worm is venturing out of his home inside an apple, showing a sense of curiosity and excitement.. IMPORTANT: Maintain perfect visual consistency with the art bible style (exact same line weight, shading approach, and color palette) and character references (exact same character appearance and outfits unless the scene explicitly requires changes like costume transformations). Vibrant colors, child-friendly, professional children's book illustration."
+      },
+      {
+        "page_number": 2,
+        "text": "Pero pronto Timoteo se perdió. Estaba asustado, pero sabía que tenía que ser valiente. \"No voy a dejar que el miedo me detenga\", se dijo a sí mismo.",
+        "image_url": "https://oaidalleapiprodscus.blob.core.windows.net/private/org-T4c8su9nHfYesFLpeVvHZBBg/user-MXgRkEiJnubwHOjtMNKenDR4/img-sAkJfVAqHtwZgbUtnP15L8gU.png?st=2026-01-14T21%3A15%3A18Z&se=2026-01-14T23%3A15%3A18Z&sp=r&sv=2024-08-04&sr=b&rscd=inline&rsct=image/png&skoid=13da7400-b3f7-4f8c-9cba-908fecbd114c&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-01-14T22%3A15%3A18Z&ske=2026-01-15T22%3A15%3A18Z&sks=b&skv=2024-08-04&sig=9M6YJ2diJG4RPvF%2BcGQtiZMmEXz3xStCeOWQoKOeVJ0%3D",
+        "image_prompt": "A watercolor children's book illustration style children's book illustration. CRITICAL STYLE REQUIREMENTS: This image MUST exactly match the established art bible style - use the same line weight, shading approach, and color palette throughout. showing Timoteo (MUST match character reference exactly: a Worm, Timoteo is a small worm, about 2 inches long. He has a soft, segmented body that is a vibrant shade, Timoteo's vibrant green color makes him stand out. His eyes, Timoteo's large, sparkling eyes and permanent smile reflect) in this scene: Timoteo the worm appears lost and scared in an unfamiliar environment. Despite his fear, he shows determination, symbolizing his bravery.. IMPORTANT: Maintain perfect visual consistency with the art bible style (exact same line weight, shading approach, and color palette) and character references (exact same character appearance and outfits unless the scene explicitly requires changes like costume transformations). Vibrant colors, child-friendly, professional children's book illustration."
+      },
+      {
+        "page_number": 3,
+        "text": "Con valentía, Timoteo siguió adelante hasta que finalmente reconoció el camino de vuelta a casa. Cuando llegó, se sintió aliviado y orgulloso. Desde aquel día, Timoteo siempre recordó ser valiente, incluso cuando las cosas se ponían difíciles.",
+        "image_url": "https://oaidalleapiprodscus.blob.core.windows.net/private/org-T4c8su9nHfYesFLpeVvHZBBg/user-MXgRkEiJnubwHOjtMNKenDR4/img-Jk4KL5xFuLu6u2oDf17w4Zzg.png?st=2026-01-14T21%3A17%3A37Z&se=2026-01-14T23%3A17%3A37Z&sp=r&sv=2024-08-04&sr=b&rscd=inline&rsct=image/png&skoid=7daae675-7b42-4e2e-ab4c-8d8419a28d99&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-01-14T22%3A17%3A37Z&ske=2026-01-15T22%3A17%3A37Z&sks=b&skv=2024-08-04&sig=7TyPD/BBpOZJdPDayQx1SWB4tsZSbsoxl%2BGCjZSzQRE%3D",
+        "image_prompt": "A watercolor children's book illustration style children's book illustration. CRITICAL STYLE REQUIREMENTS: This image MUST exactly match the established art bible style - use the same line weight, shading approach, and color palette throughout. showing Timoteo (MUST match character reference exactly: a Worm, Timoteo is a small worm, about 2 inches long. He has a soft, segmented body that is a vibrant shade, Timoteo's vibrant green color makes him stand out. His eyes, Timoteo's large, sparkling eyes and permanent smile reflect) in this scene: Timoteo the worm, looking relieved and proud, arrives at his home after a courageous journey. The path leading to his home is recognizable in the background.. IMPORTANT: Maintain perfect visual consistency with the art bible style (exact same line weight, shading approach, and color palette) and character references (exact same character appearance and outfits unless the scene explicitly requires changes like costume transformations). Vibrant colors, child-friendly, professional children's book illustration."
+      }
+    ],
+    "vocabulary": [],
+    "characters": [
+      {
+        "name": "Timoteo",
+        "species": "Worm",
+        "physical_description": "Timoteo is a small worm, about 2 inches long. He has a soft, segmented body that is a vibrant shade of green. His body tapers at both ends, with the head end slightly wider than the tail. He has two tiny, round black eyes that sparkle with curiosity.",
+        "clothing": null,
+        "distinctive_features": "Timoteo's vibrant green color makes him stand out. His eyes are larger than those of a typical worm, giving him an expressive and endearing look. He also has a small, permanent smile on his face.",
+        "personality_traits": "Timoteo's large, sparkling eyes and permanent smile reflect his adventurous and brave personality. His posture is always upright and forward-facing, showing his determination and courage."
+      }
+    ],
+    "art_bible": {
+      "prompt": "Create a sample scene illustration in watercolor children's book illustration style for a children's book. The scene should fit a Adventure story for children. This is a reference illustration for a story titled 'The little caterpillar'. The scene should showcase the visual style, colors, lighting, and artistic approach that will be used throughout the book. No text, labels, color swatches, or technical diagrams. Just a beautiful example illustration that demonstrates the artistic direction.",
+      "image_url": "https://oaidalleapiprodscus.blob.core.windows.net/private/org-T4c8su9nHfYesFLpeVvHZBBg/user-MXgRkEiJnubwHOjtMNKenDR4/img-8UJElZS4INNn5rjOfzqCVO5V.png?st=2026-01-14T21%3A11%3A54Z&se=2026-01-14T23%3A11%3A54Z&sp=r&sv=2024-08-04&sr=b&rscd=inline&rsct=image/png&skoid=7daae675-7b42-4e2e-ab4c-8d8419a28d99&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-01-14T22%3A11%3A54Z&ske=2026-01-15T22%3A11%3A54Z&sks=b&skv=2024-08-04&sig=2ae4VOkTokG7PfJlkvC%2BoOVJY1D%2BucqMYPbDXYrKi10%3D",
+      "art_style": "watercolor children's book illustration",
+      "style_notes": null,
+      "color_palette": null,
+      "lighting_style": null,
+      "brush_technique": null
+    },
+    "character_references": [
+      {
+        "character_name": "Timoteo",
+        "prompt": "A watercolor children's book illustration style illustration of Timoteo who is a Worm with this appearance: Timoteo is a small worm, about 2 inches long. He has a soft, segmented body that is a vibrant shade of green. His body tapers at both ends, with the with distinctive features: Timoteo's vibrant green color makes him stand out. His eyes are larger than those of a typical showing a Timoteo's large, sparkling eyes and permanent smile reflect his adventurous and expression on a PLAIN WHITE BACKGROUND. IMPORTANT: The image must contain ONLY the character illustration - absolutely NO text, NO labels, NO descriptions, NO arrows, NO color palette swatches, NO multiple views, NO reference lines, NO annotations of any kind. Just a single, clean, full-body portrait of the character in a natural standing or sitting pose.",
+        "image_url": "https://oaidalleapiprodscus.blob.core.windows.net/private/org-T4c8su9nHfYesFLpeVvHZBBg/user-MXgRkEiJnubwHOjtMNKenDR4/img-BYDNiVD1c62nUbCzBbWjShUY.png?st=2026-01-14T21%3A12%3A50Z&se=2026-01-14T23%3A12%3A50Z&sp=r&sv=2024-08-04&sr=b&rscd=inline&rsct=image/png&skoid=b1a0ae1f-618f-4548-84fd-8b16cacd5485&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-01-14T14%3A00%3A11Z&ske=2026-01-15T14%3A00%3A11Z&sks=b&skv=2024-08-04&sig=nQrULLuu/38P34919OoCSbuw7M%2B/0Cm6885oFSbogOo%3D",
+        "species": "Worm",
+        "physical_description": "Timoteo is a small worm, about 2 inches long. He has a soft, segmented body that is a vibrant shade of green. His body tapers at both ends, with the head end slightly wider than the tail. He has two tiny, round black eyes that sparkle with curiosity.",
+        "clothing": null,
+        "distinctive_features": null
+      }
+    ],
+    "created_at": "2026-01-14T14:18:43.009579",
+    "updated_at": "2026-01-14T14:18:43.009590"
+  },
+  "character_profiles": [
+    {
+      "name": "Timoteo",
+      "species": "Worm",
+      "physical_description": "Timoteo is a small worm, about 2 inches long. He has a soft, segmented body that is a vibrant shade of green. His body tapers at both ends, with the head end slightly wider than the tail. He has two tiny, round black eyes that sparkle with curiosity.",
+      "clothing": null,
+      "distinctive_features": "Timoteo's vibrant green color makes him stand out. His eyes are larger than those of a typical worm, giving him an expressive and endearing look. He also has a small, permanent smile on his face.",
+      "personality_traits": "Timoteo's large, sparkling eyes and permanent smile reflect his adventurous and brave personality. His posture is always upright and forward-facing, showing his determination and courage."
+    }
+  ],
+  "image_prompts": [],
+  "created_at": "2026-01-14T14:18:43.009609",
+  "updated_at": "2026-01-14T14:18:43.009611"
+}

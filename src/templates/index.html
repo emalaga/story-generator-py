@@ -16,6 +16,7 @@
         <!-- Tab Navigation -->
         <div class="tabs">
             <button class="tab-button active" data-tab="text-generation">Text Generation</button>
+            <button class="tab-button" data-tab="visual-consistency">Visual Consistency</button>
             <button class="tab-button" data-tab="image-generation">Image Generation</button>
         </div>
 
@@ -71,9 +72,13 @@
                                 <!-- Number of Pages -->
                                 <div class="form-group">
                                     <label for="num-pages">Number of Pages</label>
-                                    <select id="num-pages" name="num_pages">
-                                        <!-- Populated dynamically -->
-                                    </select>
+                                    <input type="number" id="num-pages" name="num_pages" min="1" max="50" value="5" required>
+                                </div>
+
+                                <!-- Words per Page -->
+                                <div class="form-group">
+                                    <label for="words-per-page">Approx. Words per Page</label>
+                                    <input type="number" id="words-per-page" name="words_per_page" min="10" max="200" value="50" required>
                                 </div>
 
                                 <!-- Genre -->
@@ -136,6 +141,13 @@
 
                     <!-- RIGHT PANEL: Story Display -->
                     <section class="right-panel">
+                        <!-- Generate Story Button at top -->
+                        <div class="top-actions">
+                            <button type="submit" form="story-form" class="btn btn-primary btn-large" id="generate-btn-top">
+                                Generate Story
+                            </button>
+                        </div>
+
                         <div id="story-display-section" class="card hidden">
                             <h2>Your Story</h2>
 
@@ -165,11 +177,82 @@
                         <div id="no-story-placeholder" class="card placeholder-card">
                             <div class="placeholder-content">
                                 <h3>No Story Yet</h3>
-                                <p>Fill in the parameters on the left and click "Generate Story" to create your magical story!</p>
+                                <p>Fill in the parameters on the left and click "Generate Story" above to create your magical story!</p>
                             </div>
                         </div>
                     </section>
                 </div>
+            </div>
+
+            <!-- VISUAL CONSISTENCY TAB -->
+            <div id="visual-consistency-tab" class="tab-content">
+                <section class="card">
+                    <h2>Visual Consistency Setup</h2>
+
+                    <div id="visual-no-story" class="placeholder-card">
+                        <div class="placeholder-content">
+                            <h3>No Story Loaded</h3>
+                            <p>Please generate a story in the "Text Generation" tab first.</p>
+                        </div>
+                    </div>
+
+                    <div id="visual-content" class="hidden">
+                        <div id="visual-story-info" class="story-info-bar">
+                            <!-- Story title and info -->
+                        </div>
+
+                        <!-- ART BIBLE SECTION -->
+                        <div class="visual-section">
+                            <h3>Art Bible</h3>
+                            <p class="section-description">
+                                Define the overall visual style, color palette, lighting, and artistic direction for your story.
+                            </p>
+
+                            <div class="visual-controls">
+                                <button id="generate-art-bible-prompt-btn" class="btn btn-secondary">
+                                    Generate Art Bible Prompt
+                                </button>
+                                <button id="upload-art-bible-btn" class="btn btn-secondary">
+                                    Upload Custom Art Bible
+                                </button>
+                            </div>
+
+                            <div id="art-bible-section" class="hidden">
+                                <div class="prompt-edit-section">
+                                    <label for="art-bible-prompt">Art Bible Prompt (editable):</label>
+                                    <textarea id="art-bible-prompt" class="prompt-textarea" rows="6"></textarea>
+                                </div>
+
+                                <div class="image-actions">
+                                    <button id="generate-art-bible-image-btn" class="btn-small">
+                                        Generate Art Bible Image
+                                    </button>
+                                </div>
+
+                                <div class="image-loading hidden" id="art-bible-loading">
+                                    <div class="spinner-small"></div>
+                                    <span>Generating art bible...</span>
+                                </div>
+
+                                <div id="art-bible-preview" class="reference-preview hidden">
+                                    <!-- Art bible image will be shown here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CHARACTER REFERENCES SECTION -->
+                        <div class="visual-section">
+                            <h3>Character References</h3>
+                            <p class="section-description">
+                                Create reference images for each character to maintain visual consistency across all illustrations.
+                            </p>
+
+                            <div id="character-references-list">
+                                <!-- Character reference cards will be added here dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
 
             <!-- IMAGE GENERATION TAB -->
