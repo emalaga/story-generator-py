@@ -158,6 +158,7 @@ def create_project():
             characters=characters,
             art_bible=art_bible,
             character_references=character_references if character_references else None,
+            image_session_id=story_data.get('image_session_id'),
             vocabulary=story_data.get('vocabulary', [])
         )
 
@@ -299,6 +300,7 @@ def get_project(project_id):
                     }
                     for char_ref in (project.story.character_references or [])
                 ],
+                'image_session_id': project.story.image_session_id,
                 'vocabulary': project.story.vocabulary,
                 'created_at': project.story.created_at.isoformat(),
                 'updated_at': project.story.updated_at.isoformat()

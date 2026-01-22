@@ -1,0 +1,101 @@
+{
+  "id": "323705ed-2204-41ad-9451-072b59dac98d",
+  "name": "The little rocket",
+  "status": "completed",
+  "story": {
+    "id": "323705ed-2204-41ad-9451-072b59dac98d",
+    "metadata": {
+      "title": "The little rocket",
+      "language": "Spanish",
+      "complexity": "beginner",
+      "vocabulary_diversity": "medium",
+      "age_group": "4-7 years",
+      "num_pages": 5,
+      "genre": "Adventure",
+      "art_style": "watercolor children's book illustration",
+      "user_prompt": "A little rocket gets lost and a friendly alien helps him back his way back",
+      "words_per_page": 50
+    },
+    "pages": [
+      {
+        "page_number": 1,
+        "text": "Había una vez un pequeño cohete llamado Rocío. Un día, Rocío decidió explorar el espacio por su cuenta. Vio estrellas brillantes y planetas de colores, pero pronto, Rocío se perdió. Miró a su alrededor, pero todo lo que veía era el vasto espacio.",
+        "image_url": null,
+        "image_prompt": null,
+        "local_image_path": null
+      },
+      {
+        "page_number": 2,
+        "text": "Rocío empezó a sentirse solo y asustado. Entonces, de repente, vio a un amigable alienígena llamado Azul. Azul tenía ojos grandes y sonrisa amigable. \"Hola, pequeño cohete, ¿Estás perdido?\", preguntó Azul.",
+        "image_url": null,
+        "image_prompt": null,
+        "local_image_path": null
+      },
+      {
+        "page_number": 3,
+        "text": "Rocío asintió y explicó que no sabía cómo volver a casa. Azul sonrió y dijo: \"No te preocupes, Rocío. Conozco el espacio como la palma de mi mano. Te ayudaré a encontrar el camino de vuelta a casa\".",
+        "image_url": null,
+        "image_prompt": null,
+        "local_image_path": null
+      },
+      {
+        "page_number": 4,
+        "text": "Azul y Rocío viajaron juntos por el espacio. Pasaron por estrellas fugaces y cinturones de asteroides. Azul mostró a Rocío cómo leer las estrellas para encontrar el camino. Rocío se sintió agradecido por la ayuda de su nuevo amigo.",
+        "image_url": null,
+        "image_prompt": null,
+        "local_image_path": null
+      },
+      {
+        "page_number": 5,
+        "text": "Finalmente, Rocío vio a su planeta hogar. Se despidió de Azul y prometió nunca más aventurarse solo en el espacio. Aprendió que la amistad puede encontrarse en los lugares más inesperados y que siempre es bueno pedir ayuda cuando uno está perdido. Y así, Rocío regresó a casa, con una gran historia que contar.",
+        "image_url": null,
+        "image_prompt": null,
+        "local_image_path": null
+      }
+    ],
+    "vocabulary": [],
+    "characters": [
+      {
+        "name": "Rocío",
+        "species": "Rocket",
+        "physical_description": "Rocío is a small rocket, about the size of a school bus. She is predominantly red in color, with white stripes running vertically down her sides. Her body is cylindrical with a pointed top, typical of a classic rocket design. Her base is wider, equipped with three large, round thrusters that glow a warm orange when ignited.",
+        "clothing": null,
+        "distinctive_features": "Rocío has two large, round windows near the top of her body that resemble eyes. She also has a small antenna on top of her head, which is used for communication.",
+        "personality_traits": "Rocío's 'eyes' are often wide and curious, reflecting her adventurous spirit. Her antenna often points in the direction she's interested in, showing her determination and focus. When she's scared or unsure, her thrusters flicker and dim."
+      },
+      {
+        "name": "Azul",
+        "species": "Alien",
+        "physical_description": "Azul is a medium-sized alien with a round body shape. His skin is a bright shade of blue, hence his name. He has two large, oval-shaped eyes that are a deeper shade of blue. His eyes are twice the size of his small, round nose. Azul has a wide, friendly smile that reveals two rows of small, white teeth. He has four arms, each ending in three fingers, and two legs with round feet. His body is smooth and shiny, reflecting light like a polished gemstone.",
+        "clothing": "Azul wears a silver space suit that covers his body but leaves his head, hands, and feet exposed. The suit has a small, round emblem on the chest that resembles a star.",
+        "distinctive_features": "Azul's most distinctive features are his large, deep-blue eyes and his friendly smile. His four arms are also a unique feature that distinguishes him from other characters.",
+        "personality_traits": "Azul's friendly smile and bright eyes suggest a warm, friendly, and helpful personality. His posture is always upright and confident, reflecting his knowledge and familiarity with space."
+      }
+    ],
+    "art_bible": null,
+    "character_references": null,
+    "created_at": "2026-01-21T17:05:38.872038",
+    "updated_at": "2026-01-21T17:05:38.872058"
+  },
+  "character_profiles": [
+    {
+      "name": "Rocío",
+      "species": "Rocket",
+      "physical_description": "Rocío is a small rocket, about the size of a school bus. She is predominantly red in color, with white stripes running vertically down her sides. Her body is cylindrical with a pointed top, typical of a classic rocket design. Her base is wider, equipped with three large, round thrusters that glow a warm orange when ignited.",
+      "clothing": null,
+      "distinctive_features": "Rocío has two large, round windows near the top of her body that resemble eyes. She also has a small antenna on top of her head, which is used for communication.",
+      "personality_traits": "Rocío's 'eyes' are often wide and curious, reflecting her adventurous spirit. Her antenna often points in the direction she's interested in, showing her determination and focus. When she's scared or unsure, her thrusters flicker and dim."
+    },
+    {
+      "name": "Azul",
+      "species": "Alien",
+      "physical_description": "Azul is a medium-sized alien with a round body shape. His skin is a bright shade of blue, hence his name. He has two large, oval-shaped eyes that are a deeper shade of blue. His eyes are twice the size of his small, round nose. Azul has a wide, friendly smile that reveals two rows of small, white teeth. He has four arms, each ending in three fingers, and two legs with round feet. His body is smooth and shiny, reflecting light like a polished gemstone.",
+      "clothing": "Azul wears a silver space suit that covers his body but leaves his head, hands, and feet exposed. The suit has a small, round emblem on the chest that resembles a star.",
+      "distinctive_features": "Azul's most distinctive features are his large, deep-blue eyes and his friendly smile. His four arms are also a unique feature that distinguishes him from other characters.",
+      "personality_traits": "Azul's friendly smile and bright eyes suggest a warm, friendly, and helpful personality. His posture is always upright and confident, reflecting his knowledge and familiarity with space."
+    }
+  ],
+  "image_prompts": [],
+  "created_at": "2026-01-21T17:05:38.872094",
+  "updated_at": "2026-01-21T17:05:38.872097"
+}

@@ -19,6 +19,7 @@ class TextProvider(str, Enum):
 
 class ImageProvider(str, Enum):
     """Image generation provider options"""
+    GPT_4O = "gpt-4o"  # Conversation-based image generation with GPT-4o
     GPT_IMAGE = "gpt-image-1"
     DALLE2 = "dall-e-2"  # Legacy support
     DALLE3 = "dall-e-3"  # Legacy support

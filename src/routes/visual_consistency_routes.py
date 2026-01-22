@@ -2,7 +2,7 @@
 Visual Consistency Routes for REST API.
 
 Handles endpoints for art bible and character reference generation,
-enabling visual consistency across story illustrations.
+enabling visual consistency across story illustrations using conversation sessions.
 """
 
 import asyncio
@@ -97,15 +97,17 @@ def generate_art_bible_image():
     POST /api/visual-consistency/art-bible/generate-image
 
     Generate an art bible reference image using the provided prompt.
+    This starts or continues a conversation session for the story.
 
     Request body:
     {
         "prompt": str (required),
-        "art_style": str (required)
+        "art_style": str (required),
+        "story_id": str (required) - ID of the story for session tracking
     }
 
     Returns:
-        200: Image generated successfully
+        200: Image generated successfully with session_id
         400: Invalid request
         500: Server error
     """
@@ -124,24 +126,43 @@ def generate_art_bible_image():
             return jsonify({'error': 'Missing required field: prompt'}), 400
         if 'art_style' not in data:
             return jsonify({'error': 'Missing required field: art_style'}), 400
+        if 'story_id' not in data:
+            return jsonify({'error': 'Missing required field: story_id'}), 400
 
         prompt = data['prompt']
         art_style = data['art_style']
+        story_id = data['story_id']
+        story_title = data.get('story_title', '')
 
         # Get image client
         image_client = current_app.config['SERVICES']['image_client']
 
-        # Generate art bible image
+        # Start or get session for this story
+        session_id = image_client.get_session_id(story_id)
+        if not session_id:
+            # Start new session
+            session_id = run_async(image_client.start_session(
+                story_id=story_id,
+                art_style=art_style,
+                story_title=story_title
+            ))
+
+        # Generate art bible image within the conversation session
         image_url = run_async(image_client.generate_image(
+            story_id=story_id,
             prompt=prompt,
-            size='1792x1024',  # Wider format for art bible/style guide
-            quality='hd'  # Higher quality for reference
+            size='1536x1024',  # Wider format for art bible/style guide
+            quality='high'
         ))
+
+        # Get updated session ID
+        session_id = image_client.get_session_id(story_id)
 
         return jsonify({
             'image_url': image_url,
             'prompt': prompt,
-            'art_style': art_style
+            'art_style': art_style,
+            'session_id': session_id  # Return session ID for persistence
         }), 200
 
     except ValueError as e:
@@ -242,17 +263,18 @@ def generate_character_reference_image():
     POST /api/visual-consistency/character-reference/generate-image
 
     Generate a character reference image using the provided prompt.
+    Uses the conversation session to maintain consistency with the art bible.
 
     Request body:
     {
         "prompt": str (required),
         "character_name": str (required),
-        "include_turnaround": bool (optional, default: true),
-        "art_bible_url": str (optional) - URL to art bible image for style consistency
+        "story_id": str (required) - ID of the story for session tracking
+        "include_turnaround": bool (optional, default: true)
     }
 
     Returns:
-        200: Image generated successfully
+        200: Image generated successfully with session_id
         400: Invalid request
         500: Server error
     """
@@ -271,38 +293,36 @@ def generate_character_reference_image():
             return jsonify({'error': 'Missing required field: prompt'}), 400
         if 'character_name' not in data:
             return jsonify({'error': 'Missing required field: character_name'}), 400
+        if 'story_id' not in data:
+            return jsonify({'error': 'Missing required field: story_id'}), 400
 
         prompt = data['prompt']
         character_name = data['character_name']
+        story_id = data['story_id']
         include_turnaround = data.get('include_turnaround', True)
-        art_bible_url = data.get('art_bible_url')  # Optional art bible reference
 
         # Get image client
         image_client = current_app.config['SERVICES']['image_client']
 
-        # Generate character reference image
-        # Use square format for single portrait or wide format for turnaround
-        size = '1792x1024' if include_turnaround else '1024x1024'
+        # Generate character reference image using conversation session
+        # The session already contains art bible context, so no need for reference images
+        size = '1536x1024' if include_turnaround else '1024x1024'
 
-        # If art bible URL is provided, use it as a reference for consistency
-        if art_bible_url:
-            image_url = run_async(image_client.generate_image_with_references(
-                prompt=prompt,
-                reference_image_urls=[art_bible_url],
-                size=size,
-                quality='hd'  # Higher quality for reference
-            ))
-        else:
-            image_url = run_async(image_client.generate_image(
-                prompt=prompt,
-                size=size,
-                quality='hd'  # Higher quality for reference
-            ))
+        image_url = run_async(image_client.generate_image(
+            story_id=story_id,
+            prompt=prompt,
+            size=size,
+            quality='high'
+        ))
+
+        # Get updated session ID
+        session_id = image_client.get_session_id(story_id)
 
         return jsonify({
             'image_url': image_url,
             'character_name': character_name,
-            'prompt': prompt
+            'prompt': prompt,
+            'session_id': session_id  # Return session ID for persistence
         }), 200
 
     except ValueError as e:
@@ -310,3 +330,114 @@ def generate_character_reference_image():
     except Exception as e:
         current_app.logger.error(f"Error generating character reference image: {e}")
         return jsonify({'error': f'Failed to generate image: {str(e)}'}), 500
+
+
+@visual_bp.route('/session/start', methods=['POST'])
+def start_session():
+    """
+    POST /api/visual-consistency/session/start
+
+    Start a new conversation session for a story.
+
+    Request body:
+    {
+        "story_id": str (required),
+        "art_style": str (required),
+        "story_title": str (optional)
+    }
+
+    Returns:
+        200: Session started successfully
+        400: Invalid request
+        500: Server error
+    """
+    try:
+        # Validate request
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+
+        try:
+            data = request.get_json()
+        except BadRequest:
+            return jsonify({'error': 'Invalid JSON'}), 400
+
+        # Validate required fields
+        if 'story_id' not in data:
+            return jsonify({'error': 'Missing required field: story_id'}), 400
+        if 'art_style' not in data:
+            return jsonify({'error': 'Missing required field: art_style'}), 400
+
+        story_id = data['story_id']
+        art_style = data['art_style']
+        story_title = data.get('story_title', '')
+
+        # Get image client
+        image_client = current_app.config['SERVICES']['image_client']
+
+        # Clear any existing session
+        image_client.clear_session(story_id)
+
+        # Start new session
+        session_id = run_async(image_client.start_session(
+            story_id=story_id,
+            art_style=art_style,
+            story_title=story_title
+        ))
+
+        return jsonify({
+            'session_id': session_id,
+            'story_id': story_id
+        }), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error starting session: {e}")
+        return jsonify({'error': f'Failed to start session: {str(e)}'}), 500
+
+
+@visual_bp.route('/session/clear', methods=['POST'])
+def clear_session():
+    """
+    POST /api/visual-consistency/session/clear
+
+    Clear the conversation session for a story.
+
+    Request body:
+    {
+        "story_id": str (required)
+    }
+
+    Returns:
+        200: Session cleared successfully
+        400: Invalid request
+        500: Server error
+    """
+    try:
+        # Validate request
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+
+        try:
+            data = request.get_json()
+        except BadRequest:
+            return jsonify({'error': 'Invalid JSON'}), 400
+
+        # Validate required fields
+        if 'story_id' not in data:
+            return jsonify({'error': 'Missing required field: story_id'}), 400
+
+        story_id = data['story_id']
+
+        # Get image client
+        image_client = current_app.config['SERVICES']['image_client']
+
+        # Clear session
+        image_client.clear_session(story_id)
+
+        return jsonify({
+            'message': 'Session cleared',
+            'story_id': story_id
+        }), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error clearing session: {e}")
+        return jsonify({'error': f'Failed to clear session: {str(e)}'}), 500

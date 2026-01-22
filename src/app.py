@@ -156,8 +156,9 @@ def create_app(config: AppConfig = None) -> Flask:
 
     # Initialize image client based on configuration
     image_provider = config.ai_providers.image_provider
-    if image_provider in ["gpt-image-1", "dall-e-2", "dall-e-3"]:
-        # Use OpenAI for image generation (GPT-Image or legacy DALL-E)
+    # Support GPT-4o for conversation-based image generation, or legacy models
+    if image_provider in ["gpt-4o", "gpt-image-1", "dall-e-2", "dall-e-3"]:
+        # Use OpenAI for image generation (GPT-4.1 conversation-based or legacy)
         if config.ai_providers.openai is None:
             print("Warning: OpenAI image model selected but OpenAI config is missing. Using stub image client.")
             image_client = StubImageClient()
@@ -166,7 +167,7 @@ def create_app(config: AppConfig = None) -> Flask:
             image_client = StubImageClient()
         else:
             image_client = GPTImageClient(config.ai_providers.openai, model=image_provider)
-            print(f"Using {image_provider} for image generation")
+            print(f"Using {image_provider} for image generation (conversation-based)")
     else:
         # Use stub image client for other providers or development
         print(f"Using stub image client (configured provider: {image_provider})")

@@ -48,5 +48,6 @@ class Story:
     characters: Optional[List["Character"]] = None
     art_bible: Optional["ArtBible"] = None
     character_references: Optional[List["CharacterReference"]] = None
+    image_session_id: Optional[str] = None  # OpenAI response ID for conversation continuity
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)

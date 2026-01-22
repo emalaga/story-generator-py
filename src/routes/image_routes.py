@@ -5,6 +5,7 @@ Handles endpoints for image generation and saving.
 """
 
 import asyncio
+import base64
 import httpx
 from pathlib import Path
 from flask import Blueprint, request, jsonify, current_app, send_from_directory
@@ -61,15 +62,18 @@ def generate_image_for_page(story_id, page_num):
     """
     POST /api/images/stories/:id/pages/:page_num - Generate image for single page
 
+    Uses conversation session for visual consistency with art bible and characters.
+
     Request body:
     {
         "scene_description": str (required),
         "art_style": str (optional),
-        "characters": List[dict] (optional)
+        "characters": List[dict] (optional),
+        "session_id": str (optional) - existing session ID for continuation
     }
 
     Returns:
-        200: Image generated successfully
+        200: Image generated successfully with session_id
         400: Invalid request
         500: Server error
     """
@@ -87,17 +91,21 @@ def generate_image_for_page(story_id, page_num):
         if 'scene_description' not in data:
             return jsonify({'error': 'Missing required field: scene_description'}), 400
 
-        # Get image generator service
+        # Get image client and generator service
+        image_client = current_app.config['SERVICES']['image_client']
         image_generator = current_app.config['SERVICES']['image_generator']
 
         # Get parameters
         scene_description = data['scene_description']
         art_style = data.get('art_style', 'cartoon')
+        session_id = data.get('session_id')
+        story_title = data.get('story_title', '')
         # Accept either 'characters' or 'character_profiles'
         characters_data = data.get('character_profiles', data.get('characters', []))
 
         # Parse character profiles
         from src.models.character import CharacterProfile
+        from src.models.story import Story, StoryMetadata, StoryPage
         from src.models.art_bible import ArtBible, CharacterReference
 
         character_profiles = []
@@ -112,7 +120,7 @@ def generate_image_for_page(story_id, page_num):
             )
             character_profiles.append(profile)
 
-        # Parse art bible if present
+        # Parse art bible if present (for session recovery context)
         art_bible = None
         if 'art_bible' in data and data['art_bible']:
             art_bible_data = data['art_bible']
@@ -126,7 +134,7 @@ def generate_image_for_page(story_id, page_num):
                 brush_technique=art_bible_data.get('brush_technique')
             )
 
-        # Parse character references if present
+        # Parse character references if present (for session recovery context)
         character_references = []
         if 'character_references' in data and data['character_references']:
             for char_ref_data in data['character_references']:
@@ -141,27 +149,48 @@ def generate_image_for_page(story_id, page_num):
                 )
                 character_references.append(char_ref)
 
+        # Create a Story object for session management
+        story = Story(
+            id=story_id,
+            metadata=StoryMetadata(
+                title=story_title,
+                language='en',
+                complexity='simple',
+                vocabulary_diversity='simple',
+                age_group='4-8',
+                num_pages=1,
+                art_style=art_style
+            ),
+            pages=[StoryPage(page_number=page_num, text=scene_description)],
+            characters=character_profiles,
+            art_bible=art_bible,
+            character_references=character_references if character_references else None,
+            image_session_id=session_id
+        )
+
+        # If we have a session ID, load it into the client
+        if session_id:
+            image_client.set_session_id(story_id, session_id)
+
         # Log for debugging
         current_app.logger.info(f"Generating image for page {page_num} with {len(character_profiles)} characters")
-        for char in character_profiles:
-            current_app.logger.info(f"  Character: {char.name}, Species: {char.species}, Desc: {char.physical_description[:50] if char.physical_description else 'None'}")
-        if art_bible:
-            current_app.logger.info(f"  Using art bible: {art_bible.image_url}")
-        if character_references:
-            current_app.logger.info(f"  Using {len(character_references)} character references")
+        current_app.logger.info(f"  Session ID: {session_id or 'None (will create new)'}")
 
-        # Generate image with art bible and character references
+        # Generate image using conversation session
         image_url = run_async(image_generator.generate_image_for_page(
+            story,
             scene_description,
             character_profiles,
-            art_style,
-            art_bible=art_bible,
-            character_references=character_references if character_references else None
+            art_style
         ))
+
+        # Get updated session ID
+        new_session_id = image_client.get_session_id(story_id)
 
         return jsonify({
             'image_url': image_url,
-            'page_number': page_num
+            'page_number': page_num,
+            'session_id': new_session_id  # Return session ID for persistence
         }), 200
 
     except ValueError as e:
@@ -232,16 +261,25 @@ def save_image():
         # Full path for the saved image
         save_path = save_dir / filename
 
-        # Download the image
-        async def download_image():
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get(image_url)
-                if response.status_code != 200:
-                    raise Exception(f'Failed to download image: HTTP {response.status_code}')
-                return response.content
+        # Check if it's a base64 data URL or a regular URL
+        if image_url.startswith('data:'):
+            # Parse base64 data URL: data:image/png;base64,<data>
+            try:
+                # Split header from data
+                header, encoded_data = image_url.split(',', 1)
+                image_data = base64.b64decode(encoded_data)
+            except Exception as e:
+                return jsonify({'error': f'Failed to decode base64 image: {str(e)}'}), 400
+        else:
+            # Download the image from URL
+            async def download_image():
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.get(image_url)
+                    if response.status_code != 200:
+                        raise Exception(f'Failed to download image: HTTP {response.status_code}')
+                    return response.content
 
-        # Download and save the image
-        image_data = run_async(download_image())
+            image_data = run_async(download_image())
 
         with open(save_path, 'wb') as f:
             f.write(image_data)

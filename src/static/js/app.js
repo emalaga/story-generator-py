@@ -421,6 +421,8 @@ async function generatePageImage(pageNumber) {
             scene_description: page.text,
             character_profiles: currentStory.characters || [],
             art_style: currentStory.metadata.art_style || 'cartoon',
+            story_title: currentStory.metadata.title || '',
+            session_id: currentStory.image_session_id || null,
             art_bible: currentStory.art_bible || null,
             character_references: currentStory.character_references || null
         };
@@ -439,6 +441,11 @@ async function generatePageImage(pageNumber) {
         }
 
         const result = await response.json();
+
+        // Store session ID for conversation continuity
+        if (result.session_id) {
+            currentStory.image_session_id = result.session_id;
+        }
 
         // Update the page with the image URL
         page.image_url = result.image_url;
@@ -752,7 +759,9 @@ function setupArtBibleSection() {
                 },
                 body: JSON.stringify({
                     prompt: prompt,
-                    art_style: currentStory.metadata.art_style || 'cartoon'
+                    art_style: currentStory.metadata.art_style || 'cartoon',
+                    story_id: currentStory.id,
+                    story_title: currentStory.metadata.title || ''
                 }),
             });
 
@@ -769,6 +778,11 @@ function setupArtBibleSection() {
             }
             currentStory.art_bible.image_url = result.image_url;
             currentStory.art_bible.prompt = prompt;
+
+            // Store session ID for conversation continuity
+            if (result.session_id) {
+                currentStory.image_session_id = result.session_id;
+            }
 
             // Display art bible image
             const previewDiv = document.getElementById('art-bible-preview');
@@ -835,12 +849,6 @@ function setupCharacterReferences() {
             <div id="char-ref-prompt-${index}" class="character-ref-prompt hidden">
                 <label>Character Reference Prompt (editable):</label>
                 <textarea id="char-prompt-${index}" class="prompt-textarea" rows="5">${existingRef ? existingRef.prompt : ''}</textarea>
-                <div class="character-options" style="margin-top: 10px;">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="use-artbible-${index}" checked>
-                        Use art bible style for this character reference
-                    </label>
-                </div>
                 <div class="image-actions" style="margin-top: 10px;">
                     <button class="btn-small" onclick="generateCharacterImage(${index})">
                         Generate Reference Image
@@ -934,24 +942,17 @@ async function generateCharacterImage(charIndex) {
         return;
     }
 
-    // Check if we should use art bible as reference
-    const useArtBible = document.getElementById(`use-artbible-${charIndex}`).checked;
-
     const loadingDiv = document.getElementById(`char-loading-${charIndex}`);
     loadingDiv.classList.remove('hidden');
 
     try {
-        // Prepare request body
+        // Prepare request body - conversation session maintains art bible context
         const requestBody = {
             prompt: prompt,
             character_name: character.name,
+            story_id: currentStory.id,
             include_turnaround: true
         };
-
-        // Include art bible if checkbox is checked and art bible exists
-        if (useArtBible && currentStory.art_bible && currentStory.art_bible.image_url) {
-            requestBody.art_bible_url = currentStory.art_bible.image_url;
-        }
 
         const response = await fetch(`${API_BASE}/visual-consistency/character-reference/generate-image`, {
             method: 'POST',
@@ -967,6 +968,11 @@ async function generateCharacterImage(charIndex) {
         }
 
         const result = await response.json();
+
+        // Store session ID for conversation continuity
+        if (result.session_id) {
+            currentStory.image_session_id = result.session_id;
+        }
 
         // Update character reference with image URL
         const existingIndex = currentStory.character_references.findIndex(

@@ -515,3 +515,57 @@ Return only the scene description, nothing else."""
             clothing=character.clothing,
             distinctive_features=character.distinctive_features
         )
+
+    def build_conversation_prompt(
+        self,
+        scene_description: str,
+        character_profiles: List[CharacterProfile],
+        art_style: str
+    ) -> str:
+        """
+        Build a simplified prompt for conversation-based image generation.
+
+        This prompt assumes the conversation context already contains the art bible
+        and character reference information, so it only needs to describe the scene
+        and reference previously established elements.
+
+        Args:
+            scene_description: Description of the scene to illustrate
+            character_profiles: List of character profiles (for reference by name)
+            art_style: Artistic style (e.g., "cartoon", "watercolor")
+
+        Returns:
+            Simplified prompt that leverages conversation context
+        """
+        prompt_parts = []
+
+        # Reference the established style
+        prompt_parts.append(
+            f"Generate the next illustration for this children's book using the {art_style} "
+            "style we established in the art bible."
+        )
+
+        # Reference characters by name (they're already in the conversation context)
+        if character_profiles:
+            character_names = [p.name for p in character_profiles[:3] if p.name]
+            if character_names:
+                if len(character_names) == 1:
+                    prompt_parts.append(
+                        f"Include {character_names[0]} exactly as we designed them in the character reference."
+                    )
+                else:
+                    names_str = ", ".join(character_names[:-1]) + f" and {character_names[-1]}"
+                    prompt_parts.append(
+                        f"Include {names_str} exactly as we designed them in the character references."
+                    )
+
+        # Scene description - the main content
+        scene_summary = scene_description[:300] if len(scene_description) > 300 else scene_description
+        prompt_parts.append(f"Scene: {scene_summary}")
+
+        # Brief quality reminder
+        prompt_parts.append(
+            "Maintain perfect visual consistency with all previous illustrations in this story."
+        )
+
+        return " ".join(prompt_parts)

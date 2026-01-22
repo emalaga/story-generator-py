@@ -1,18 +1,17 @@
 """
-GPT-Image Client for generating images using OpenAI's GPT-Image model.
+GPT-4o Conversation Image Client for generating images using OpenAI's Responses API.
 
-This client interfaces with OpenAI's Image Generation API to create
-illustrations for story pages using the gpt-image-1 model.
-Supports both image generation and image editing with reference images.
+This client uses conversation sessions with GPT-4o to generate consistent
+illustrations for story pages. All images for a story (art bible, characters,
+pages) are generated within the same conversation thread, allowing GPT-4o to
+maintain visual consistency through context.
 """
 
-import httpx
-import os
 import asyncio
 import base64
-from typing import Optional, List, Union
-from pathlib import Path
-from io import BytesIO
+import os
+from typing import Optional, Dict, Any
+from openai import AsyncOpenAI
 
 from src.ai.base_client import BaseImageClient
 from src.models.config import OpenAIConfig
@@ -20,293 +19,245 @@ from src.models.config import OpenAIConfig
 
 class GPTImageClient(BaseImageClient):
     """
-    Client for OpenAI GPT-Image generation service.
+    Client for OpenAI GPT-4o image generation using conversation sessions.
 
-    GPT-Image (model: gpt-image-1) is OpenAI's text-to-image generation model
-    that creates high-quality illustrations from text prompts.
+    Uses the responses.create API to maintain conversation context across
+    multiple image generations, enabling visual consistency without passing
+    reference images explicitly.
     """
 
-    # OpenAI API endpoint
-    API_BASE_URL = "https://api.openai.com/v1"
-
-    def __init__(self, config: OpenAIConfig, model: str = "gpt-image-1"):
+    def __init__(self, config: OpenAIConfig, model: str = "gpt-4o"):
         """
-        Initialize the GPT-Image client.
+        Initialize the GPT-4o image client.
 
         Args:
             config: OpenAIConfig with API key and timeout
-            model: Image model to use (default: "gpt-image-1")
+            model: Model to use (default: "gpt-4o")
         """
         self.config = config
-        # Get API key from config or environment variable
         self.api_key = config.api_key or os.getenv('OPENAI_API_KEY', '')
         self.model = model
         self.timeout = config.timeout
 
-    async def generate_image(self, prompt: str, **kwargs) -> str:
+        # Initialize async OpenAI client
+        self.client = AsyncOpenAI(api_key=self.api_key)
+
+        # Session state: story_id -> last response_id
+        self._sessions: Dict[str, str] = {}
+
+    def get_session_id(self, story_id: str) -> Optional[str]:
+        """Get the current session (response) ID for a story."""
+        return self._sessions.get(story_id)
+
+    def set_session_id(self, story_id: str, response_id: str):
+        """Set the session ID for a story (used when loading from persistence)."""
+        self._sessions[story_id] = response_id
+
+    def clear_session(self, story_id: str):
+        """Clear the session for a story (used when starting a new story)."""
+        if story_id in self._sessions:
+            del self._sessions[story_id]
+
+    async def start_session(self, story_id: str, art_style: str, story_title: str = "") -> str:
         """
-        Generate an image using GPT-Image with automatic retry on server errors.
+        Start a new conversation session for a story.
+
+        This creates the initial context that all subsequent image generations
+        will build upon.
 
         Args:
-            prompt: The text prompt for image generation
-            **kwargs: Additional parameters:
-                - size (str): Image size (e.g., "1024x1024", "1024x1792", "1792x1024")
-                - quality (str): "standard" or "hd"
-                - style (str): "vivid" or "natural"
-                - n (int): Number of images to generate (default: 1)
-                - input_fidelity (str): "low", "medium", or "high" (default: "high")
-                                       Controls how closely the model follows prompt details.
-                                       "high" provides maximum consistency with the prompt.
+            story_id: Unique identifier for the story
+            art_style: The art style to use (e.g., "cartoon", "watercolor")
+            story_title: Optional title of the story
 
         Returns:
-            URL to the generated image
-
-        Raises:
-            httpx.HTTPError: If the API request fails after retries
-            ValueError: If API key is missing
+            The response ID to use for continuing the conversation
         """
         if not self.api_key:
             raise ValueError(
                 "OpenAI API key not found. Please set OPENAI_API_KEY in your .env file"
             )
 
-        # Build request data
-        request_data = {
-            "model": self.model,
-            "prompt": prompt,
-            "n": kwargs.get('n', 1)  # Number of images
-        }
+        # Create initial system context
+        system_prompt = f"""You are an expert children's book illustrator creating illustrations for a story.
 
-        # Set size parameter (default to 1024x1024)
-        request_data['size'] = kwargs.get('size', '1024x1024')
+Art Style: {art_style}
+{"Story: " + story_title if story_title else ""}
 
-        # Add optional quality and style parameters
-        if 'quality' in kwargs:
-            request_data['quality'] = kwargs['quality']
+IMPORTANT GUIDELINES:
+- All images must maintain perfect visual consistency throughout the story
+- Characters must look EXACTLY the same in every illustration
+- The art style, colors, and techniques must remain consistent
+- When I reference "the art bible" or "previously created characters", use them exactly as designed
 
-        # Use 'natural' style for better consistency with detailed prompts
-        # 'natural' is less dramatic and creative than 'vivid', making it more likely
-        # to follow the specific details in the prompt accurately
-        request_data['style'] = kwargs.get('style', 'natural')
+You will help me create:
+1. An Art Bible - establishing the visual style
+2. Character Reference Sheets - detailed character designs
+3. Page Illustrations - scenes from the story
 
-        # Prepare headers with API key
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
+Respond briefly to acknowledge you're ready, then wait for my requests."""
 
-        # Retry logic for transient server errors
         max_retries = 3
-        retry_delay = 2  # seconds
+        retry_delay = 2
 
         for attempt in range(max_retries):
             try:
-                # Make API request
-                async with httpx.AsyncClient(timeout=self.timeout) as client:
-                    response = await client.post(
-                        f"{self.API_BASE_URL}/images/generations",
-                        json=request_data,
-                        headers=headers
-                    )
+                response = await self.client.responses.create(
+                    model=self.model,
+                    input=system_prompt
+                )
 
-                    # Check for errors
-                    if response.status_code == 200:
-                        # Success! Parse response
-                        response_data = response.json()
+                # Store the response ID as the session ID
+                self._sessions[story_id] = response.id
+                return response.id
 
-                        # API returns an array of image objects
-                        # Each has a 'url' field with the generated image URL
-                        if 'data' not in response_data or len(response_data['data']) == 0:
-                            raise ValueError("No image was generated by GPT-Image")
-
-                        image_url = response_data['data'][0]['url']
-                        return image_url
-
-                    # Handle different error types
-                    error_detail = response.text
-                    try:
-                        error_json = response.json()
-                        if 'error' in error_json and 'message' in error_json['error']:
-                            error_detail = error_json['error']['message']
-                    except:
-                        pass
-
-                    # Retry on server errors (500-599)
-                    if 500 <= response.status_code < 600:
-                        if attempt < max_retries - 1:
-                            print(f"GPT-Image server error (attempt {attempt + 1}/{max_retries}). Retrying in {retry_delay}s...")
-                            await asyncio.sleep(retry_delay)
-                            retry_delay *= 2  # Exponential backoff
-                            continue
-                        else:
-                            raise httpx.HTTPError(
-                                f"GPT-Image API error after {max_retries} attempts: {response.status_code} - {error_detail}"
-                            )
-
-                    # Don't retry on client errors (400-499) - these won't fix themselves
-                    raise httpx.HTTPError(
-                        f"GPT-Image API error: {response.status_code} - {error_detail}"
-                    )
-
-            except httpx.TimeoutException as e:
+            except Exception as e:
                 if attempt < max_retries - 1:
-                    print(f"GPT-Image timeout (attempt {attempt + 1}/{max_retries}). Retrying in {retry_delay}s...")
+                    print(f"Session start error (attempt {attempt + 1}/{max_retries}). Retrying in {retry_delay}s...")
                     await asyncio.sleep(retry_delay)
                     retry_delay *= 2
                     continue
                 else:
-                    raise httpx.HTTPError(f"GPT-Image API timeout after {max_retries} attempts")
+                    raise Exception(f"Failed to start session after {max_retries} attempts: {str(e)}")
 
-            except httpx.HTTPError:
-                # Re-raise HTTP errors without retry (already handled above)
-                raise
-
-            except Exception as e:
-                # Unexpected errors
-                raise httpx.HTTPError(f"Unexpected error calling GPT-Image API: {str(e)}")
-
-    async def generate_image_with_references(
+    async def generate_image(
         self,
+        story_id: str,
         prompt: str,
-        reference_image_urls: List[str],
+        size: str = "1024x1024",
+        quality: str = "high",
         **kwargs
     ) -> str:
         """
-        Generate an image using GPT-Image edits endpoint with reference images.
-
-        This method uses the images.edits endpoint which accepts reference images
-        to maintain visual consistency across illustrations.
+        Generate an image within a story's conversation session.
 
         Args:
-            prompt: The text prompt for image generation
-            reference_image_urls: List of URLs to reference images (art bible, character refs)
-            **kwargs: Additional parameters:
-                - size (str): Image size (e.g., "1024x1024", "1024x1792", "1792x1024")
-                - quality (str): "standard" or "hd"
+            story_id: The story ID to use for session context
+            prompt: The prompt describing the image to generate
+            size: Image size ("1024x1024", "1024x1536", "1536x1024", "auto")
+            quality: Image quality ("low", "medium", "high")
+            **kwargs: Additional parameters
 
         Returns:
             URL to the generated image
 
         Raises:
-            httpx.HTTPError: If the API request fails after retries
-            ValueError: If API key is missing or no reference images provided
+            ValueError: If no session exists for the story
+            Exception: If image generation fails
         """
         if not self.api_key:
             raise ValueError(
                 "OpenAI API key not found. Please set OPENAI_API_KEY in your .env file"
             )
 
-        if not reference_image_urls:
-            raise ValueError("At least one reference image URL must be provided")
+        # Get the previous response ID for conversation continuity
+        previous_response_id = self._sessions.get(story_id)
 
-        # Download reference images
-        reference_images_data = []
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            for url in reference_image_urls:
-                try:
-                    response = await client.get(url)
-                    if response.status_code == 200:
-                        reference_images_data.append(response.content)
-                    else:
-                        print(f"Warning: Failed to download reference image from {url}")
-                        print(f"  Status code: {response.status_code}")
-                        print(f"  Response: {response.text[:200]}")
-                except Exception as e:
-                    print(f"Warning: Error downloading reference image: {e}")
-                    import traceback
-                    traceback.print_exc()
-
-        if not reference_images_data:
-            raise ValueError("Failed to download any reference images")
-
-        # Prepare multipart form data for images.edits endpoint
-        files = []
-        for i, img_data in enumerate(reference_images_data):
-            files.append(('image', (f'ref_{i}.png', img_data, 'image/png')))
-
-        # Build form data
-        data = {
-            'model': self.model,
-            'prompt': prompt,
-            'size': kwargs.get('size', '1024x1024'),
-            'response_format': 'url'  # Can be 'url' or 'b64_json'
-        }
-
-        # Add optional quality parameter
-        if 'quality' in kwargs:
-            data['quality'] = kwargs['quality']
-
-        # Prepare headers with API key (no Content-Type for multipart)
-        headers = {
-            "Authorization": f"Bearer {self.api_key}"
-        }
-
-        # Retry logic for transient server errors
         max_retries = 3
-        retry_delay = 2  # seconds
+        retry_delay = 2
 
         for attempt in range(max_retries):
             try:
-                # Make API request to images.edits endpoint
-                async with httpx.AsyncClient(timeout=self.timeout) as client:
-                    response = await client.post(
-                        f"{self.API_BASE_URL}/images/edits",
-                        headers=headers,
-                        data=data,
-                        files=files
-                    )
+                # Build the request
+                request_params = {
+                    "model": self.model,
+                    "input": prompt,
+                    "tools": [{"type": "image_generation", "size": size, "quality": quality}]
+                }
 
-                    # Check for errors
-                    if response.status_code == 200:
-                        # Success! Parse response
-                        response_data = response.json()
+                # Add conversation context if we have a previous response
+                if previous_response_id:
+                    request_params["previous_response_id"] = previous_response_id
 
-                        # API returns an array of image objects
-                        if 'data' not in response_data or len(response_data['data']) == 0:
-                            raise ValueError("No image was generated by GPT-Image edits")
+                response = await self.client.responses.create(**request_params)
 
-                        image_url = response_data['data'][0]['url']
-                        return image_url
+                # Update session with new response ID
+                self._sessions[story_id] = response.id
 
-                    # Handle different error types
-                    error_detail = response.text
-                    try:
-                        error_json = response.json()
-                        if 'error' in error_json and 'message' in error_json['error']:
-                            error_detail = error_json['error']['message']
-                    except:
-                        pass
+                # Extract image URL from response
+                image_url = self._extract_image_url(response)
+                if image_url:
+                    return image_url
 
-                    # Retry on server errors (500-599)
-                    if 500 <= response.status_code < 600:
-                        if attempt < max_retries - 1:
-                            print(f"GPT-Image edits server error (attempt {attempt + 1}/{max_retries}). Retrying in {retry_delay}s...")
-                            await asyncio.sleep(retry_delay)
-                            retry_delay *= 2  # Exponential backoff
-                            continue
-                        else:
-                            raise httpx.HTTPError(
-                                f"GPT-Image edits API error after {max_retries} attempts: {response.status_code} - {error_detail}"
-                            )
-
-                    # Don't retry on client errors (400-499)
-                    raise httpx.HTTPError(
-                        f"GPT-Image edits API error: {response.status_code} - {error_detail}"
-                    )
-
-            except httpx.TimeoutException as e:
-                if attempt < max_retries - 1:
-                    print(f"GPT-Image edits timeout (attempt {attempt + 1}/{max_retries}). Retrying in {retry_delay}s...")
-                    await asyncio.sleep(retry_delay)
-                    retry_delay *= 2
-                    continue
-                else:
-                    raise httpx.HTTPError(f"GPT-Image edits API timeout after {max_retries} attempts")
-
-            except httpx.HTTPError:
-                # Re-raise HTTP errors without retry (already handled above)
-                raise
+                raise ValueError("No image was generated in the response")
 
             except Exception as e:
-                # Unexpected errors
-                raise httpx.HTTPError(f"Unexpected error calling GPT-Image edits API: {str(e)}")
+                error_str = str(e)
+
+                # Check if it's a retryable error (server errors, timeouts)
+                if any(x in error_str.lower() for x in ['timeout', 'server', '500', '502', '503', '504']):
+                    if attempt < max_retries - 1:
+                        print(f"Image generation error (attempt {attempt + 1}/{max_retries}). Retrying in {retry_delay}s...")
+                        await asyncio.sleep(retry_delay)
+                        retry_delay *= 2
+                        continue
+
+                raise Exception(f"Image generation failed: {error_str}")
+
+    def _extract_image_url(self, response) -> Optional[str]:
+        """
+        Extract the image URL or base64 data from a responses.create response.
+
+        The response structure contains output items, and we need to find
+        the image generation result. The result may be a URL or base64 data.
+        If base64 data is returned, it's converted to a data URL for consistency.
+        """
+        if not hasattr(response, 'output') or not response.output:
+            return None
+
+        for item in response.output:
+            # Check for image generation result
+            if hasattr(item, 'type') and item.type == 'image_generation_call':
+                if hasattr(item, 'result') and item.result:
+                    result = item.result
+                    # Check if it's base64 data (not a URL)
+                    if result and not result.startswith('http') and not result.startswith('data:'):
+                        # It's raw base64 data, convert to data URL
+                        return f"data:image/png;base64,{result}"
+                    return result
+            # Alternative structure: direct image URL in content
+            if hasattr(item, 'content'):
+                for content_item in item.content:
+                    if hasattr(content_item, 'type') and content_item.type == 'image':
+                        if hasattr(content_item, 'image_url'):
+                            return content_item.image_url.url
+                        elif hasattr(content_item, 'url'):
+                            return content_item.url
+                        elif hasattr(content_item, 'source') and hasattr(content_item.source, 'data'):
+                            # Base64 data in source.data
+                            return f"data:image/png;base64,{content_item.source.data}"
+
+        return None
+
+    async def validate_session(self, story_id: str) -> bool:
+        """
+        Check if a session is still valid.
+
+        Args:
+            story_id: The story ID to check
+
+        Returns:
+            True if session exists and is valid, False otherwise
+        """
+        session_id = self._sessions.get(story_id)
+        if not session_id:
+            return False
+
+        # For now, we assume if we have a session ID, it's valid
+        # OpenAI's conversation sessions don't expire quickly
+        return True
+
+    # Legacy method for backward compatibility
+    async def generate_image_legacy(self, prompt: str, **kwargs) -> str:
+        """
+        Legacy method that generates an image without session context.
+        Use generate_image() with story_id for conversation-based generation.
+        """
+        # Create a temporary story ID for this one-off generation
+        temp_story_id = f"_temp_{id(prompt)}"
+        try:
+            # Start a minimal session
+            await self.start_session(temp_story_id, "illustration", "")
+            return await self.generate_image(temp_story_id, prompt, **kwargs)
+        finally:
+            self.clear_session(temp_story_id)
