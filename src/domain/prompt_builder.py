@@ -119,6 +119,131 @@ class PromptBuilder:
             # No spaces found, just truncate at max_length
             return truncated
 
+    @staticmethod
+    def _is_valid_short_word(word: str) -> bool:
+        """
+        Check if a short word (1-3 chars) is a valid English/Spanish word.
+
+        Used to detect truncated words like "sc" or "att" that end with punctuation
+        but are clearly incomplete.
+
+        Args:
+            word: The word to check (lowercase, no punctuation)
+
+        Returns:
+            True if it's a valid short word, False if likely truncated
+        """
+        # Common valid 1-3 letter words in English and Spanish
+        valid_short_words = {
+            # English
+            'a', 'i', 'an', 'as', 'at', 'be', 'by', 'do', 'go', 'he', 'if', 'in',
+            'is', 'it', 'me', 'my', 'no', 'of', 'on', 'or', 'so', 'to', 'up', 'us',
+            'we', 'am', 'are', 'was', 'has', 'had', 'can', 'did', 'get', 'got',
+            'her', 'him', 'his', 'its', 'let', 'may', 'new', 'now', 'old', 'one',
+            'our', 'out', 'own', 'put', 'ran', 'run', 'saw', 'say', 'see', 'set',
+            'she', 'sit', 'the', 'too', 'try', 'two', 'use', 'way', 'who', 'why',
+            'win', 'won', 'yes', 'yet', 'you', 'all', 'any', 'big', 'but', 'day',
+            'end', 'far', 'few', 'for', 'fun', 'how', 'lot', 'man', 'men', 'not',
+            'off', 'red', 'sad', 'ten', 'top', 'boy', 'cup', 'dog', 'eat', 'eye',
+            'fly', 'hot', 'ice', 'job', 'joy', 'key', 'kid', 'leg', 'map', 'mom',
+            'dad', 'sun', 'sky', 'sea', 'air', 'bed', 'car', 'hat', 'arm', 'bag',
+            # Spanish common words
+            'el', 'la', 'lo', 'le', 'un', 'de', 'en', 'es', 'se', 'no', 'me', 'te',
+            'ya', 'ni', 'si', 'yo', 'tu', 'su', 'al', 'mi', 'que', 'con', 'por',
+            'una', 'los', 'las', 'del', 'mas', 'muy', 'era', 'fue', 'ser', 'son',
+            'hay', 'tan', 'vez', 'sin', 'hoy', 'esa', 'ese', 'eso', 'dia', 'sol',
+            # Numbers
+            'one', 'two', 'six', 'ten', 'uno', 'dos', 'tre', 'mil',
+        }
+        return word.lower() in valid_short_words
+
+    @staticmethod
+    def _has_truncated_word(text: str) -> bool:
+        """
+        Check if text ends with a truncated word (incomplete word before punctuation).
+
+        Detects patterns like "He attempts to sc." where "sc" is clearly truncated.
+
+        Args:
+            text: Text to check
+
+        Returns:
+            True if the text appears to end with a truncated word
+        """
+        if not text or len(text) < 3:
+            return False
+
+        # Remove trailing whitespace
+        text = text.rstrip()
+
+        # Check if ends with sentence punctuation
+        if not text[-1] in '.!?':
+            return False
+
+        # Get the last word (before the punctuation)
+        text_without_punct = text[:-1].rstrip()
+        if not text_without_punct:
+            return False
+
+        # Find the last word
+        last_space = text_without_punct.rfind(' ')
+        if last_space == -1:
+            last_word = text_without_punct
+        else:
+            last_word = text_without_punct[last_space + 1:]
+
+        # Clean the word (remove any remaining punctuation)
+        last_word = ''.join(c for c in last_word if c.isalnum())
+
+        if not last_word:
+            return False
+
+        # If the word is very short (1-3 chars) and not a valid short word,
+        # it's likely truncated
+        if len(last_word) <= 3:
+            return not PromptBuilder._is_valid_short_word(last_word)
+
+        return False
+
+    @staticmethod
+    def _smart_truncate_sentences(text: str, max_length: int) -> str:
+        """
+        Truncate text to max_length at sentence boundaries to avoid mid-sentence cuts.
+
+        Args:
+            text: Text to truncate
+            max_length: Maximum length in characters
+
+        Returns:
+            Truncated text that ends at a complete sentence when possible
+        """
+        if not text or len(text) <= max_length:
+            return text
+
+        # Look for the last sentence-ending punctuation before max_length
+        truncated = text[:max_length]
+
+        # Find the last sentence-ending punctuation
+        sentence_enders = ['.', '!', '?']
+        last_sentence_end = -1
+
+        for ender in sentence_enders:
+            pos = truncated.rfind(ender)
+            if pos > last_sentence_end:
+                # Make sure it's not part of an abbreviation (e.g., "Mr." or "Dr.")
+                # by checking if the next character is a space or end of string
+                if pos == len(truncated) - 1 or (pos < len(truncated) - 1 and truncated[pos + 1] in ' \n\t'):
+                    last_sentence_end = pos
+
+        if last_sentence_end > max_length // 3:  # Only use sentence boundary if it's not too short
+            return truncated[:last_sentence_end + 1].strip()
+        else:
+            # Fall back to word boundary truncation
+            last_space = truncated.rfind(' ')
+            if last_space > 0:
+                return truncated[:last_space]
+            return truncated
+
     async def summarize_scene(
         self,
         scene_text: str,
@@ -139,8 +264,8 @@ class PromptBuilder:
             Concise scene description (30-50 words) focusing on visual elements
         """
         if not self.ai_client:
-            # Fallback: simple truncation if no AI client available
-            return scene_text[:200]
+            # Fallback: sentence-aware truncation if no AI client available
+            return self._smart_truncate_sentences(scene_text, 300)
 
         # Build character context if provided
         character_context = ""
@@ -161,35 +286,72 @@ Focus on:
 - Setting and environment
 - Emotional tone
 
-IMPORTANT:
+CRITICAL REQUIREMENTS:
 - Use ONLY the character information provided - do not make assumptions about gender, appearance, or other details
 - Refer to characters by their exact names and species
 - Do not add details not present in the story text
+- EVERY sentence MUST be grammatically complete - never end mid-sentence or with incomplete phrases
+- Always end with proper punctuation (period, exclamation mark, or question mark)
 
 Ignore:
 - Narrative commentary
 - Internal thoughts
 - Abstract concepts that can't be visualized
 
-Return ONLY a concise scene description (30-50 words) that an illustrator could draw."""
+Return ONLY a concise scene description (40-60 words) that an illustrator could draw. Ensure all sentences are complete."""
 
         prompt = f"""Analyze this children's story page and describe the main scene to illustrate:{character_context}
 
 Story page text:
 {scene_text}
 
-Return only the scene description, nothing else."""
+Write a complete scene description with no incomplete sentences. Return only the scene description."""
 
         try:
             summary = await self.ai_client.generate_text(
                 prompt,
                 system_message=system_message,
-                temperature=0.3
+                temperature=0.3,
+                max_tokens=200  # Ensure enough tokens for a complete 40-60 word summary
             )
-            return summary.strip()
+            summary = summary.strip()
+
+            # Validate the summary - check for incomplete sentences
+            # If the last sentence doesn't end with proper punctuation, it might be truncated
+            if summary and not summary[-1] in '.!?':
+                # Try to find the last complete sentence
+                last_complete = max(
+                    summary.rfind('.'),
+                    summary.rfind('!'),
+                    summary.rfind('?')
+                )
+                if last_complete > len(summary) // 2:
+                    summary = summary[:last_complete + 1]
+                else:
+                    # Summary is too incomplete, fall back to smart truncation
+                    return self._smart_truncate_sentences(scene_text, 300)
+
+            # Check for truncated words (e.g., "He attempts to sc.")
+            # This happens when the AI output ends with punctuation but the last word is incomplete
+            if self._has_truncated_word(summary):
+                # Find the last complete sentence (second-to-last sentence ending)
+                # by removing the truncated sentence
+                summary_without_last = summary[:-1].rstrip()  # Remove final punctuation
+                last_complete = max(
+                    summary_without_last.rfind('.'),
+                    summary_without_last.rfind('!'),
+                    summary_without_last.rfind('?')
+                )
+                if last_complete > len(summary) // 3:
+                    summary = summary_without_last[:last_complete + 1]
+                else:
+                    # Can't salvage, fall back to smart truncation of original
+                    return self._smart_truncate_sentences(scene_text, 300)
+
+            return summary
         except Exception:
-            # Fallback to truncation if AI fails
-            return scene_text[:200]
+            # Fallback to sentence-aware truncation if AI fails
+            return self._smart_truncate_sentences(scene_text, 300)
 
     def build_image_prompt(
         self,
@@ -242,10 +404,16 @@ Return only the scene description, nothing else."""
             prompt_parts.append(f"A {art_style} style children's book illustration")
 
         # Add main characters with character reference constraints if available
+        # Only include characters that are mentioned in the scene description
         if character_profiles:
             character_descriptions = []
-            # Only include the first 2 characters to keep prompt concise
-            for profile in character_profiles[:2]:
+            scene_lower = scene_description.lower()
+            # Filter to only characters mentioned in the scene
+            characters_in_scene = [
+                profile for profile in character_profiles
+                if profile.name and profile.name.lower() in scene_lower
+            ]
+            for profile in characters_in_scene[:2]:  # Limit to 2 characters max
                 # Try to find matching character reference for this character
                 char_ref = None
                 if character_references:
@@ -298,11 +466,11 @@ Return only the scene description, nothing else."""
             if character_descriptions:
                 prompt_parts.append("showing " + " and ".join(character_descriptions))
 
-        # Scene description - extract key elements
-        scene_summary = scene_description[:200] if len(scene_description) > 200 else scene_description
+        # Scene description - extract key elements without cutting mid-sentence
+        scene_summary = self._smart_truncate_sentences(scene_description, 300)
 
         # Add the scene action/setting
-        prompt_parts.append(f"in this scene: {scene_summary}.")
+        prompt_parts.append(f"in this scene: {scene_summary}")
 
         # Add final quality and consistency instructions
         if art_bible or character_references:
@@ -320,10 +488,10 @@ Return only the scene description, nothing else."""
         full_prompt = " ".join(prompt_parts)
 
         # If prompt is too long, prioritize art bible and character reference constraints
-        # by removing the scene summary first before other elements
+        # by shortening the scene summary (not character details)
         if len(full_prompt) > 1500:
-            # Try to shorten scene summary
-            scene_summary_short = scene_description[:100] if len(scene_description) > 100 else scene_description
+            # Use sentence-aware truncation to avoid cutting mid-word or mid-sentence
+            scene_summary_short = self._smart_truncate_sentences(scene_description, 120)
             # Rebuild with shorter summary
             summary_idx = None
             for i, part in enumerate(prompt_parts):
@@ -331,12 +499,8 @@ Return only the scene description, nothing else."""
                     summary_idx = i
                     break
             if summary_idx is not None:
-                prompt_parts[summary_idx] = f"in this scene: {scene_summary_short}."
+                prompt_parts[summary_idx] = f"in this scene: {scene_summary_short}"
                 full_prompt = " ".join(prompt_parts)
-
-        # Final safety truncation if still too long
-        if len(full_prompt) > 1500:
-            full_prompt = full_prompt[:1497] + "..."
 
         return full_prompt
 
@@ -529,6 +693,9 @@ Return only the scene description, nothing else."""
         and character reference information, so it only needs to describe the scene
         and reference previously established elements.
 
+        Only characters that are mentioned in the scene description will be included
+        in the prompt to avoid adding characters that don't belong in the scene.
+
         Args:
             scene_description: Description of the scene to illustrate
             character_profiles: List of character profiles (for reference by name)
@@ -545,22 +712,28 @@ Return only the scene description, nothing else."""
             "style we established in the art bible."
         )
 
-        # Reference characters by name (they're already in the conversation context)
+        # Filter characters to only those mentioned in the scene description
+        scene_lower = scene_description.lower()
+        characters_in_scene = []
         if character_profiles:
-            character_names = [p.name for p in character_profiles[:3] if p.name]
-            if character_names:
-                if len(character_names) == 1:
-                    prompt_parts.append(
-                        f"Include {character_names[0]} exactly as we designed them in the character reference."
-                    )
-                else:
-                    names_str = ", ".join(character_names[:-1]) + f" and {character_names[-1]}"
-                    prompt_parts.append(
-                        f"Include {names_str} exactly as we designed them in the character references."
-                    )
+            for profile in character_profiles:
+                if profile.name and profile.name.lower() in scene_lower:
+                    characters_in_scene.append(profile.name)
 
-        # Scene description - the main content
-        scene_summary = scene_description[:300] if len(scene_description) > 300 else scene_description
+        # Reference only characters that appear in this scene
+        if characters_in_scene:
+            if len(characters_in_scene) == 1:
+                prompt_parts.append(
+                    f"Include {characters_in_scene[0]} exactly as we designed them in the character reference."
+                )
+            else:
+                names_str = ", ".join(characters_in_scene[:-1]) + f" and {characters_in_scene[-1]}"
+                prompt_parts.append(
+                    f"Include {names_str} exactly as we designed them in the character references."
+                )
+
+        # Scene description - the main content, truncated at sentence boundaries
+        scene_summary = self._smart_truncate_sentences(scene_description, 400)
         prompt_parts.append(f"Scene: {scene_summary}")
 
         # Brief quality reminder

@@ -11,6 +11,7 @@ import asyncio
 import base64
 import os
 from typing import Optional, Dict, Any
+import httpx
 from openai import AsyncOpenAI
 
 from src.ai.base_client import BaseImageClient
@@ -37,10 +38,16 @@ class GPTImageClient(BaseImageClient):
         self.config = config
         self.api_key = config.api_key or os.getenv('OPENAI_API_KEY', '')
         self.model = model
-        self.timeout = config.timeout
+        # Use a generous timeout for image generation (default 300 seconds = 5 minutes)
+        # Image generation can take 2-4 minutes with GPT-4o
+        self.timeout = max(config.timeout, 300) if config.timeout else 300
 
-        # Initialize async OpenAI client
-        self.client = AsyncOpenAI(api_key=self.api_key)
+        # Initialize async OpenAI client with explicit timeout
+        # The timeout applies to all HTTP requests made by the client
+        self.client = AsyncOpenAI(
+            api_key=self.api_key,
+            timeout=httpx.Timeout(self.timeout, connect=60.0)
+        )
 
         # Session state: story_id -> last response_id
         self._sessions: Dict[str, str] = {}

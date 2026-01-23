@@ -280,7 +280,7 @@ class ProjectRepository:
         characters = None
         if data.get('characters') is not None:
             characters = [
-                Character(**char_data) for char_data in data['characters']
+                CharacterProfile(**char_data) for char_data in data['characters']
             ]
 
         art_bible = None

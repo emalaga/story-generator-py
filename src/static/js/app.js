@@ -119,8 +119,8 @@ function updateImageGenerationTab() {
                         <div class="page-text-display">${page.text}</div>
                     </div>
                     <div class="page-prompt-section">
-                        <label for="page-${page.page_number}-prompt">Image Prompt:</label>
-                        <textarea class="page-prompt-edit" id="page-${page.page_number}-prompt" rows="3" readonly>${page.image_prompt || ''}</textarea>
+                        <label for="page-${page.page_number}-prompt">Image Prompt (editable):</label>
+                        <textarea class="page-prompt-edit" id="page-${page.page_number}-prompt" rows="5">${page.image_prompt || ''}</textarea>
                         <button class="btn-small" onclick="generateImagePrompt(${page.page_number})">
                             ${page.image_prompt ? 'Regenerate' : 'Generate'} Prompt
                         </button>
@@ -412,6 +412,10 @@ async function generatePageImage(pageNumber) {
         return;
     }
 
+    // Get the edited prompt from the textarea (if user edited it)
+    const promptTextarea = document.getElementById(`page-${pageNumber}-prompt`);
+    const customPrompt = promptTextarea ? promptTextarea.value.trim() : '';
+
     // Show loading indicator
     const loadingDiv = document.getElementById(`page-${pageNumber}-loading`);
     loadingDiv.classList.remove('hidden');
@@ -426,6 +430,11 @@ async function generatePageImage(pageNumber) {
             art_bible: currentStory.art_bible || null,
             character_references: currentStory.character_references || null
         };
+
+        // If user has edited the prompt, use it directly
+        if (customPrompt) {
+            requestData.custom_prompt = customPrompt;
+        }
 
         const response = await fetch(`${API_BASE}/images/stories/${currentStory.id}/pages/${pageNumber}`, {
             method: 'POST',
@@ -574,11 +583,24 @@ async function loadProject(projectId) {
         const project = await response.json();
         currentStory = project.story;
 
-        // Reset Visual Consistency tab for loaded project
-        resetVisualConsistencyTab();
+        // Don't reset visual consistency - we want to keep saved art_bible and character_references
+        // Clear the image_session_id since the session is no longer valid
+        // (sessions don't persist across server restarts)
+        // When generating new images, the backend will automatically rebuild
+        // the visual context using the saved art_bible and character prompts
+        currentStory.image_session_id = null;
 
         displayStory(currentStory);
         switchTab('text-generation');
+
+        console.log('Project loaded:', projectId);
+        console.log('Art Bible:', currentStory.art_bible);
+        console.log('Character References:', currentStory.character_references);
+
+        // Show info message if visual assets exist
+        if (currentStory.art_bible || (currentStory.character_references && currentStory.character_references.length > 0)) {
+            console.log('Note: Visual context will be rebuilt when generating new images.');
+        }
     } catch (error) {
         showError('Failed to load project: ' + error.message);
     }
@@ -678,9 +700,13 @@ function setupArtBibleSection() {
     if (currentStory.art_bible) {
         const artBible = currentStory.art_bible;
 
-        // Show art bible section if there's a prompt
-        if (artBible.prompt) {
+        // Show art bible section if there's a prompt OR an image
+        if (artBible.prompt || artBible.local_image_path || artBible.image_url) {
             document.getElementById('art-bible-section').classList.remove('hidden');
+        }
+
+        // Populate the prompt if available
+        if (artBible.prompt) {
             document.getElementById('art-bible-prompt').value = artBible.prompt;
         }
 
@@ -834,24 +860,27 @@ function setupCharacterReferences() {
             ref => ref.character_name === character.name
         );
 
+        // Show prompt section if there's an existing reference
+        const showPromptSection = existingRef && (existingRef.prompt || existingRef.local_image_path || existingRef.image_url);
+
         charCard.innerHTML = `
             <h4>${character.name} (${character.species || 'Character'})</h4>
 
             <div class="character-ref-controls">
                 <button class="btn-small" onclick="generateCharacterPrompt(${index})">
-                    Generate Reference Prompt
+                    ${existingRef && existingRef.prompt ? 'Regenerate' : 'Generate'} Reference Prompt
                 </button>
                 <button class="btn-small" onclick="uploadCharacterRef(${index})">
                     Upload Custom Reference
                 </button>
             </div>
 
-            <div id="char-ref-prompt-${index}" class="character-ref-prompt hidden">
+            <div id="char-ref-prompt-${index}" class="character-ref-prompt ${showPromptSection ? '' : 'hidden'}">
                 <label>Character Reference Prompt (editable):</label>
-                <textarea id="char-prompt-${index}" class="prompt-textarea" rows="5">${existingRef ? existingRef.prompt : ''}</textarea>
+                <textarea id="char-prompt-${index}" class="prompt-textarea" rows="5">${existingRef && existingRef.prompt ? existingRef.prompt : ''}</textarea>
                 <div class="image-actions" style="margin-top: 10px;">
                     <button class="btn-small" onclick="generateCharacterImage(${index})">
-                        Generate Reference Image
+                        ${existingRef && (existingRef.local_image_path || existingRef.image_url) ? 'Regenerate' : 'Generate'} Reference Image
                     </button>
                 </div>
             </div>
@@ -1013,6 +1042,39 @@ function uploadCharacterRef(charIndex) {
     alert('Image upload functionality coming soon! For now, please use the generated character references.');
 }
 
+// ===== Auto-save Project =====
+async function autoSaveProject() {
+    if (!currentStory) return;
+
+    const projectData = {
+        id: currentStory.id,
+        name: currentStory.metadata.title,
+        story: currentStory,
+        status: 'completed',
+        character_profiles: currentStory.characters || [],
+        image_prompts: []
+    };
+
+    try {
+        const response = await fetch(`${API_BASE}/projects`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(projectData),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            console.warn('Auto-save warning:', error.error);
+        } else {
+            console.log('Project auto-saved successfully');
+        }
+    } catch (error) {
+        console.warn('Auto-save warning:', error.message);
+    }
+}
+
 // ===== Save Image Functions =====
 async function saveArtBibleImage() {
     if (!currentStory || !currentStory.art_bible || !currentStory.art_bible.image_url) {
@@ -1047,6 +1109,9 @@ async function saveArtBibleImage() {
         currentStory.art_bible.local_image_path = result.local_path;
 
         console.log('Art Bible image saved successfully to:', result.local_path);
+
+        // Auto-save project to persist the image path
+        await autoSaveProject();
     } catch (error) {
         showError(`Failed to save art bible image: ${error.message}`);
     }
@@ -1093,6 +1158,9 @@ async function saveCharacterImage(charIndex) {
         charRef.local_image_path = result.local_path;
 
         console.log(`Character reference image for ${character.name} saved to:`, result.local_path);
+
+        // Auto-save project to persist the image path
+        await autoSaveProject();
     } catch (error) {
         showError(`Failed to save character image: ${error.message}`);
     }
@@ -1136,7 +1204,16 @@ async function savePageImage(pageNumber) {
         // Update page with local path
         page.local_image_path = result.local_path;
 
+        // Also save the prompt that was used
+        const promptTextarea = document.getElementById(`page-${pageNumber}-prompt`);
+        if (promptTextarea) {
+            page.image_prompt = promptTextarea.value;
+        }
+
         console.log(`Page ${pageNumber} image saved to:`, result.local_path);
+
+        // Auto-save project to persist the image path and prompt
+        await autoSaveProject();
     } catch (error) {
         showError(`Failed to save page image: ${error.message}`);
     }

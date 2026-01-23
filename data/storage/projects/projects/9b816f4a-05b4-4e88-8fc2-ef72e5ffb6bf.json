@@ -1,0 +1,150 @@
+{
+  "id": "9b816f4a-05b4-4e88-8fc2-ef72e5ffb6bf",
+  "name": "The soccer fan",
+  "status": "completed",
+  "story": {
+    "id": "9b816f4a-05b4-4e88-8fc2-ef72e5ffb6bf",
+    "metadata": {
+      "title": "The soccer fan",
+      "language": "Spanish",
+      "complexity": "beginner",
+      "vocabulary_diversity": "medium",
+      "age_group": "8-12 years",
+      "num_pages": 4,
+      "genre": "Adventure",
+      "art_style": "pencil sketch style",
+      "user_prompt": "The story of a kid who wanted to be good at soccer but initially was not, and made his team lost, but practice hard and became the best",
+      "words_per_page": 100
+    },
+    "pages": [
+      {
+        "page_number": 1,
+        "text": "Había una vez un niño llamado Pablo, un apasionado del fútbol. Cada día, después de la escuela, corría al parque para jugar con sus amigos. Sin embargo, parecía que Pablo no tenía mucha suerte con el balón. Cada vez que intentaba hacer un gol, siempre fallaba. Sus amigos se burlaban de él y a veces, Pablo se sentía muy triste. Un día, tras un partido en el que su equipo perdió a causa de su fallo, Pablo decidió que necesitaba mejorar.",
+        "image_url": null,
+        "image_prompt": null,
+        "local_image_path": null
+      },
+      {
+        "page_number": 2,
+        "text": "Desde aquel día, Pablo se levantaba temprano cada mañana para practicar antes de la escuela. Driblaba alrededor de los árboles, practicaba sus pases con la pared y disparaba al arco hasta que sus piernas dolían. La determinación de Pablo era fuerte, incluso cuando llovía o hacía frío, él seguía practicando. Algunos días se sentía desesperado, pero cada vez que recordaba la derrota de su equipo, encontraba la fuerza para seguir adelante.",
+        "image_url": null,
+        "image_prompt": null,
+        "local_image_path": null
+      },
+      {
+        "page_number": 3,
+        "text": "Pasaron semanas, y los amigos de Pablo comenzaron a notar un cambio en su juego. Ya no fallaba tantos goles y sus pases eran más precisos. De hecho, empezó a ser el primero en ser elegido para los equipos. Pero Pablo no se conformó con eso. Siguió practicando día tras día, golpeando el balón una y otra vez, decidido a convertirse en el mejor jugador.",
+        "image_url": null,
+        "image_prompt": null,
+        "local_image_path": null
+      },
+      {
+        "page_number": 4,
+        "text": "Finalmente, llegó el día del gran partido contra el equipo rival. Pablo estaba nervioso, pero también emocionado. Cuando llegó su oportunidad, pateó el balón con todas sus fuerzas y... ¡Gol! Pablo había hecho el gol de la victoria. Todos sus amigos lo levantaron en hombros, celebrando su éxito. Pablo sonrió, sabiendo que todo su esfuerzo y perseverancia habían valido la pena. Desde aquel día, nadie se burló de Pablo. Se había convertido en el mejor jugador de fútbol del parque. Y todo gracias a su perseverancia y trabajo duro.",
+        "image_url": null,
+        "image_prompt": null,
+        "local_image_path": null
+      }
+    ],
+    "vocabulary": [],
+    "characters": [
+      {
+        "name": "Pablo",
+        "species": "Human",
+        "physical_description": "Pablo is a young boy of about 10 years old. He has a medium build and is of average height for his age. He has dark brown hair, cut short, and bright, determined brown eyes. His skin is a warm tan color, and his cheeks are often flushed from running around playing soccer. He has a small scar on his right knee from a fall during a soccer game.",
+        "clothing": "Pablo is usually seen wearing his favorite soccer jersey, which is bright red and blue, with the number '10' on the back. He also wears black shorts, long white socks, and well-worn soccer cleats. He always has a bandana tied around his head, which is also red and blue.",
+        "distinctive_features": "Pablo's most distinctive feature is his bright, determined eyes which always seem to be focused on a soccer ball. His bandana and the scar on his knee also make him stand out.",
+        "personality_traits": "Pablo's determination, passion for soccer, and perseverance are evident in his focused gaze and the way he always seems to be in motion. His resilience can be seen in the way he carries himself, always standing tall despite the challenges he faces."
+      },
+      {
+        "name": "Amigos de Pablo",
+        "species": "Human",
+        "physical_description": "A group of children of various heights and sizes, ranging from 4 to 5 feet tall. They have different skin tones, from fair to dark, and a variety of hair colors and styles, including short, long, curly, straight, black, brown, and blonde. Some wear glasses, others have freckles, and a few have braces.",
+        "clothing": "They all wear casual, sporty clothing suitable for playing football in the park. This includes t-shirts of various colors, shorts, and sneakers. Some wear caps or headbands, and all have knee-high socks and shin guards.",
+        "distinctive_features": "Each child has a unique feature for easy recognition. One has a red cap, another has glasses, one has curly hair, another has a distinctive mole on the cheek, and one has braces. They all share a common feature of being sweaty and slightly dirty from playing football.",
+        "personality_traits": "Their expressions vary from initial mockery to eventual admiration and celebration of Pablo's success. They display a range of emotions, including laughter, surprise, and joy. Their body language also changes from initially dismissive or mocking to supportive and celebratory."
+      },
+      {
+        "name": "Equipo rival",
+        "species": "Human",
+        "physical_description": "The rival team members are a group of 11 boys around 10-12 years old. They are of various heights, ranging from 4.5 to 5 feet tall. Some have short hair in various shades of brown, black, and blonde, while others have longer hair tied back in ponytails. They all have athletic builds, with muscular legs from frequent football practice. Their skin tones range from light to dark, reflecting a variety of ethnic backgrounds.",
+        "clothing": "They wear matching football uniforms. The uniforms are bright red with white stripes down the sides. Each uniform has a number on the back in white, ranging from 1 to 11. They all wear black football boots with white laces, and white socks that reach up to their mid-calves. They also wear black wristbands.",
+        "distinctive_features": "The team's goalkeeper has a distinctive feature: he wears a pair of bright green gloves. Also, the team captain, who wears number 1, has a captain's armband in blue.",
+        "personality_traits": "The rival team members have a competitive and confident look on their faces. They stand tall and proud, showing their determination and team spirit. They are always seen together, demonstrating their unity and teamwork."
+      }
+    ],
+    "art_bible": {
+      "prompt": "Create a sample scene illustration in pencil sketch style for a children's book. The scene should fit a Adventure story for children. This is a reference illustration for a story titled 'The soccer fan'. The scene should showcase the visual style, colors, lighting, and artistic approach that will be used throughout the book.",
+      "image_url": null,
+      "local_image_path": "images/9b816f4a-05b4-4e88-8fc2-ef72e5ffb6bf/art_bible/art_bible_1769104943998.png",
+      "art_style": "pencil sketch style",
+      "style_notes": null,
+      "color_palette": null,
+      "lighting_style": null,
+      "brush_technique": null
+    },
+    "character_references": [
+      {
+        "character_name": "Pablo",
+        "prompt": "A pencil sketch style illustration of Pablo who is a Human with this appearance: Pablo is a young boy of about 10 years old. He has a medium build and is of average height for his age. He has dark brown hair, cut short, and bright, determined brown eyes wearing Pablo is usually seen wearing his favorite soccer jersey, which is bright red and blue, with the number '10' on the back with distinctive features: Pablo's most distinctive feature is his bright, determined eyes which always seem to be focused on a soccer ball showing a Pablo's determination, passion for soccer, and perseverance are evident in his focused gaze expression Create a single image of the character in a natural standing or sitting pose with a plain white background. No text, No lines, No other elements.",
+        "image_url": null,
+        "local_image_path": "images/9b816f4a-05b4-4e88-8fc2-ef72e5ffb6bf/characters/character_Pablo_1769104938021.png",
+        "species": "Human",
+        "physical_description": "Pablo is a young boy of about 10 years old. He has a medium build and is of average height for his age. He has dark brown hair, cut short, and bright, determined brown eyes.",
+        "clothing": "Pablo is usually seen wearing his favorite soccer jersey, which is bright red and blue, with the number '10' on the back.",
+        "distinctive_features": "Pablo's most distinctive feature is his bright, determined eyes which always seem to be focused on a soccer ball."
+      },
+      {
+        "character_name": "Amigos de Pablo",
+        "prompt": "A pencil sketch style illustration of Amigos de Pablo who is a Human with this appearance: A group of children of various heights and sizes, ranging from 4 to 5 feet tall. They have different skin tones, from fair to dark wearing They all wear casual, sporty clothing suitable for playing football in the park with distinctive features: Each child has a unique feature for easy recognition. One has a red cap, another has glasses Create a single image of the character in a natural standing or sitting pose with a plain white background. No text, No lines, No other elements.",
+        "image_url": null,
+        "local_image_path": "images/9b816f4a-05b4-4e88-8fc2-ef72e5ffb6bf/characters/character_Amigos_de_Pablo_1769105054548.png",
+        "species": "Human",
+        "physical_description": "A group of children of various heights and sizes, ranging from 4 to 5 feet tall.",
+        "clothing": "They all wear casual, sporty clothing suitable for playing football in the park.",
+        "distinctive_features": "Each child has a unique feature for easy recognition. One has a red cap, another has glasses."
+      },
+      {
+        "character_name": "Equipo rival",
+        "prompt": "A pencil sketch style illustration of Equipo rival who is a Human with this appearance: The rival team members are a group of 11 boys around 10-12 years old. They are of various heights, ranging from 4.5 to 5 feet tall wearing They wear matching football uniforms. The uniforms are bright red with white stripes down the sides with distinctive features: The team's goalkeeper has a distinctive feature: he wears a pair of bright green gloves Create a single image of the character in a natural standing or sitting pose with a plain white background. No text, No lines, No other elements.",
+        "image_url": null,
+        "local_image_path": "images/9b816f4a-05b4-4e88-8fc2-ef72e5ffb6bf/characters/character_Equipo_rival_1769105181046.png",
+        "species": "Human",
+        "physical_description": "The rival team members are a group of 11 boys around 10-12 years old.",
+        "clothing": "They wear matching football uniforms. The uniforms are bright red with white stripes down the sides.",
+        "distinctive_features": "The team's goalkeeper has a distinctive feature: he wears a pair of bright green gloves."
+      }
+    ],
+    "created_at": "2026-01-22T09:49:57.072091",
+    "updated_at": "2026-01-22T09:49:57.072105"
+  },
+  "character_profiles": [
+    {
+      "name": "Pablo",
+      "species": "Human",
+      "physical_description": "Pablo is a young boy of about 10 years old. He has a medium build and is of average height for his age. He has dark brown hair, cut short, and bright, determined brown eyes. His skin is a warm tan color, and his cheeks are often flushed from running around playing soccer. He has a small scar on his right knee from a fall during a soccer game.",
+      "clothing": "Pablo is usually seen wearing his favorite soccer jersey, which is bright red and blue, with the number '10' on the back. He also wears black shorts, long white socks, and well-worn soccer cleats. He always has a bandana tied around his head, which is also red and blue.",
+      "distinctive_features": "Pablo's most distinctive feature is his bright, determined eyes which always seem to be focused on a soccer ball. His bandana and the scar on his knee also make him stand out.",
+      "personality_traits": "Pablo's determination, passion for soccer, and perseverance are evident in his focused gaze and the way he always seems to be in motion. His resilience can be seen in the way he carries himself, always standing tall despite the challenges he faces."
+    },
+    {
+      "name": "Amigos de Pablo",
+      "species": "Human",
+      "physical_description": "A group of children of various heights and sizes, ranging from 4 to 5 feet tall. They have different skin tones, from fair to dark, and a variety of hair colors and styles, including short, long, curly, straight, black, brown, and blonde. Some wear glasses, others have freckles, and a few have braces.",
+      "clothing": "They all wear casual, sporty clothing suitable for playing football in the park. This includes t-shirts of various colors, shorts, and sneakers. Some wear caps or headbands, and all have knee-high socks and shin guards.",
+      "distinctive_features": "Each child has a unique feature for easy recognition. One has a red cap, another has glasses, one has curly hair, another has a distinctive mole on the cheek, and one has braces. They all share a common feature of being sweaty and slightly dirty from playing football.",
+      "personality_traits": "Their expressions vary from initial mockery to eventual admiration and celebration of Pablo's success. They display a range of emotions, including laughter, surprise, and joy. Their body language also changes from initially dismissive or mocking to supportive and celebratory."
+    },
+    {
+      "name": "Equipo rival",
+      "species": "Human",
+      "physical_description": "The rival team members are a group of 11 boys around 10-12 years old. They are of various heights, ranging from 4.5 to 5 feet tall. Some have short hair in various shades of brown, black, and blonde, while others have longer hair tied back in ponytails. They all have athletic builds, with muscular legs from frequent football practice. Their skin tones range from light to dark, reflecting a variety of ethnic backgrounds.",
+      "clothing": "They wear matching football uniforms. The uniforms are bright red with white stripes down the sides. Each uniform has a number on the back in white, ranging from 1 to 11. They all wear black football boots with white laces, and white socks that reach up to their mid-calves. They also wear black wristbands.",
+      "distinctive_features": "The team's goalkeeper has a distinctive feature: he wears a pair of bright green gloves. Also, the team captain, who wears number 1, has a captain's armband in blue.",
+      "personality_traits": "The rival team members have a competitive and confident look on their faces. They stand tall and proud, showing their determination and team spirit. They are always seen together, demonstrating their unity and teamwork."
+    }
+  ],
+  "image_prompts": [],
+  "created_at": "2026-01-22T09:49:57.072135",
+  "updated_at": "2026-01-22T09:49:57.072137"
+}

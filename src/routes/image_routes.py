@@ -176,13 +176,34 @@ def generate_image_for_page(story_id, page_num):
         current_app.logger.info(f"Generating image for page {page_num} with {len(character_profiles)} characters")
         current_app.logger.info(f"  Session ID: {session_id or 'None (will create new)'}")
 
-        # Generate image using conversation session
-        image_url = run_async(image_generator.generate_image_for_page(
-            story,
-            scene_description,
-            character_profiles,
-            art_style
-        ))
+        # Check if a custom prompt was provided (user edited the prompt)
+        custom_prompt = data.get('custom_prompt')
+
+        if custom_prompt:
+            # Use the custom prompt directly without regenerating
+            current_app.logger.info(f"  Using custom prompt (length: {len(custom_prompt)})")
+
+            # Ensure session exists
+            run_async(image_generator.ensure_session(story))
+
+            # Generate image directly with custom prompt
+            image_url = run_async(image_client.generate_image(
+                story_id,
+                custom_prompt,
+                size='1024x1024',
+                quality='high'
+            ))
+
+            # Update session ID in story
+            story.image_session_id = image_client.get_session_id(story_id)
+        else:
+            # Generate image using conversation session (builds prompt automatically)
+            image_url = run_async(image_generator.generate_image_for_page(
+                story,
+                scene_description,
+                character_profiles,
+                art_style
+            ))
 
         # Get updated session ID
         new_session_id = image_client.get_session_id(story_id)
@@ -286,7 +307,13 @@ def save_image():
 
         # Return the relative path from the storage directory
         # This will be used for loading images later
-        relative_path = f'images/{project_id}/{image_type}s/{filename}' if image_type != 'page' else f'images/{project_id}/pages/{filename}'
+        # Map image_type to the actual directory name
+        type_to_dir = {
+            'art_bible': 'art_bible',
+            'character': 'characters',
+            'page': 'pages'
+        }
+        relative_path = f'images/{project_id}/{type_to_dir[image_type]}/{filename}'
 
         return jsonify({
             'success': True,
@@ -313,8 +340,8 @@ def serve_saved_image(filepath):
         404: Image not found
     """
     try:
-        project_repo = current_app.config['SERVICES']['project_repository']
-        images_dir = project_repo.storage_dir / 'images'
+        project_repo = current_app.config['REPOSITORIES']['project']
+        images_dir = project_repo.images_dir
 
         # Security check: ensure the path doesn't escape the images directory
         requested_path = (images_dir / filepath).resolve()

@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Optional, List, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from src.models.character import Character
+    from src.models.character import CharacterProfile
     from src.models.art_bible import ArtBible, CharacterReference
 
 
@@ -45,7 +45,7 @@ class Story:
     metadata: StoryMetadata
     pages: List[StoryPage]
     vocabulary: List[str] = field(default_factory=list)
-    characters: Optional[List["Character"]] = None
+    characters: Optional[List["CharacterProfile"]] = None
     art_bible: Optional["ArtBible"] = None
     character_references: Optional[List["CharacterReference"]] = None
     image_session_id: Optional[str] = None  # OpenAI response ID for conversation continuity
