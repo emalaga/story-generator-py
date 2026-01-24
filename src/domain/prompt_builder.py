@@ -250,18 +250,18 @@ class PromptBuilder:
         character_profiles: Optional[List[CharacterProfile]] = None
     ) -> str:
         """
-        Use AI to create a concise scene summary for image generation.
+        Use AI to identify the single most exciting, dramatic moment from the page text.
 
-        Takes a full page of story text and extracts the main visual scene
-        that should be illustrated, removing narrative elements and focusing
-        on the key visual moment.
+        Takes a full page of story text and extracts the ONE KEY MOMENT that would
+        make the most compelling illustration - the climax, turning point, or most
+        visually exciting action in that part of the story.
 
         Args:
             scene_text: Full story page text
             character_profiles: Optional list of characters to maintain consistency
 
         Returns:
-            Concise scene description (30-50 words) focusing on visual elements
+            Concise scene description (40-60 words) focusing on the single most exciting moment
         """
         if not self.ai_client:
             # Fallback: sentence-aware truncation if no AI client available
@@ -277,35 +277,41 @@ class PromptBuilder:
             if chars:
                 character_context = f"\n\nMain characters in this story: {', '.join(chars)}"
 
-        system_message = """You are an expert at analyzing children's story text and identifying the main visual scene to illustrate.
-Your task is to extract the KEY VISUAL MOMENT from the story page that should be drawn.
+        system_message = """You are an expert children's book illustrator choosing THE SINGLE MOST EXCITING MOMENT to illustrate from a story page.
 
-Focus on:
-- Main action or event happening
-- Character positions and activities (use the exact character names and species provided)
-- Setting and environment
-- Emotional tone
+Your task is to identify the ONE DRAMATIC MOMENT that would make the most compelling illustration - not a summary of the page, but the PEAK MOMENT that captures:
+- The most exciting action (a kick, a fall, a discovery, a hug, a confrontation)
+- The emotional climax (triumph, despair, surprise, joy)
+- The turning point or pivotal instant
+
+Think like an illustrator: What single frozen moment would a reader remember? What captures the drama?
+
+Examples of what to look for:
+- "The ball flew toward the goal" NOT "Pablo practiced soccer every day"
+- "Maria's eyes widened as she opened the treasure chest" NOT "Maria went on an adventure"
+- "The dragon breathed fire as the knight raised his shield" NOT "The knight fought the dragon"
 
 CRITICAL REQUIREMENTS:
-- Use ONLY the character information provided - do not make assumptions about gender, appearance, or other details
-- Refer to characters by their exact names and species
-- Do not add details not present in the story text
-- EVERY sentence MUST be grammatically complete - never end mid-sentence or with incomplete phrases
-- Always end with proper punctuation (period, exclamation mark, or question mark)
+- Describe ONE SPECIFIC MOMENT, not a sequence of events
+- Include the specific ACTION happening at that instant
+- Use the exact character names provided - no assumptions about gender or appearance
+- Every sentence must be grammatically complete
+- Always end with proper punctuation
 
-Ignore:
+DO NOT include:
+- General summaries ("Pablo loved soccer")
+- Multiple events ("First... then... finally...")
+- Abstract feelings without visible action
 - Narrative commentary
-- Internal thoughts
-- Abstract concepts that can't be visualized
 
-Return ONLY a concise scene description (40-60 words) that an illustrator could draw. Ensure all sentences are complete."""
+Return ONLY a vivid description (40-60 words) of that single dramatic moment an illustrator should capture."""
 
-        prompt = f"""Analyze this children's story page and describe the main scene to illustrate:{character_context}
+        prompt = f"""Read this story page and identify THE SINGLE MOST EXCITING MOMENT to illustrate:{character_context}
 
 Story page text:
 {scene_text}
 
-Write a complete scene description with no incomplete sentences. Return only the scene description."""
+What is the ONE DRAMATIC MOMENT that would make the best illustration? Describe that specific instant with vivid, visual detail. Focus on the action, not a summary."""
 
         try:
             summary = await self.ai_client.generate_text(

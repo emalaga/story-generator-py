@@ -8,12 +8,15 @@ This service coordinates the complete image generation process, including:
 - Managing image URLs and prompts for story pages
 """
 
+import logging
 from typing import List, Optional
 
 from src.ai.gpt_image_client import GPTImageClient
 from src.domain.prompt_builder import PromptBuilder
 from src.models.character import CharacterProfile
 from src.models.story import Story
+
+logger = logging.getLogger(__name__)
 
 
 class ImageGeneratorService:
@@ -52,19 +55,31 @@ class ImageGeneratorService:
         Returns:
             The session ID (response ID) for the story
         """
+        print(f"[ImageGenerator] ensure_session called for story_id={story.id}", flush=True)
+        print(f"[ImageGenerator]   story.image_session_id={story.image_session_id}", flush=True)
+        logger.info(f"ensure_session called for story {story.id}")
+
         # Check if we have a session ID and it's loaded in the client
         if story.image_session_id:
+            print(f"[ImageGenerator]   Story has existing session_id, checking if loaded in client...", flush=True)
             # Load the session into the client if not already there
             if not self.image_client.get_session_id(story.id):
+                print(f"[ImageGenerator]   Session not in client, loading it...", flush=True)
                 self.image_client.set_session_id(story.id, story.image_session_id)
 
             # Validate the session is still usable
+            print(f"[ImageGenerator]   Validating session...", flush=True)
             if await self.image_client.validate_session(story.id):
+                print(f"[ImageGenerator]   Session is valid, returning existing session_id", flush=True)
                 return story.image_session_id
+            print(f"[ImageGenerator]   Session validation failed", flush=True)
 
         # No valid session - rebuild visual context
+        print(f"[ImageGenerator]   No valid session, rebuilding visual context...", flush=True)
+        logger.info(f"No valid session for story {story.id}, rebuilding visual context")
         session_id = await self.rebuild_visual_context(story)
         story.image_session_id = session_id
+        print(f"[ImageGenerator]   Visual context rebuilt, new session_id={session_id}", flush=True)
         return session_id
 
     async def rebuild_visual_context(self, story: Story) -> str:
@@ -80,22 +95,37 @@ class ImageGeneratorService:
         Returns:
             The new session ID
         """
+        print(f"[ImageGenerator] rebuild_visual_context called for story {story.id}", flush=True)
+        logger.info(f"Rebuilding visual context for story {story.id}")
+
         # Clear any existing session
+        print(f"[ImageGenerator]   Clearing existing session...", flush=True)
         self.image_client.clear_session(story.id)
 
         # Get art style from story metadata
         art_style = story.metadata.art_style or "cartoon"
         story_title = story.metadata.title or ""
+        print(f"[ImageGenerator]   art_style={art_style}, title={story_title}", flush=True)
 
         # Start new session with art style context
-        session_id = await self.image_client.start_session(
-            story.id,
-            art_style,
-            story_title
-        )
+        print(f"[ImageGenerator]   Starting new session...", flush=True)
+        logger.info(f"Starting new session with art_style={art_style}, title={story_title}")
+        try:
+            session_id = await self.image_client.start_session(
+                story.id,
+                art_style,
+                story_title
+            )
+            print(f"[ImageGenerator]   New session started with ID: {session_id}", flush=True)
+            logger.info(f"New session started with ID: {session_id}")
+        except Exception as e:
+            print(f"[ImageGenerator]   FAILED to start session: {type(e).__name__}: {e}", flush=True)
+            raise
 
         # If art bible exists with a prompt, regenerate it to establish style
         if story.art_bible and story.art_bible.prompt:
+            print(f"[ImageGenerator]   Art bible exists, regenerating...", flush=True)
+            logger.info(f"Regenerating art bible (prompt length: {len(story.art_bible.prompt)})")
             try:
                 image_url = await self.image_client.generate_image(
                     story.id,
@@ -104,13 +134,23 @@ class ImageGeneratorService:
                     quality='high'
                 )
                 story.art_bible.image_url = image_url
+                print(f"[ImageGenerator]   Art bible regenerated successfully", flush=True)
+                logger.info(f"Art bible regenerated successfully")
             except Exception as e:
-                print(f"Warning: Failed to regenerate art bible: {e}")
+                print(f"[ImageGenerator]   Art bible regeneration failed: {e}", flush=True)
+                logger.warning(f"Failed to regenerate art bible: {e}")
+        else:
+            print(f"[ImageGenerator]   No art bible prompt to regenerate", flush=True)
+            logger.info("No art bible prompt to regenerate")
 
         # Regenerate each character reference to establish characters
         if story.character_references:
+            print(f"[ImageGenerator]   Regenerating {len(story.character_references)} character references...", flush=True)
+            logger.info(f"Regenerating {len(story.character_references)} character references")
             for char_ref in story.character_references:
                 if char_ref.prompt:
+                    print(f"[ImageGenerator]   Regenerating character: {char_ref.character_name}...", flush=True)
+                    logger.info(f"Regenerating character reference for {char_ref.character_name}")
                     try:
                         image_url = await self.image_client.generate_image(
                             story.id,
@@ -119,11 +159,17 @@ class ImageGeneratorService:
                             quality='high'
                         )
                         char_ref.image_url = image_url
+                        print(f"[ImageGenerator]   Character {char_ref.character_name} regenerated", flush=True)
+                        logger.info(f"Character reference for {char_ref.character_name} regenerated")
                     except Exception as e:
-                        print(f"Warning: Failed to regenerate character reference for {char_ref.character_name}: {e}")
+                        print(f"[ImageGenerator]   Character {char_ref.character_name} failed: {e}", flush=True)
+                        logger.warning(f"Failed to regenerate character reference for {char_ref.character_name}: {e}")
+        else:
+            logger.info("No character references to regenerate")
 
         # Update session ID
         story.image_session_id = self.image_client.get_session_id(story.id)
+        logger.info(f"Visual context rebuild complete, session_id: {story.image_session_id}")
         return story.image_session_id
 
     async def generate_art_bible_image(
@@ -221,14 +267,21 @@ class ImageGeneratorService:
         Raises:
             Exception: If image generation fails
         """
+        logger.info(f"Generating image for page, story_id={story.id}, art_style={art_style}")
+        logger.info(f"Scene description length: {len(scene_description)}, characters: {len(character_profiles)}")
+
         # Ensure session exists
+        logger.info("Ensuring session exists...")
         await self.ensure_session(story)
+        logger.info(f"Session ensured, session_id: {story.image_session_id}")
 
         # Use AI to create a concise scene summary from full text
+        logger.info("Summarizing scene...")
         scene_summary = await self.prompt_builder.summarize_scene(
             scene_description,
             character_profiles=character_profiles
         )
+        logger.info(f"Scene summary: {scene_summary[:100]}..." if len(scene_summary) > 100 else f"Scene summary: {scene_summary}")
 
         # Build a simplified prompt (no need for detailed art bible/character descriptions
         # since the conversation context already knows about them)
@@ -237,14 +290,17 @@ class ImageGeneratorService:
             character_profiles,
             art_style
         )
+        logger.info(f"Built prompt (length: {len(prompt)})")
 
         # Generate image using conversation context
+        logger.info("Generating image with GPT-4o...")
         image_url = await self.image_client.generate_image(
             story.id,
             prompt,
             size='1024x1024',
             quality='high'
         )
+        logger.info(f"Image generated, URL length: {len(image_url) if image_url else 0}")
 
         # Update session ID in story
         story.image_session_id = self.image_client.get_session_id(story.id)

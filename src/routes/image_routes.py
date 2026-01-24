@@ -182,22 +182,46 @@ def generate_image_for_page(story_id, page_num):
         if custom_prompt:
             # Use the custom prompt directly without regenerating
             current_app.logger.info(f"  Using custom prompt (length: {len(custom_prompt)})")
+            import sys
+            sys.stdout.flush()
 
             # Ensure session exists
-            run_async(image_generator.ensure_session(story))
+            print(f"[DEBUG] About to call ensure_session for story_id={story_id}", flush=True)
+            current_app.logger.info(f"  Calling ensure_session...")
+            sys.stdout.flush()
+            try:
+                print(f"[DEBUG] Inside try block, calling run_async(ensure_session)", flush=True)
+                run_async(image_generator.ensure_session(story))
+                print(f"[DEBUG] ensure_session returned, session_id={story.image_session_id}", flush=True)
+                current_app.logger.info(f"  ensure_session completed, session_id: {story.image_session_id}")
+            except Exception as e:
+                print(f"[DEBUG] ensure_session EXCEPTION: {type(e).__name__}: {e}", flush=True)
+                current_app.logger.error(f"  ensure_session FAILED: {e}", exc_info=True)
+                raise
 
             # Generate image directly with custom prompt
-            image_url = run_async(image_client.generate_image(
-                story_id,
-                custom_prompt,
-                size='1024x1024',
-                quality='high'
-            ))
+            print(f"[DEBUG] About to call generate_image", flush=True)
+            current_app.logger.info(f"  Calling generate_image with custom prompt...")
+            try:
+                print(f"[DEBUG] Inside try block, calling run_async(generate_image)", flush=True)
+                image_url = run_async(image_client.generate_image(
+                    story_id,
+                    custom_prompt,
+                    size='1024x1024',
+                    quality='high'
+                ))
+                print(f"[DEBUG] generate_image returned, URL length={len(image_url) if image_url else 0}", flush=True)
+                current_app.logger.info(f"  generate_image completed, URL length: {len(image_url) if image_url else 0}")
+            except Exception as e:
+                print(f"[DEBUG] generate_image EXCEPTION: {type(e).__name__}: {e}", flush=True)
+                current_app.logger.error(f"  generate_image FAILED: {e}", exc_info=True)
+                raise
 
             # Update session ID in story
             story.image_session_id = image_client.get_session_id(story_id)
         else:
             # Generate image using conversation session (builds prompt automatically)
+            current_app.logger.info(f"  Generating with automatic prompt building")
             image_url = run_async(image_generator.generate_image_for_page(
                 story,
                 scene_description,
@@ -208,6 +232,10 @@ def generate_image_for_page(story_id, page_num):
         # Get updated session ID
         new_session_id = image_client.get_session_id(story_id)
 
+        # Log what we're returning
+        current_app.logger.info(f"  Image URL returned: {image_url[:100] if image_url else 'None'}...")
+        current_app.logger.info(f"  New session ID: {new_session_id}")
+
         return jsonify({
             'image_url': image_url,
             'page_number': page_num,
@@ -215,9 +243,10 @@ def generate_image_for_page(story_id, page_num):
         }), 200
 
     except ValueError as e:
+        current_app.logger.error(f"ValueError generating image: {e}")
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        current_app.logger.error(f"Error generating image: {e}")
+        current_app.logger.error(f"Error generating image: {e}", exc_info=True)
         return jsonify({'error': 'Internal server error'}), 500
 
 
@@ -360,3 +389,73 @@ def serve_saved_image(filepath):
     except Exception as e:
         current_app.logger.error(f"Error serving image: {e}")
         return jsonify({'error': f'Failed to serve image: {str(e)}'}), 500
+
+
+@image_bp.route('/delete', methods=['POST'])
+def delete_image():
+    """
+    POST /api/images/delete - Delete a saved image
+
+    Request body:
+    {
+        "image_path": str (required) - relative path like "images/project-id/type/filename.png"
+    }
+
+    Returns:
+        200: Image deleted successfully
+        400: Invalid request
+        404: Image not found
+        500: Server error
+    """
+    try:
+        # Validate request
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+
+        try:
+            data = request.get_json()
+        except BadRequest:
+            return jsonify({'error': 'Invalid JSON'}), 400
+
+        # Validate required fields
+        if 'image_path' not in data:
+            return jsonify({'error': 'Missing required field: image_path'}), 400
+
+        image_path = data['image_path']
+
+        # Get project repository to access image directories
+        project_repo = current_app.config['REPOSITORIES']['project']
+        images_dir = project_repo.images_dir
+
+        # Construct full path
+        # image_path format: "images/project-id/type/filename.png"
+        # We need to remove the leading "images/" since images_dir is already the images directory
+        if image_path.startswith('images/'):
+            relative_path = image_path[7:]  # Remove "images/" prefix
+        else:
+            relative_path = image_path
+
+        full_path = images_dir / relative_path
+
+        # Security check: ensure the path doesn't escape the images directory
+        resolved_path = full_path.resolve()
+        if not str(resolved_path).startswith(str(images_dir.resolve())):
+            return jsonify({'error': 'Invalid path'}), 403
+
+        # Check if file exists
+        if not full_path.exists():
+            return jsonify({'error': 'Image not found'}), 404
+
+        # Delete the file
+        full_path.unlink()
+
+        current_app.logger.info(f"Deleted image: {image_path}")
+
+        return jsonify({
+            'success': True,
+            'deleted_path': image_path
+        }), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error deleting image: {e}")
+        return jsonify({'error': f'Failed to delete image: {str(e)}'}), 500

@@ -148,6 +148,7 @@ def generate_art_bible_image():
             ))
 
         # Generate art bible image within the conversation session
+        current_app.logger.info(f"Generating art bible image for story {story_id}")
         image_url = run_async(image_client.generate_image(
             story_id=story_id,
             prompt=prompt,
@@ -157,6 +158,7 @@ def generate_art_bible_image():
 
         # Get updated session ID
         session_id = image_client.get_session_id(story_id)
+        current_app.logger.info(f"Art bible image generated: URL length={len(image_url) if image_url else 0}, session_id={session_id}")
 
         return jsonify({
             'image_url': image_url,
@@ -166,9 +168,10 @@ def generate_art_bible_image():
         }), 200
 
     except ValueError as e:
+        current_app.logger.error(f"ValueError generating art bible image: {e}")
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        current_app.logger.error(f"Error generating art bible image: {e}")
+        current_app.logger.error(f"Error generating art bible image: {e}", exc_info=True)
         return jsonify({'error': f'Failed to generate image: {str(e)}'}), 500
 
 
@@ -304,6 +307,21 @@ def generate_character_reference_image():
         # Get image client
         image_client = current_app.config['SERVICES']['image_client']
 
+        # Check if session exists, if not start one
+        existing_session = image_client.get_session_id(story_id)
+        current_app.logger.info(f"Generating character reference for {character_name}, story_id={story_id}")
+        current_app.logger.info(f"Existing session: {existing_session}")
+
+        if not existing_session:
+            # Need to start a session first - get art_style from request or use default
+            art_style = data.get('art_style', 'cartoon')
+            current_app.logger.info(f"Starting new session with art_style={art_style}")
+            run_async(image_client.start_session(
+                story_id=story_id,
+                art_style=art_style,
+                story_title=data.get('story_title', '')
+            ))
+
         # Generate character reference image using conversation session
         # The session already contains art bible context, so no need for reference images
         size = '1536x1024' if include_turnaround else '1024x1024'
@@ -317,6 +335,7 @@ def generate_character_reference_image():
 
         # Get updated session ID
         session_id = image_client.get_session_id(story_id)
+        current_app.logger.info(f"Character reference image generated: URL length={len(image_url) if image_url else 0}, session_id={session_id}")
 
         return jsonify({
             'image_url': image_url,
@@ -326,9 +345,10 @@ def generate_character_reference_image():
         }), 200
 
     except ValueError as e:
+        current_app.logger.error(f"ValueError generating character reference image: {e}")
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        current_app.logger.error(f"Error generating character reference image: {e}")
+        current_app.logger.error(f"Error generating character reference image: {e}", exc_info=True)
         return jsonify({'error': f'Failed to generate image: {str(e)}'}), 500
 
 

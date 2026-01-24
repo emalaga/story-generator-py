@@ -6,13 +6,53 @@ configuration loading, and dependency injection for services.
 """
 
 import json
+import logging
 import os
+import sys
 from pathlib import Path
 from typing import Dict, Any
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template
 from flask_cors import CORS
+
+
+# Configure logging to output to console for all modules
+def configure_logging():
+    """Configure Python logging to output to console."""
+    # Create a formatter that includes timestamp, logger name, and message
+    formatter = logging.Formatter(
+        '[%(asctime)s] %(levelname)s in %(name)s: %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+
+    # Create console handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.DEBUG)
+    console_handler.setFormatter(formatter)
+
+    # Configure root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+
+    # Remove existing handlers to avoid duplicates
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
+
+    root_logger.addHandler(console_handler)
+
+    # Set specific loggers to INFO level for our modules
+    for module in ['src.ai.gpt_image_client', 'src.services.image_generator',
+                   'src.routes', 'httpx', 'openai']:
+        logging.getLogger(module).setLevel(logging.INFO)
+
+    # Reduce noise from some verbose libraries
+    logging.getLogger('httpcore').setLevel(logging.WARNING)
+    logging.getLogger('urllib3').setLevel(logging.WARNING)
+
+
+# Configure logging immediately on module import
+configure_logging()
 
 from src.ai.ai_factory import AIClientFactory
 from src.ai.stub_image_client import StubImageClient

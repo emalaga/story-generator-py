@@ -67,6 +67,8 @@ function switchTab(tabName) {
         updateVisualConsistencyTab();
     } else if (tabName === 'image-generation') {
         updateImageGenerationTab();
+    } else if (tabName === 'pdf-export') {
+        updatePDFTab();
     }
 }
 
@@ -104,7 +106,10 @@ function updateImageGenerationTab() {
                     <div id="page-${page.page_number}-image-preview">
                         ${(page.local_image_path || page.image_url)
                             ? `<img src="${getImageUrl(page.local_image_path, page.image_url)}" alt="Page ${page.page_number} illustration">
-                               <button class="btn-small save-image-btn" onclick="savePageImage(${page.page_number})">Save Image</button>`
+                               <div class="image-action-buttons">
+                                   <button class="btn-small save-image-btn" onclick="savePageImage(${page.page_number})">Save Image</button>
+                                   <button class="btn-small btn-delete-image" onclick="deletePageImage(${page.page_number})">Delete Image</button>
+                               </div>`
                             : '<div class="image-placeholder">No image generated yet</div>'
                         }
                     </div>
@@ -421,6 +426,7 @@ async function generatePageImage(pageNumber) {
     loadingDiv.classList.remove('hidden');
 
     try {
+        console.log(`[generatePageImage] Starting for page ${pageNumber}`);
         const requestData = {
             scene_description: page.text,
             character_profiles: currentStory.characters || [],
@@ -434,8 +440,10 @@ async function generatePageImage(pageNumber) {
         // If user has edited the prompt, use it directly
         if (customPrompt) {
             requestData.custom_prompt = customPrompt;
+            console.log(`[generatePageImage] Using custom prompt (length: ${customPrompt.length})`);
         }
 
+        console.log(`[generatePageImage] Sending request to API...`);
         const response = await fetch(`${API_BASE}/images/stories/${currentStory.id}/pages/${pageNumber}`, {
             method: 'POST',
             headers: {
@@ -444,36 +452,50 @@ async function generatePageImage(pageNumber) {
             body: JSON.stringify(requestData),
         });
 
+        console.log(`[generatePageImage] Response received, status: ${response.status}`);
+
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Failed to generate image');
         }
 
+        console.log(`[generatePageImage] Parsing JSON response...`);
         const result = await response.json();
+        console.log(`[generatePageImage] JSON parsed, image_url length: ${result.image_url ? result.image_url.length : 0}`);
 
         // Store session ID for conversation continuity
         if (result.session_id) {
             currentStory.image_session_id = result.session_id;
+            console.log(`[generatePageImage] Session ID updated: ${result.session_id}`);
         }
 
         // Update the page with the image URL
         page.image_url = result.image_url;
+        console.log(`[generatePageImage] page.image_url updated`);
 
         // Update the display
         const previewSection = document.getElementById(`page-${pageNumber}-image-preview`);
+        console.log(`[generatePageImage] previewSection found: ${!!previewSection}`);
         if (previewSection) {
             previewSection.innerHTML = `
-                <img src="${result.image_url}" alt="Page ${pageNumber} illustration">
-                <button class="btn-small save-image-btn" onclick="savePageImage(${pageNumber})">Save Image</button>
+                <img src="${result.image_url}" alt="Page ${pageNumber} illustration" onerror="console.error('Image failed to load for page ${pageNumber}')">
+                <div class="image-action-buttons">
+                    <button class="btn-small save-image-btn" onclick="savePageImage(${pageNumber})">Save Image</button>
+                    <button class="btn-small btn-delete-image" onclick="deletePageImage(${pageNumber})">Delete Image</button>
+                </div>
             `;
+            console.log(`[generatePageImage] innerHTML updated`);
         }
 
         // Hide loading indicator
         loadingDiv.classList.add('hidden');
+        console.log(`[generatePageImage] Loading hidden, starting auto-save...`);
 
         // Auto-save the image immediately (OpenAI URLs expire quickly)
         await savePageImage(pageNumber);
+        console.log(`[generatePageImage] Auto-save completed`);
     } catch (error) {
+        console.error(`[generatePageImage] ERROR:`, error);
         loadingDiv.classList.add('hidden');
         showError(`Failed to generate image for page ${pageNumber}: ${error.message}`);
     }
@@ -716,7 +738,10 @@ function setupArtBibleSection() {
             previewDiv.classList.remove('hidden');
             previewDiv.innerHTML = `
                 <img src="${getImageUrl(artBible.local_image_path, artBible.image_url)}" alt="Art Bible Reference">
-                <button class="btn-small save-image-btn" onclick="saveArtBibleImage()">Save Image</button>
+                <div class="image-action-buttons">
+                    <button class="btn-small save-image-btn" onclick="saveArtBibleImage()">Save Image</button>
+                    <button class="btn-small btn-delete-image" onclick="deleteArtBibleImage()">Delete Image</button>
+                </div>
                 <p>Art Bible reference loaded.</p>
             `;
         }
@@ -815,7 +840,10 @@ function setupArtBibleSection() {
             previewDiv.classList.remove('hidden');
             previewDiv.innerHTML = `
                 <img src="${result.image_url}" alt="Art Bible Reference">
-                <button class="btn-small save-image-btn" onclick="saveArtBibleImage()">Save Image</button>
+                <div class="image-action-buttons">
+                    <button class="btn-small save-image-btn" onclick="saveArtBibleImage()">Save Image</button>
+                    <button class="btn-small btn-delete-image" onclick="deleteArtBibleImage()">Delete Image</button>
+                </div>
                 <p>Art Bible generated successfully! This will be used as a style reference for all story illustrations.</p>
             `;
 
@@ -893,7 +921,10 @@ function setupCharacterReferences() {
             <div id="char-preview-${index}" class="character-ref-preview ${existingRef && (existingRef.local_image_path || existingRef.image_url) ? '' : 'hidden'}">
                 ${existingRef && (existingRef.local_image_path || existingRef.image_url) ? `
                     <img src="${getImageUrl(existingRef.local_image_path, existingRef.image_url)}" alt="${character.name} Reference">
-                    <button class="btn-small save-image-btn" onclick="saveCharacterImage(${index})">Save Image</button>
+                    <div class="image-action-buttons">
+                        <button class="btn-small save-image-btn" onclick="saveCharacterImage(${index})">Save Image</button>
+                        <button class="btn-small btn-delete-image" onclick="deleteCharacterImage(${index})">Delete Image</button>
+                    </div>
                 ` : ''}
             </div>
         `;
@@ -1023,7 +1054,10 @@ async function generateCharacterImage(charIndex) {
         previewDiv.classList.remove('hidden');
         previewDiv.innerHTML = `
             <img src="${result.image_url}" alt="${character.name} Reference">
-            <button class="btn-small save-image-btn" onclick="saveCharacterImage(${charIndex})">Save Image</button>
+            <div class="image-action-buttons">
+                <button class="btn-small save-image-btn" onclick="saveCharacterImage(${charIndex})">Save Image</button>
+                <button class="btn-small btn-delete-image" onclick="deleteCharacterImage(${charIndex})">Delete Image</button>
+            </div>
             <p>Reference image for ${character.name} generated successfully!</p>
         `;
 
@@ -1167,19 +1201,25 @@ async function saveCharacterImage(charIndex) {
 }
 
 async function savePageImage(pageNumber) {
+    console.log(`[savePageImage] Starting for page ${pageNumber}`);
     if (!currentStory) {
+        console.error(`[savePageImage] No story loaded`);
         showError('No story loaded');
         return;
     }
 
     const page = currentStory.pages.find(p => p.page_number === pageNumber);
     if (!page || !page.image_url) {
+        console.error(`[savePageImage] No page image to save, page: ${!!page}, image_url: ${!!page?.image_url}`);
         showError('No page image to save');
         return;
     }
 
+    console.log(`[savePageImage] Image URL length: ${page.image_url.length}`);
+
     try {
         const filename = `page_${pageNumber}_${Date.now()}.png`;
+        console.log(`[savePageImage] Saving as: ${filename}`);
 
         const response = await fetch(`${API_BASE}/images/save`, {
             method: 'POST',
@@ -1194,12 +1234,15 @@ async function savePageImage(pageNumber) {
             }),
         });
 
+        console.log(`[savePageImage] Response status: ${response.status}`);
+
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Failed to save image');
         }
 
         const result = await response.json();
+        console.log(`[savePageImage] Save successful, local_path: ${result.local_path}`);
 
         // Update page with local path
         page.local_image_path = result.local_path;
@@ -1210,11 +1253,397 @@ async function savePageImage(pageNumber) {
             page.image_prompt = promptTextarea.value;
         }
 
-        console.log(`Page ${pageNumber} image saved to:`, result.local_path);
+        console.log(`[savePageImage] Page ${pageNumber} image saved to:`, result.local_path);
+
+        // Update the display to use local path
+        const previewSection = document.getElementById(`page-${pageNumber}-image-preview`);
+        if (previewSection && page.local_image_path) {
+            console.log(`[savePageImage] Updating display with local path: ${page.local_image_path}`);
+            const localImageUrl = getImageUrl(page.local_image_path, page.image_url);
+            console.log(`[savePageImage] Local image URL: ${localImageUrl}`);
+            previewSection.innerHTML = `
+                <img src="${localImageUrl}" alt="Page ${pageNumber} illustration" onerror="console.error('Local image failed to load for page ${pageNumber}')">
+                <div class="image-action-buttons">
+                    <button class="btn-small save-image-btn" onclick="savePageImage(${pageNumber})">Save Image</button>
+                    <button class="btn-small btn-delete-image" onclick="deletePageImage(${pageNumber})">Delete Image</button>
+                </div>
+            `;
+        }
 
         // Auto-save project to persist the image path and prompt
+        console.log(`[savePageImage] Starting autoSaveProject...`);
+        await autoSaveProject();
+        console.log(`[savePageImage] autoSaveProject completed`);
+    } catch (error) {
+        console.error(`[savePageImage] ERROR:`, error);
+        showError(`Failed to save page image: ${error.message}`);
+    }
+}
+
+// ===== DELETE IMAGE FUNCTIONS =====
+
+async function deleteArtBibleImage() {
+    if (!currentStory || !currentStory.art_bible) {
+        showError('No art bible to delete');
+        return;
+    }
+
+    if (!confirm('Are you sure you want to delete the art bible image?')) {
+        return;
+    }
+
+    const artBible = currentStory.art_bible;
+    const imagePath = artBible.local_image_path;
+
+    try {
+        // Delete the file from server if it's a saved local image
+        if (imagePath) {
+            const response = await fetch(`${API_BASE}/images/delete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    image_path: imagePath
+                }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                console.warn('Failed to delete image file:', error.error);
+            }
+        }
+
+        // Clear art bible image data
+        currentStory.art_bible.image_url = null;
+        currentStory.art_bible.local_image_path = null;
+
+        // Update the display
+        const previewDiv = document.getElementById('art-bible-preview');
+        previewDiv.classList.add('hidden');
+        previewDiv.innerHTML = '';
+
+        console.log('Art bible image deleted');
+
+        // Auto-save project
         await autoSaveProject();
     } catch (error) {
-        showError(`Failed to save page image: ${error.message}`);
+        showError(`Failed to delete art bible image: ${error.message}`);
+    }
+}
+
+async function deleteCharacterImage(charIndex) {
+    if (!currentStory || !currentStory.characters || !currentStory.characters[charIndex]) {
+        showError('Character not found');
+        return;
+    }
+
+    const character = currentStory.characters[charIndex];
+    const charRef = currentStory.character_references?.find(ref => ref.character_name === character.name);
+
+    if (!charRef) {
+        showError('No character reference image to delete');
+        return;
+    }
+
+    if (!confirm(`Are you sure you want to delete the reference image for ${character.name}?`)) {
+        return;
+    }
+
+    const imagePath = charRef.local_image_path;
+
+    try {
+        // Delete the file from server if it's a saved local image
+        if (imagePath) {
+            const response = await fetch(`${API_BASE}/images/delete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    image_path: imagePath
+                }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                console.warn('Failed to delete image file:', error.error);
+            }
+        }
+
+        // Clear character reference image data
+        charRef.image_url = null;
+        charRef.local_image_path = null;
+
+        // Update the display
+        const previewDiv = document.getElementById(`char-preview-${charIndex}`);
+        previewDiv.classList.add('hidden');
+        previewDiv.innerHTML = '';
+
+        console.log(`Character image for ${character.name} deleted`);
+
+        // Auto-save project
+        await autoSaveProject();
+    } catch (error) {
+        showError(`Failed to delete character image: ${error.message}`);
+    }
+}
+
+async function deletePageImage(pageNumber) {
+    if (!currentStory) {
+        showError('No story loaded');
+        return;
+    }
+
+    const page = currentStory.pages.find(p => p.page_number === pageNumber);
+    if (!page) {
+        showError('Page not found');
+        return;
+    }
+
+    if (!confirm(`Are you sure you want to delete the image for page ${pageNumber}?`)) {
+        return;
+    }
+
+    const imagePath = page.local_image_path;
+
+    try {
+        // Delete the file from server if it's a saved local image
+        if (imagePath) {
+            const response = await fetch(`${API_BASE}/images/delete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    image_path: imagePath
+                }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                console.warn('Failed to delete image file:', error.error);
+            }
+        }
+
+        // Clear page image data
+        page.image_url = null;
+        page.local_image_path = null;
+
+        // Update the display
+        const previewSection = document.getElementById(`page-${pageNumber}-image-preview`);
+        if (previewSection) {
+            previewSection.innerHTML = '<div class="image-placeholder">No image generated yet</div>';
+        }
+
+        console.log(`Page ${pageNumber} image deleted`);
+
+        // Auto-save project
+        await autoSaveProject();
+    } catch (error) {
+        showError(`Failed to delete page image: ${error.message}`);
+    }
+}
+
+// ===== PDF EXPORT TAB FUNCTIONS =====
+
+function updatePDFTab() {
+    const noStoryDiv = document.getElementById('pdf-no-story');
+    const contentDiv = document.getElementById('pdf-content');
+
+    if (!currentStory || !currentStory.pages || currentStory.pages.length === 0) {
+        noStoryDiv.classList.remove('hidden');
+        contentDiv.classList.add('hidden');
+        return;
+    }
+
+    noStoryDiv.classList.add('hidden');
+    contentDiv.classList.remove('hidden');
+
+    // Update story info bar
+    const infoBar = document.getElementById('pdf-story-info');
+    infoBar.innerHTML = `
+        <h3>${currentStory.metadata.title}</h3>
+        <p>${currentStory.pages.length} pages &bull; ${currentStory.metadata.art_style || 'cartoon'} style</p>
+    `;
+
+    // Load PDF options from story if available
+    if (currentStory.pdf_options) {
+        const opts = currentStory.pdf_options;
+        document.getElementById('pdf-mode').value = opts.pdf_mode || 'text-next-to-image';
+        document.getElementById('pdf-font').value = opts.font || 'Helvetica';
+        document.getElementById('pdf-font-size').value = opts.font_size || 12;
+        document.getElementById('pdf-font-color').value = opts.font_color || 'black';
+        document.getElementById('pdf-layout').value = opts.layout || 'portrait';
+        document.getElementById('pdf-page-size').value = opts.page_size || 'letter';
+        document.getElementById('pdf-image-placement').value = opts.image_placement || 'top';
+        document.getElementById('pdf-image-size').value = opts.image_size || 'medium';
+        document.getElementById('pdf-text-placement').value = opts.text_placement || 'top-left';
+        document.getElementById('pdf-include-title').checked = opts.include_title_page !== false;
+        document.getElementById('pdf-page-numbers').checked = opts.show_page_numbers !== false;
+    }
+
+    // Hide download section initially
+    document.getElementById('pdf-download-section').classList.add('hidden');
+
+    // Setup event listeners for PDF buttons
+    setupPDFEventListeners();
+}
+
+function setupPDFEventListeners() {
+    const saveBtn = document.getElementById('save-pdf-options-btn');
+    const generateBtn = document.getElementById('generate-pdf-btn');
+
+    // Remove existing listeners by replacing elements
+    const newSaveBtn = saveBtn.cloneNode(true);
+    const newGenerateBtn = generateBtn.cloneNode(true);
+    saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+    generateBtn.parentNode.replaceChild(newGenerateBtn, generateBtn);
+
+    newSaveBtn.addEventListener('click', savePDFOptions);
+    newGenerateBtn.addEventListener('click', generatePDF);
+
+    // Setup PDF mode toggle
+    const pdfModeSelect = document.getElementById('pdf-mode');
+    if (pdfModeSelect) {
+        pdfModeSelect.addEventListener('change', togglePDFMode);
+        // Initialize visibility based on current mode
+        togglePDFMode();
+    }
+}
+
+function togglePDFMode() {
+    const pdfMode = document.getElementById('pdf-mode').value;
+    const textNextToImageOptions = document.querySelectorAll('.pdf-text-next-to-image-option');
+    const textOverImageOptions = document.querySelectorAll('.pdf-text-over-image-option');
+
+    if (pdfMode === 'text-over-image') {
+        // Hide and disable "text next to image" options
+        textNextToImageOptions.forEach(option => {
+            option.style.display = 'none';
+            const select = option.querySelector('select');
+            if (select) select.disabled = true;
+        });
+
+        // Show "text over image" options
+        textOverImageOptions.forEach(option => {
+            option.style.display = '';
+            const select = option.querySelector('select');
+            if (select) select.disabled = false;
+        });
+    } else {
+        // Show and enable "text next to image" options
+        textNextToImageOptions.forEach(option => {
+            option.style.display = '';
+            const select = option.querySelector('select');
+            if (select) select.disabled = false;
+        });
+
+        // Hide "text over image" options
+        textOverImageOptions.forEach(option => {
+            option.style.display = 'none';
+            const select = option.querySelector('select');
+            if (select) select.disabled = true;
+        });
+    }
+}
+
+function getPDFOptionsFromForm() {
+    const pdfMode = document.getElementById('pdf-mode').value;
+
+    const options = {
+        pdf_mode: pdfMode,
+        font: document.getElementById('pdf-font').value,
+        font_size: parseInt(document.getElementById('pdf-font-size').value),
+        font_color: document.getElementById('pdf-font-color').value,
+        include_title_page: document.getElementById('pdf-include-title').checked,
+        show_page_numbers: document.getElementById('pdf-page-numbers').checked
+    };
+
+    // Add mode-specific options
+    if (pdfMode === 'text-next-to-image') {
+        options.layout = document.getElementById('pdf-layout').value;
+        options.page_size = document.getElementById('pdf-page-size').value;
+        options.image_placement = document.getElementById('pdf-image-placement').value;
+        options.image_size = document.getElementById('pdf-image-size').value;
+    } else {
+        // text-over-image mode
+        options.text_placement = document.getElementById('pdf-text-placement').value;
+        // Set defaults for disabled fields to avoid backend errors
+        options.layout = 'portrait';
+        options.page_size = 'letter';
+        options.image_placement = 'background';
+        options.image_size = 'full';
+    }
+
+    return options;
+}
+
+async function savePDFOptions() {
+    if (!currentStory) {
+        showError('No story loaded');
+        return;
+    }
+
+    // Get options from form
+    currentStory.pdf_options = getPDFOptionsFromForm();
+
+    console.log('PDF options saved:', currentStory.pdf_options);
+
+    // Auto-save project
+    await autoSaveProject();
+
+    alert('PDF options saved successfully!');
+}
+
+async function generatePDF() {
+    if (!currentStory) {
+        showError('No story loaded');
+        return;
+    }
+
+    // Get PDF options from form
+    const pdfOptions = getPDFOptionsFromForm();
+
+    // Show loading
+    const loadingDiv = document.getElementById('pdf-loading');
+    loadingDiv.classList.remove('hidden');
+
+    // Hide download section while generating
+    document.getElementById('pdf-download-section').classList.add('hidden');
+
+    try {
+        const response = await fetch(`${API_BASE}/projects/${currentStory.id}/pdf`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(pdfOptions),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to generate PDF');
+        }
+
+        const result = await response.json();
+
+        // Show download section
+        const downloadSection = document.getElementById('pdf-download-section');
+        downloadSection.classList.remove('hidden');
+
+        const downloadLink = document.getElementById('pdf-download-link');
+        downloadLink.href = result.pdf_url;
+        downloadLink.download = result.filename || 'story.pdf';
+
+        // Also save PDF options
+        currentStory.pdf_options = pdfOptions;
+        await autoSaveProject();
+
+        console.log('PDF generated:', result.pdf_url);
+    } catch (error) {
+        showError(`Failed to generate PDF: ${error.message}`);
+    } finally {
+        loadingDiv.classList.add('hidden');
     }
 }

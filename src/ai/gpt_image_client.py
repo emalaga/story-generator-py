@@ -9,6 +9,7 @@ maintain visual consistency through context.
 
 import asyncio
 import base64
+import logging
 import os
 from typing import Optional, Dict, Any
 import httpx
@@ -16,6 +17,8 @@ from openai import AsyncOpenAI
 
 from src.ai.base_client import BaseImageClient
 from src.models.config import OpenAIConfig
+
+logger = logging.getLogger(__name__)
 
 
 class GPTImageClient(BaseImageClient):
@@ -80,6 +83,7 @@ class GPTImageClient(BaseImageClient):
         Returns:
             The response ID to use for continuing the conversation
         """
+        print(f"[GPTImageClient] start_session called: story_id={story_id}, art_style={art_style}", flush=True)
         if not self.api_key:
             raise ValueError(
                 "OpenAI API key not found. Please set OPENAI_API_KEY in your .env file"
@@ -107,20 +111,24 @@ Respond briefly to acknowledge you're ready, then wait for my requests."""
         max_retries = 3
         retry_delay = 2
 
+        print(f"[GPTImageClient]   About to call responses.create for session start...", flush=True)
         for attempt in range(max_retries):
             try:
+                print(f"[GPTImageClient]   Attempt {attempt + 1}/{max_retries}...", flush=True)
                 response = await self.client.responses.create(
                     model=self.model,
                     input=system_prompt
                 )
+                print(f"[GPTImageClient]   Session started, response.id={response.id}", flush=True)
 
                 # Store the response ID as the session ID
                 self._sessions[story_id] = response.id
                 return response.id
 
             except Exception as e:
+                print(f"[GPTImageClient]   Session start error: {type(e).__name__}: {e}", flush=True)
                 if attempt < max_retries - 1:
-                    print(f"Session start error (attempt {attempt + 1}/{max_retries}). Retrying in {retry_delay}s...")
+                    print(f"[GPTImageClient]   Retrying in {retry_delay}s...", flush=True)
                     await asyncio.sleep(retry_delay)
                     retry_delay *= 2
                     continue
@@ -159,6 +167,11 @@ Respond briefly to acknowledge you're ready, then wait for my requests."""
 
         # Get the previous response ID for conversation continuity
         previous_response_id = self._sessions.get(story_id)
+        print(f"[GPTImageClient] generate_image called: story_id={story_id}, size={size}, quality={quality}", flush=True)
+        print(f"[GPTImageClient]   previous_response_id={previous_response_id}", flush=True)
+        logger.info(f"generate_image called: story_id={story_id}, size={size}, quality={quality}")
+        logger.info(f"Previous response ID: {previous_response_id}")
+        logger.debug(f"Prompt (first 200 chars): {prompt[:200]}...")
 
         max_retries = 3
         retry_delay = 2
@@ -176,25 +189,38 @@ Respond briefly to acknowledge you're ready, then wait for my requests."""
                 if previous_response_id:
                     request_params["previous_response_id"] = previous_response_id
 
+                print(f"[GPTImageClient]   Calling responses.create (attempt {attempt + 1}/{max_retries})...", flush=True)
+                logger.info(f"Calling OpenAI responses.create (attempt {attempt + 1}/{max_retries})...")
                 response = await self.client.responses.create(**request_params)
+                print(f"[GPTImageClient]   Response received, response.id={response.id}", flush=True)
+                logger.info(f"OpenAI response received, response.id: {response.id}")
 
                 # Update session with new response ID
                 self._sessions[story_id] = response.id
+                print(f"[GPTImageClient]   Session updated to {response.id}", flush=True)
 
                 # Extract image URL from response
+                print(f"[GPTImageClient]   Extracting image URL from response...", flush=True)
                 image_url = self._extract_image_url(response)
                 if image_url:
+                    print(f"[GPTImageClient]   Image URL extracted, length={len(image_url)}", flush=True)
+                    logger.info(f"Image URL extracted successfully, length: {len(image_url)}")
                     return image_url
 
+                print(f"[GPTImageClient]   ERROR: No image in response!", flush=True)
+                logger.error("No image was generated in the response")
                 raise ValueError("No image was generated in the response")
 
             except Exception as e:
                 error_str = str(e)
+                print(f"[GPTImageClient]   EXCEPTION: {type(e).__name__}: {error_str}", flush=True)
+                logger.error(f"Image generation error: {error_str}")
 
                 # Check if it's a retryable error (server errors, timeouts)
                 if any(x in error_str.lower() for x in ['timeout', 'server', '500', '502', '503', '504']):
                     if attempt < max_retries - 1:
-                        print(f"Image generation error (attempt {attempt + 1}/{max_retries}). Retrying in {retry_delay}s...")
+                        print(f"[GPTImageClient]   Retrying in {retry_delay}s...", flush=True)
+                        logger.warning(f"Retryable error (attempt {attempt + 1}/{max_retries}). Retrying in {retry_delay}s...")
                         await asyncio.sleep(retry_delay)
                         retry_delay *= 2
                         continue
@@ -209,31 +235,66 @@ Respond briefly to acknowledge you're ready, then wait for my requests."""
         the image generation result. The result may be a URL or base64 data.
         If base64 data is returned, it's converted to a data URL for consistency.
         """
+        print(f"[GPTImageClient] _extract_image_url called", flush=True)
+        logger.debug(f"Extracting image URL from response: {response.id if hasattr(response, 'id') else 'unknown'}")
+
         if not hasattr(response, 'output') or not response.output:
+            print(f"[GPTImageClient]   Response has no output! response attrs: {dir(response)}", flush=True)
+            logger.warning("Response has no output attribute or output is empty")
             return None
 
-        for item in response.output:
+        print(f"[GPTImageClient]   Response has {len(response.output)} output items", flush=True)
+        logger.debug(f"Response has {len(response.output)} output items")
+
+        for idx, item in enumerate(response.output):
+            item_type = getattr(item, 'type', 'unknown')
+            print(f"[GPTImageClient]   Output item {idx}: type={item_type}", flush=True)
+            logger.debug(f"Output item {idx}: type={item_type}")
+
             # Check for image generation result
             if hasattr(item, 'type') and item.type == 'image_generation_call':
+                print(f"[GPTImageClient]   Found image_generation_call item!", flush=True)
+                logger.debug(f"Found image_generation_call item")
                 if hasattr(item, 'result') and item.result:
                     result = item.result
+                    print(f"[GPTImageClient]   Image result found, length={len(result)}", flush=True)
+                    logger.info(f"Image result found, length: {len(result)}, starts with: {result[:50] if len(result) > 50 else result}")
                     # Check if it's base64 data (not a URL)
                     if result and not result.startswith('http') and not result.startswith('data:'):
                         # It's raw base64 data, convert to data URL
+                        print(f"[GPTImageClient]   Converting base64 to data URL", flush=True)
+                        logger.debug("Converting base64 to data URL")
                         return f"data:image/png;base64,{result}"
                     return result
+                else:
+                    print(f"[GPTImageClient]   image_generation_call has no result!", flush=True)
+                    logger.warning(f"image_generation_call has no result or result is empty")
+
             # Alternative structure: direct image URL in content
             if hasattr(item, 'content'):
+                print(f"[GPTImageClient]   Item has content with {len(item.content)} items", flush=True)
+                logger.debug(f"Item has content attribute with {len(item.content)} items")
                 for content_item in item.content:
+                    content_type = getattr(content_item, 'type', 'unknown')
+                    print(f"[GPTImageClient]     Content item type: {content_type}", flush=True)
+                    logger.debug(f"Content item type: {content_type}")
                     if hasattr(content_item, 'type') and content_item.type == 'image':
                         if hasattr(content_item, 'image_url'):
+                            print(f"[GPTImageClient]     Found image_url in content!", flush=True)
+                            logger.info("Found image_url in content")
                             return content_item.image_url.url
                         elif hasattr(content_item, 'url'):
+                            print(f"[GPTImageClient]     Found url in content!", flush=True)
+                            logger.info("Found url in content")
                             return content_item.url
                         elif hasattr(content_item, 'source') and hasattr(content_item.source, 'data'):
                             # Base64 data in source.data
+                            print(f"[GPTImageClient]     Found base64 data in source.data!", flush=True)
+                            logger.info("Found base64 data in source.data")
                             return f"data:image/png;base64,{content_item.source.data}"
 
+        print(f"[GPTImageClient]   WARNING: No image URL found in any output item!", flush=True)
+        logger.warning("No image URL found in response output")
         return None
 
     async def validate_session(self, story_id: str) -> bool:

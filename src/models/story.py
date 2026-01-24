@@ -14,6 +14,19 @@ if TYPE_CHECKING:
 
 
 @dataclass
+class PDFOptions:
+    """Options for PDF export"""
+    font: str = "Helvetica"
+    font_size: int = 12
+    layout: str = "portrait"  # portrait or landscape
+    page_size: str = "letter"  # letter, a4, a5
+    image_placement: str = "top"  # top, bottom, left, right, inner, outer
+    image_size: str = "medium"  # small, medium, large, full
+    include_title_page: bool = True
+    show_page_numbers: bool = True
+
+
+@dataclass
 class StoryMetadata:
     """Metadata for a story"""
     title: str
@@ -49,5 +62,6 @@ class Story:
     art_bible: Optional["ArtBible"] = None
     character_references: Optional[List["CharacterReference"]] = None
     image_session_id: Optional[str] = None  # OpenAI response ID for conversation continuity
+    pdf_options: Optional[PDFOptions] = None  # PDF export options
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)

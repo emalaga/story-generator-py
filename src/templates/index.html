@@ -18,6 +18,7 @@
             <button class="tab-button active" data-tab="text-generation">Text Generation</button>
             <button class="tab-button" data-tab="visual-consistency">Visual Consistency</button>
             <button class="tab-button" data-tab="image-generation">Image Generation</button>
+            <button class="tab-button" data-tab="pdf-export">PDF Export</button>
         </div>
 
         <main>
@@ -110,18 +111,7 @@
                                     <textarea id="custom-prompt" name="custom_prompt" rows="3"
                                               placeholder="Describe your story idea..."></textarea>
                                 </div>
-
-                                <!-- Submit Button -->
-                                <button type="submit" class="btn btn-primary" id="generate-btn">
-                                    Generate Story
-                                </button>
                             </form>
-
-                            <!-- Loading Indicator -->
-                            <div id="loading" class="loading hidden">
-                                <div class="spinner"></div>
-                                <p>Generating your magical story...</p>
-                            </div>
 
                             <!-- Error Display -->
                             <div id="error-message" class="error hidden"></div>
@@ -146,6 +136,12 @@
                             <button type="submit" form="story-form" class="btn btn-primary btn-large" id="generate-btn-top">
                                 Generate Story
                             </button>
+
+                            <!-- Loading Indicator -->
+                            <div id="loading" class="loading hidden">
+                                <div class="spinner"></div>
+                                <p>Generating your magical story...</p>
+                            </div>
                         </div>
 
                         <div id="story-display-section" class="card hidden">
@@ -274,6 +270,181 @@
 
                         <div id="image-pages-list" class="image-pages-list">
                             <!-- Image generation for each page -->
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- PDF EXPORT TAB -->
+            <div id="pdf-export-tab" class="tab-content">
+                <section class="card">
+                    <h2>Export Story as PDF</h2>
+
+                    <div id="pdf-no-story" class="placeholder-card">
+                        <div class="placeholder-content">
+                            <h3>No Story Loaded</h3>
+                            <p>Please generate a story in the "Text Generation" tab first.</p>
+                        </div>
+                    </div>
+
+                    <div id="pdf-content" class="hidden">
+                        <div id="pdf-story-info" class="story-info-bar">
+                            <!-- Story title and info -->
+                        </div>
+
+                        <div class="pdf-options-section">
+                            <h3>PDF Options</h3>
+
+                            <div class="pdf-options-grid">
+                                <!-- PDF Generation Mode -->
+                                <div class="form-group" style="grid-column: 1 / -1;">
+                                    <label for="pdf-mode">PDF Generation Mode</label>
+                                    <select id="pdf-mode" name="pdf_mode">
+                                        <option value="text-next-to-image" selected>Text Next to Image</option>
+                                        <option value="text-over-image">Text Over Image</option>
+                                    </select>
+                                </div>
+
+                                <!-- Font Settings -->
+                                <div class="form-group">
+                                    <label for="pdf-font">Font Family</label>
+                                    <select id="pdf-font" name="pdf_font">
+                                        <optgroup label="Built-in Fonts">
+                                            <option value="Helvetica">Helvetica (Sans-serif)</option>
+                                            <option value="Times-Roman">Times Roman (Serif)</option>
+                                            <option value="Courier">Courier (Monospace)</option>
+                                        </optgroup>
+                                        <optgroup label="Google Fonts - Children's Stories">
+                                            <option value="Comic Neue">Comic Neue (Playful)</option>
+                                            <option value="Quicksand">Quicksand (Rounded & Friendly)</option>
+                                            <option value="Nunito">Nunito (Friendly Sans-serif)</option>
+                                        </optgroup>
+                                        <optgroup label="Google Fonts - Modern">
+                                            <option value="Roboto">Roboto (Modern Sans-serif)</option>
+                                            <option value="Open Sans">Open Sans (Clean Sans-serif)</option>
+                                            <option value="Lato">Lato (Elegant Sans-serif)</option>
+                                            <option value="Montserrat">Montserrat (Geometric Sans-serif)</option>
+                                        </optgroup>
+                                        <optgroup label="Google Fonts - Serif">
+                                            <option value="Merriweather">Merriweather (Classic Serif)</option>
+                                            <option value="Playfair Display">Playfair Display (Elegant Serif)</option>
+                                        </optgroup>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="pdf-font-size">Font Size</label>
+                                    <select id="pdf-font-size" name="pdf_font_size">
+                                        <option value="10">10pt</option>
+                                        <option value="12" selected>12pt</option>
+                                        <option value="14">14pt</option>
+                                        <option value="16">16pt</option>
+                                        <option value="18">18pt</option>
+                                        <option value="20">20pt</option>
+                                        <option value="24">24pt</option>
+                                        <option value="28">28pt</option>
+                                        <option value="32">32pt</option>
+                                        <option value="40">40pt</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="pdf-font-color">Font Color</label>
+                                    <select id="pdf-font-color" name="pdf_font_color">
+                                        <option value="black" selected>Black</option>
+                                        <option value="white">White</option>
+                                        <option value="dark-gray">Dark Gray</option>
+                                        <option value="navy">Navy Blue</option>
+                                        <option value="dark-green">Dark Green</option>
+                                        <option value="dark-red">Dark Red</option>
+                                    </select>
+                                </div>
+
+                                <!-- Page Layout (disabled for text-over-image mode) -->
+                                <div class="form-group pdf-text-next-to-image-option">
+                                    <label for="pdf-layout">Page Layout</label>
+                                    <select id="pdf-layout" name="pdf_layout">
+                                        <option value="portrait" selected>Portrait</option>
+                                        <option value="landscape">Landscape</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group pdf-text-next-to-image-option">
+                                    <label for="pdf-page-size">Page Size</label>
+                                    <select id="pdf-page-size" name="pdf_page_size">
+                                        <option value="letter" selected>Letter (8.5" x 11")</option>
+                                        <option value="a4">A4 (210mm x 297mm)</option>
+                                        <option value="a5">A5 (148mm x 210mm)</option>
+                                    </select>
+                                </div>
+
+                                <!-- Image Placement (only for text-next-to-image mode) -->
+                                <div class="form-group pdf-text-next-to-image-option">
+                                    <label for="pdf-image-placement">Image Placement</label>
+                                    <select id="pdf-image-placement" name="pdf_image_placement">
+                                        <option value="top" selected>Top of page</option>
+                                        <option value="bottom">Bottom of page</option>
+                                        <option value="left">Left side</option>
+                                        <option value="right">Right side</option>
+                                        <option value="inner">Inner margin (book style)</option>
+                                        <option value="outer">Outer margin (book style)</option>
+                                    </select>
+                                </div>
+
+                                <!-- Text Placement (only for text-over-image mode) -->
+                                <div class="form-group pdf-text-over-image-option" style="display: none;">
+                                    <label for="pdf-text-placement">Text Placement</label>
+                                    <select id="pdf-text-placement" name="pdf_text_placement">
+                                        <option value="top-left" selected>Top Left</option>
+                                        <option value="top-right">Top Right</option>
+                                        <option value="bottom-left">Bottom Left</option>
+                                        <option value="bottom-right">Bottom Right</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group pdf-text-next-to-image-option">
+                                    <label for="pdf-image-size">Image Size</label>
+                                    <select id="pdf-image-size" name="pdf_image_size">
+                                        <option value="small">Small (30% width)</option>
+                                        <option value="medium" selected>Medium (45% width)</option>
+                                        <option value="large">Large (60% width)</option>
+                                        <option value="xlarge">X-Large (75% width)</option>
+                                        <option value="full">Full (90% width)</option>
+                                    </select>
+                                </div>
+
+                                <!-- Additional Options -->
+                                <div class="form-group">
+                                    <label for="pdf-include-title">Include Title Page</label>
+                                    <input type="checkbox" id="pdf-include-title" name="pdf_include_title" checked>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="pdf-page-numbers">Show Page Numbers</label>
+                                    <input type="checkbox" id="pdf-page-numbers" name="pdf_page_numbers" checked>
+                                </div>
+                            </div>
+
+                            <div class="pdf-actions">
+                                <button id="save-pdf-options-btn" class="btn btn-secondary">
+                                    Save PDF Options
+                                </button>
+                                <button id="generate-pdf-btn" class="btn btn-primary">
+                                    Generate PDF
+                                </button>
+                            </div>
+
+                            <div class="image-loading hidden" id="pdf-loading">
+                                <div class="spinner-small"></div>
+                                <span>Generating PDF...</span>
+                            </div>
+
+                            <div id="pdf-download-section" class="hidden">
+                                <p class="success-message">PDF generated successfully!</p>
+                                <a id="pdf-download-link" href="#" class="btn btn-primary" download>
+                                    Download PDF
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </section>

@@ -13,8 +13,8 @@ from dataclasses import asdict
 from datetime import datetime
 
 from src.models.project import Project, ProjectStatus
-from src.models.story import Story, StoryMetadata, StoryPage
-from src.models.character import Character, CharacterProfile
+from src.models.story import Story, StoryMetadata, StoryPage, PDFOptions
+from src.models.character import CharacterProfile
 from src.models.image_prompt import ImagePrompt
 from src.models.art_bible import ArtBible, CharacterReference
 
@@ -220,6 +220,7 @@ class ProjectRepository:
             'characters': [asdict(char) for char in story.characters] if story.characters else None,
             'art_bible': asdict(story.art_bible) if story.art_bible else None,
             'character_references': [asdict(char_ref) for char_ref in story.character_references] if story.character_references else None,
+            'pdf_options': asdict(story.pdf_options) if story.pdf_options else None,
             'created_at': story.created_at.isoformat(),
             'updated_at': story.updated_at.isoformat()
         }
@@ -294,6 +295,10 @@ class ProjectRepository:
                 for char_ref_data in data['character_references']
             ]
 
+        pdf_options = None
+        if data.get('pdf_options') is not None:
+            pdf_options = PDFOptions(**data['pdf_options'])
+
         return Story(
             id=data['id'],
             metadata=metadata,
@@ -302,6 +307,7 @@ class ProjectRepository:
             characters=characters,
             art_bible=art_bible,
             character_references=character_references,
+            pdf_options=pdf_options,
             created_at=datetime.fromisoformat(data['created_at']),
             updated_at=datetime.fromisoformat(data['updated_at'])
         )
