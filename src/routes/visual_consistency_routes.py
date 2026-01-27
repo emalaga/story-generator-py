@@ -103,7 +103,9 @@ def generate_art_bible_image():
     {
         "prompt": str (required),
         "art_style": str (required),
-        "story_id": str (required) - ID of the story for session tracking
+        "story_id": str (required) - ID of the story for session tracking,
+        "size": str (optional) - Image size (default: 1536x1024),
+        "quality": str (optional) - Image quality/detail (default: low)
     }
 
     Returns:
@@ -133,6 +135,9 @@ def generate_art_bible_image():
         art_style = data['art_style']
         story_id = data['story_id']
         story_title = data.get('story_title', '')
+        # Get size and quality from request, with defaults
+        size = data.get('size', '1536x1024')
+        quality = data.get('quality', 'low')
 
         # Get image client
         image_client = current_app.config['SERVICES']['image_client']
@@ -148,12 +153,12 @@ def generate_art_bible_image():
             ))
 
         # Generate art bible image within the conversation session
-        current_app.logger.info(f"Generating art bible image for story {story_id}")
+        current_app.logger.info(f"Generating art bible image for story {story_id} with size={size}, quality={quality}")
         image_url = run_async(image_client.generate_image(
             story_id=story_id,
             prompt=prompt,
-            size='1536x1024',  # Wider format for art bible/style guide
-            quality='high'
+            size=size,
+            quality=quality
         ))
 
         # Get updated session ID
@@ -272,8 +277,10 @@ def generate_character_reference_image():
     {
         "prompt": str (required),
         "character_name": str (required),
-        "story_id": str (required) - ID of the story for session tracking
-        "include_turnaround": bool (optional, default: true)
+        "story_id": str (required) - ID of the story for session tracking,
+        "include_turnaround": bool (optional, default: true),
+        "size": str (optional) - Image size (default: based on include_turnaround),
+        "quality": str (optional) - Image quality/detail (default: low)
     }
 
     Returns:
@@ -303,6 +310,11 @@ def generate_character_reference_image():
         character_name = data['character_name']
         story_id = data['story_id']
         include_turnaround = data.get('include_turnaround', True)
+        # Get size and quality from request, with defaults
+        # Default size depends on include_turnaround if not explicitly provided
+        default_size = '1536x1024' if include_turnaround else '1024x1024'
+        size = data.get('size', default_size)
+        quality = data.get('quality', 'low')
 
         # Get image client
         image_client = current_app.config['SERVICES']['image_client']
@@ -324,13 +336,12 @@ def generate_character_reference_image():
 
         # Generate character reference image using conversation session
         # The session already contains art bible context, so no need for reference images
-        size = '1536x1024' if include_turnaround else '1024x1024'
-
+        current_app.logger.info(f"Generating character image with size={size}, quality={quality}")
         image_url = run_async(image_client.generate_image(
             story_id=story_id,
             prompt=prompt,
             size=size,
-            quality='high'
+            quality=quality
         ))
 
         # Get updated session ID

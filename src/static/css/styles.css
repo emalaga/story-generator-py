@@ -1072,3 +1072,59 @@ select[disabled] {
 .form-group select:disabled + label {
     color: var(--text-muted);
 }
+
+/* ===== Image Options Row (Size/Detail dropdowns) ===== */
+.image-options-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.form-group-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-group-inline label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-color);
+    white-space: nowrap;
+}
+
+.form-group-inline select {
+    padding: 8px 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background-color: var(--card-bg);
+    cursor: pointer;
+    transition: border-color 0.3s;
+}
+
+.form-group-inline select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.form-group-inline select:hover {
+    border-color: var(--primary-color);
+}
+
+/* ===== Image Generation Global Options ===== */
+.image-gen-global-options {
+    background-color: var(--card-bg);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    border: 2px solid var(--border-color);
+}
+
+.image-gen-global-options h4 {
+    color: var(--text-color);
+    margin-bottom: 15px;
+    font-size: 1rem;
+}

@@ -223,6 +223,24 @@
                                     <textarea id="art-bible-prompt" class="prompt-textarea" rows="6"></textarea>
                                 </div>
 
+                                <div class="image-options-row">
+                                    <div class="form-group-inline">
+                                        <label for="art-bible-size">Size:</label>
+                                        <select id="art-bible-size">
+                                            <option value="1024x1024">1024x1024 (Square)</option>
+                                            <option value="1536x1024" selected>1536x1024 (Landscape)</option>
+                                            <option value="1024x1536">1024x1536 (Portrait)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group-inline">
+                                        <label for="art-bible-detail">Detail:</label>
+                                        <select id="art-bible-detail">
+                                            <option value="low" selected>Low</option>
+                                            <option value="high">High</option>
+                                        </select>
+                                    </div>
+                                </div>
+
                                 <div class="image-actions">
                                     <button id="generate-art-bible-image-btn" class="btn-small">
                                         Generate Art Bible Image
@@ -270,6 +288,27 @@
                     <div id="image-gen-content" class="hidden">
                         <div id="image-story-info" class="story-info-bar">
                             <!-- Story title and info -->
+                        </div>
+
+                        <div class="image-gen-global-options">
+                            <h4>Image Settings (applies to all pages)</h4>
+                            <div class="image-options-row">
+                                <div class="form-group-inline">
+                                    <label for="page-image-size">Size:</label>
+                                    <select id="page-image-size">
+                                        <option value="1024x1024" selected>1024x1024 (Square)</option>
+                                        <option value="1536x1024">1536x1024 (Landscape)</option>
+                                        <option value="1024x1536">1024x1536 (Portrait)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group-inline">
+                                    <label for="page-image-detail">Detail:</label>
+                                    <select id="page-image-detail">
+                                        <option value="low" selected>Low</option>
+                                        <option value="high">High</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
 
                         <div id="image-pages-list" class="image-pages-list">

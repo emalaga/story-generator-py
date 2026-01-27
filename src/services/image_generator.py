@@ -247,7 +247,9 @@ class ImageGeneratorService:
         story: Story,
         scene_description: str,
         character_profiles: List[CharacterProfile],
-        art_style: str
+        art_style: str,
+        size: str = '1024x1024',
+        quality: str = 'low'
     ) -> str:
         """
         Generate a single image for a story page using conversation context.
@@ -260,6 +262,8 @@ class ImageGeneratorService:
             scene_description: Description of the scene to illustrate (full page text)
             character_profiles: List of character profiles
             art_style: Artistic style (e.g., "cartoon", "watercolor")
+            size: Image size (default: 1024x1024)
+            quality: Image quality/detail level (default: low)
 
         Returns:
             URL of the generated image
@@ -267,7 +271,7 @@ class ImageGeneratorService:
         Raises:
             Exception: If image generation fails
         """
-        logger.info(f"Generating image for page, story_id={story.id}, art_style={art_style}")
+        logger.info(f"Generating image for page, story_id={story.id}, art_style={art_style}, size={size}, quality={quality}")
         logger.info(f"Scene description length: {len(scene_description)}, characters: {len(character_profiles)}")
 
         # Ensure session exists
@@ -293,12 +297,12 @@ class ImageGeneratorService:
         logger.info(f"Built prompt (length: {len(prompt)})")
 
         # Generate image using conversation context
-        logger.info("Generating image with GPT-4o...")
+        logger.info(f"Generating image with GPT-4o (size={size}, quality={quality})...")
         image_url = await self.image_client.generate_image(
             story.id,
             prompt,
-            size='1024x1024',
-            quality='high'
+            size=size,
+            quality=quality
         )
         logger.info(f"Image generated, URL length: {len(image_url) if image_url else 0}")
 

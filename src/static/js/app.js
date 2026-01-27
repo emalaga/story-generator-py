@@ -469,6 +469,10 @@ async function generatePageImage(pageNumber) {
     const promptTextarea = document.getElementById(`page-${pageNumber}-prompt`);
     const customPrompt = promptTextarea ? promptTextarea.value.trim() : '';
 
+    // Get size and detail from global dropdowns
+    const size = document.getElementById('page-image-size').value;
+    const detail = document.getElementById('page-image-detail').value;
+
     // Show loading indicator
     const loadingDiv = document.getElementById(`page-${pageNumber}-loading`);
     loadingDiv.classList.remove('hidden');
@@ -482,7 +486,9 @@ async function generatePageImage(pageNumber) {
             story_title: currentStory.metadata.title || '',
             session_id: currentStory.image_session_id || null,
             art_bible: currentStory.art_bible || null,
-            character_references: currentStory.character_references || null
+            character_references: currentStory.character_references || null,
+            size: size,
+            quality: detail
         };
 
         // If user has edited the prompt, use it directly
@@ -880,6 +886,10 @@ function setupArtBibleSection() {
             return;
         }
 
+        // Get size and detail from dropdowns
+        const size = document.getElementById('art-bible-size').value;
+        const detail = document.getElementById('art-bible-detail').value;
+
         const loadingDiv = document.getElementById('art-bible-loading');
         loadingDiv.classList.remove('hidden');
 
@@ -893,7 +903,9 @@ function setupArtBibleSection() {
                     prompt: prompt,
                     art_style: currentStory.metadata.art_style || 'cartoon',
                     story_id: currentStory.id,
-                    story_title: currentStory.metadata.title || ''
+                    story_title: currentStory.metadata.title || '',
+                    size: size,
+                    quality: detail
                 }),
             });
 
@@ -987,6 +999,23 @@ function setupCharacterReferences() {
             <div id="char-ref-prompt-${index}" class="character-ref-prompt ${showPromptSection ? '' : 'hidden'}">
                 <label>Character Reference Prompt (editable):</label>
                 <textarea id="char-prompt-${index}" class="prompt-textarea" rows="5">${existingRef && existingRef.prompt ? existingRef.prompt : ''}</textarea>
+                <div class="image-options-row" style="margin-top: 10px;">
+                    <div class="form-group-inline">
+                        <label for="char-size-${index}">Size:</label>
+                        <select id="char-size-${index}">
+                            <option value="1024x1024">1024x1024 (Square)</option>
+                            <option value="1536x1024" selected>1536x1024 (Landscape)</option>
+                            <option value="1024x1536">1024x1536 (Portrait)</option>
+                        </select>
+                    </div>
+                    <div class="form-group-inline">
+                        <label for="char-detail-${index}">Detail:</label>
+                        <select id="char-detail-${index}">
+                            <option value="low" selected>Low</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="image-actions" style="margin-top: 10px;">
                     <button class="btn-small" onclick="generateCharacterImage(${index})">
                         ${existingRef && (existingRef.local_image_path || existingRef.image_url) ? 'Regenerate' : 'Generate'} Reference Image
@@ -1083,6 +1112,10 @@ async function generateCharacterImage(charIndex) {
         return;
     }
 
+    // Get size and detail from dropdowns
+    const size = document.getElementById(`char-size-${charIndex}`).value;
+    const detail = document.getElementById(`char-detail-${charIndex}`).value;
+
     const loadingDiv = document.getElementById(`char-loading-${charIndex}`);
     loadingDiv.classList.remove('hidden');
 
@@ -1092,7 +1125,9 @@ async function generateCharacterImage(charIndex) {
             prompt: prompt,
             character_name: character.name,
             story_id: currentStory.id,
-            include_turnaround: true
+            include_turnaround: true,
+            size: size,
+            quality: detail
         };
 
         const response = await fetch(`${API_BASE}/visual-consistency/character-reference/generate-image`, {

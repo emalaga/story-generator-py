@@ -69,7 +69,9 @@ def generate_image_for_page(story_id, page_num):
         "scene_description": str (required),
         "art_style": str (optional),
         "characters": List[dict] (optional),
-        "session_id": str (optional) - existing session ID for continuation
+        "session_id": str (optional) - existing session ID for continuation,
+        "size": str (optional) - Image size (default: 1024x1024),
+        "quality": str (optional) - Image quality/detail (default: low)
     }
 
     Returns:
@@ -100,6 +102,9 @@ def generate_image_for_page(story_id, page_num):
         art_style = data.get('art_style', 'cartoon')
         session_id = data.get('session_id')
         story_title = data.get('story_title', '')
+        # Get size and quality from request, with defaults
+        image_size = data.get('size', '1024x1024')
+        image_quality = data.get('quality', 'low')
         # Accept either 'characters' or 'character_profiles'
         characters_data = data.get('character_profiles', data.get('characters', []))
 
@@ -201,14 +206,14 @@ def generate_image_for_page(story_id, page_num):
 
             # Generate image directly with custom prompt
             print(f"[DEBUG] About to call generate_image", flush=True)
-            current_app.logger.info(f"  Calling generate_image with custom prompt...")
+            current_app.logger.info(f"  Calling generate_image with custom prompt, size={image_size}, quality={image_quality}...")
             try:
                 print(f"[DEBUG] Inside try block, calling run_async(generate_image)", flush=True)
                 image_url = run_async(image_client.generate_image(
                     story_id,
                     custom_prompt,
-                    size='1024x1024',
-                    quality='high'
+                    size=image_size,
+                    quality=image_quality
                 ))
                 print(f"[DEBUG] generate_image returned, URL length={len(image_url) if image_url else 0}", flush=True)
                 current_app.logger.info(f"  generate_image completed, URL length: {len(image_url) if image_url else 0}")
@@ -221,12 +226,14 @@ def generate_image_for_page(story_id, page_num):
             story.image_session_id = image_client.get_session_id(story_id)
         else:
             # Generate image using conversation session (builds prompt automatically)
-            current_app.logger.info(f"  Generating with automatic prompt building")
+            current_app.logger.info(f"  Generating with automatic prompt building, size={image_size}, quality={image_quality}")
             image_url = run_async(image_generator.generate_image_for_page(
                 story,
                 scene_description,
                 character_profiles,
-                art_style
+                art_style,
+                size=image_size,
+                quality=image_quality
             ))
 
         # Get updated session ID
