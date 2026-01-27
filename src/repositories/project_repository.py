@@ -112,7 +112,7 @@ class ProjectRepository:
         List all projects with their metadata.
 
         Returns:
-            List of dictionaries with project metadata (id, name, title, created_at)
+            List of dictionaries with project metadata (id, name, title, created_at, num_pages, language, user_prompt)
         """
         projects_metadata = []
 
@@ -121,11 +121,18 @@ class ProjectRepository:
                 with open(project_file, 'r', encoding='utf-8') as f:
                     project_data = json.load(f)
 
+                story_data = project_data.get('story', {})
+                story_metadata = story_data.get('metadata', {})
+                pages = story_data.get('pages', [])
+
                 # Extract relevant metadata
                 metadata = {
                     'id': project_data.get('id'),
                     'name': project_data.get('name'),
-                    'title': project_data.get('story', {}).get('metadata', {}).get('title', 'Untitled'),
+                    'title': story_metadata.get('title', 'Untitled'),
+                    'num_pages': len(pages) if pages else story_metadata.get('num_pages', 0),
+                    'language': story_metadata.get('language', 'Unknown'),
+                    'user_prompt': story_metadata.get('user_prompt', ''),
                     'created_at': project_data.get('created_at'),
                     'updated_at': project_data.get('updated_at')
                 }

@@ -15,15 +15,30 @@
 
         <!-- Tab Navigation -->
         <div class="tabs">
-            <button class="tab-button active" data-tab="text-generation">Text Generation</button>
+            <button class="tab-button active" data-tab="projects">Projects</button>
+            <button class="tab-button" data-tab="text-generation">Text Generation</button>
             <button class="tab-button" data-tab="visual-consistency">Visual Consistency</button>
             <button class="tab-button" data-tab="image-generation">Image Generation</button>
             <button class="tab-button" data-tab="pdf-export">PDF Export</button>
         </div>
 
         <main>
+            <!-- PROJECTS TAB -->
+            <div id="projects-tab" class="tab-content active">
+                <section class="card">
+                    <h2>Saved Projects</h2>
+                    <p class="section-description">Load a previously saved story project to continue working on it.</p>
+                    <div id="projects-list" class="projects-list-full">
+                        <!-- Projects populated dynamically -->
+                    </div>
+                    <button id="load-projects-btn" class="btn btn-secondary">
+                        Refresh Projects
+                    </button>
+                </section>
+            </div>
+
             <!-- TEXT GENERATION TAB -->
-            <div id="text-generation-tab" class="tab-content active">
+            <div id="text-generation-tab" class="tab-content">
                 <div class="two-column-layout">
                     <!-- LEFT PANEL: Parameters -->
                     <aside class="left-panel">
@@ -115,17 +130,6 @@
 
                             <!-- Error Display -->
                             <div id="error-message" class="error hidden"></div>
-                        </section>
-
-                        <!-- Projects List -->
-                        <section class="card">
-                            <h2>Saved Projects</h2>
-                            <div id="projects-list" class="projects-list">
-                                <!-- Projects populated dynamically -->
-                            </div>
-                            <button id="load-projects-btn" class="btn btn-secondary btn-full">
-                                Refresh Projects
-                            </button>
                         </section>
                     </aside>
 

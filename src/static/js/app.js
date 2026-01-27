@@ -1,7 +1,7 @@
 // ===== Global State =====
 let currentStory = null;
 let currentConfig = null;
-let currentTab = 'text-generation';
+let currentTab = 'projects';
 
 // ===== API Base URL =====
 const API_BASE = '/api';
@@ -614,34 +614,64 @@ function displayProjects(projects) {
     const projectsList = document.getElementById('projects-list');
 
     if (projects.length === 0) {
-        projectsList.innerHTML = '<p>No saved projects yet.</p>';
+        projectsList.innerHTML = '<p class="no-projects-message">No saved projects yet. Go to the Text Generation tab to create your first story!</p>';
         return;
     }
 
     projectsList.innerHTML = '';
     projects.forEach(project => {
         const projectDiv = document.createElement('div');
-        projectDiv.className = 'project-item';
+        projectDiv.className = 'project-item-full';
 
         // Format creation date
         const createdDate = project.created_at ? new Date(project.created_at).toLocaleDateString() : 'Unknown';
 
+        // Extract story details (now at root level from API)
+        const numPages = project.num_pages || 'N/A';
+        const language = project.language || 'N/A';
+        const customPrompt = project.user_prompt || '';
+
         projectDiv.innerHTML = `
-            <div class="project-info">
+            <div class="project-info-full">
                 <h4>${project.title || 'Untitled'}</h4>
-                <p class="project-date">Created: ${createdDate}</p>
+                ${customPrompt ? `<p class="project-custom-prompt"><strong>Story Idea:</strong> ${customPrompt.length > 200 ? customPrompt.substring(0, 200) + '...' : customPrompt}</p>` : ''}
+                <div class="project-details">
+                    <span class="project-detail"><strong>Pages:</strong> ${numPages}</span>
+                    <span class="project-detail"><strong>Language:</strong> ${language}</span>
+                    <span class="project-detail"><strong>Created:</strong> ${createdDate}</span>
+                </div>
             </div>
-            <div class="project-actions">
-                <button class="btn-delete" onclick="deleteProject('${project.id}')">Delete</button>
+            <div class="project-actions-full">
+                <button class="btn btn-primary btn-load-project" onclick="event.stopPropagation(); loadProject('${project.id}')">Load Project</button>
+                <button class="btn-delete" onclick="event.stopPropagation(); deleteProject('${project.id}')">Delete</button>
             </div>
         `;
         projectDiv.onclick = (e) => {
-            if (!e.target.classList.contains('btn-delete')) {
+            if (!e.target.classList.contains('btn-delete') && !e.target.classList.contains('btn-load-project')) {
                 loadProject(project.id);
             }
         };
         projectsList.appendChild(projectDiv);
     });
+}
+
+// ===== Populate Form with Project Data =====
+function populateFormWithProject(story) {
+    if (!story || !story.metadata) return;
+
+    const metadata = story.metadata;
+
+    // Set form field values
+    document.getElementById('title').value = metadata.title || '';
+    document.getElementById('language').value = metadata.language || '';
+    document.getElementById('age-group').value = metadata.age_group || '';
+    document.getElementById('complexity').value = metadata.complexity || '';
+    document.getElementById('vocabulary').value = metadata.vocabulary_diversity || '';
+    document.getElementById('num-pages').value = metadata.num_pages || 5;
+    document.getElementById('words-per-page').value = metadata.words_per_page || 50;
+    document.getElementById('genre').value = metadata.genre || '';
+    document.getElementById('art-style').value = metadata.art_style || '';
+    document.getElementById('custom-prompt').value = metadata.user_prompt || '';
 }
 
 // ===== Load Project =====
@@ -659,6 +689,9 @@ async function loadProject(projectId) {
         // When generating new images, the backend will automatically rebuild
         // the visual context using the saved art_bible and character prompts
         currentStory.image_session_id = null;
+
+        // Populate form fields with project metadata
+        populateFormWithProject(currentStory);
 
         displayStory(currentStory);
         switchTab('text-generation');
