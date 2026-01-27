@@ -393,6 +393,44 @@ header h1 {
     font-size: 0.9rem;
 }
 
+/* ===== Editable Character Fields ===== */
+.character-field {
+    margin-bottom: 12px;
+}
+
+.character-field label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 0.85rem;
+    color: var(--text-color);
+}
+
+.character-field input,
+.character-field textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    transition: border-color 0.3s;
+}
+
+.character-field input:focus,
+.character-field textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.character-field textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+.character-card .btn-text-save {
+    margin-top: 10px;
+}
+
 /* ===== Story Actions ===== */
 .story-actions {
     display: flex;

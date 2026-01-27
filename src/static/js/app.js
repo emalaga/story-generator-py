@@ -297,20 +297,36 @@ function displayStory(story) {
         pagesDiv.appendChild(pageDiv);
     });
 
-    // Display characters
+    // Display characters (editable)
     const charactersDiv = document.getElementById('story-characters');
     if (story.characters && story.characters.length > 0) {
         charactersDiv.innerHTML = '<h3>Characters</h3>';
-        story.characters.forEach(char => {
+        story.characters.forEach((char, index) => {
             const charDiv = document.createElement('div');
             charDiv.className = 'character-card';
             charDiv.innerHTML = `
                 <h4>${char.name}</h4>
-                <p><strong>Species:</strong> ${char.species || 'N/A'}</p>
-                <p><strong>Description:</strong> ${char.physical_description || 'N/A'}</p>
-                ${char.clothing ? `<p><strong>Clothing:</strong> ${char.clothing}</p>` : ''}
-                ${char.distinctive_features ? `<p><strong>Features:</strong> ${char.distinctive_features}</p>` : ''}
-                ${char.personality_traits ? `<p><strong>Traits:</strong> ${char.personality_traits}</p>` : ''}
+                <div class="character-field">
+                    <label for="char-${index}-species"><strong>Species:</strong></label>
+                    <input type="text" id="char-${index}-species" value="${char.species || ''}" placeholder="e.g., rabbit, human, dragon">
+                </div>
+                <div class="character-field">
+                    <label for="char-${index}-description"><strong>Description:</strong></label>
+                    <textarea id="char-${index}-description" rows="2" placeholder="Physical appearance...">${char.physical_description || ''}</textarea>
+                </div>
+                <div class="character-field">
+                    <label for="char-${index}-clothing"><strong>Clothing:</strong></label>
+                    <textarea id="char-${index}-clothing" rows="2" placeholder="What they wear...">${char.clothing || ''}</textarea>
+                </div>
+                <div class="character-field">
+                    <label for="char-${index}-features"><strong>Features:</strong></label>
+                    <textarea id="char-${index}-features" rows="2" placeholder="Distinctive features...">${char.distinctive_features || ''}</textarea>
+                </div>
+                <div class="character-field">
+                    <label for="char-${index}-traits"><strong>Traits:</strong></label>
+                    <textarea id="char-${index}-traits" rows="2" placeholder="Personality traits...">${char.personality_traits || ''}</textarea>
+                </div>
+                <button class="btn-text-save" onclick="saveCharacter(${index})">Save Character</button>
             `;
             charactersDiv.appendChild(charDiv);
         });
@@ -345,6 +361,38 @@ function savePageText(pageNumber) {
 
     // Show success feedback
     alert('Page text saved! Switch to the Image Generation tab to create images.');
+}
+
+// ===== Save Character =====
+function saveCharacter(charIndex) {
+    if (!currentStory) {
+        showError('No story loaded');
+        return;
+    }
+
+    if (!currentStory.characters || !currentStory.characters[charIndex]) {
+        showError('Character not found');
+        return;
+    }
+
+    const character = currentStory.characters[charIndex];
+
+    // Get values from input fields
+    const species = document.getElementById(`char-${charIndex}-species`).value.trim();
+    const description = document.getElementById(`char-${charIndex}-description`).value.trim();
+    const clothing = document.getElementById(`char-${charIndex}-clothing`).value.trim();
+    const features = document.getElementById(`char-${charIndex}-features`).value.trim();
+    const traits = document.getElementById(`char-${charIndex}-traits`).value.trim();
+
+    // Update the character in memory
+    character.species = species;
+    character.physical_description = description;
+    character.clothing = clothing;
+    character.distinctive_features = features;
+    character.personality_traits = traits;
+
+    // Show success feedback
+    alert(`Character "${character.name}" saved! Changes will be used when generating images.`);
 }
 
 // ===== Generate Image Prompt =====
