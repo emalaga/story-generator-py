@@ -17,7 +17,7 @@ function getImageUrl(localPath, fallbackUrl) {
 
 // ===== DOM Elements =====
 const storyForm = document.getElementById('story-form');
-const generateBtn = document.getElementById('generate-btn');
+const generateBtn = document.getElementById('generate-btn-top');
 const loadingDiv = document.getElementById('loading');
 const errorDiv = document.getElementById('error-message');
 const storyDisplaySection = document.getElementById('story-display-section');
