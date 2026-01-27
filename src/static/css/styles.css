@@ -182,6 +182,29 @@ header h1 {
     font-family: inherit;
 }
 
+/* ===== Form Row (side-by-side fields) ===== */
+.form-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 16px;
+}
+
+.form-row .form-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+@media (max-width: 480px) {
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .form-row .form-group {
+        margin-bottom: 16px;
+    }
+}
+
 /* ===== Buttons ===== */
 .btn {
     padding: 12px 24px;
