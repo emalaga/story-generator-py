@@ -313,7 +313,7 @@ def generate_image_for_page(story_id, page_num):
         # Update the project file with the new image path
         try:
             project_repo = current_app.config['REPOSITORIES']['project']
-            project = project_repo.get_by_id(story_id)
+            project = project_repo.get(story_id)
             if project and project.story and project.story.pages:
                 # Find the page and update its image path
                 for page in project.story.pages:

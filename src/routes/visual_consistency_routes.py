@@ -237,7 +237,7 @@ def generate_art_bible_image():
         # Update the project file with the new image path
         try:
             project_repo = current_app.config['REPOSITORIES']['project']
-            project = project_repo.get_by_id(story_id)
+            project = project_repo.get(story_id)
             if project and project.story:
                 if not project.story.art_bible:
                     from src.models.art_bible import ArtBible
@@ -443,7 +443,7 @@ def generate_character_reference_image():
         # Update the project file with the new image path
         try:
             project_repo = current_app.config['REPOSITORIES']['project']
-            project = project_repo.get_by_id(story_id)
+            project = project_repo.get(story_id)
             if project and project.story:
                 # Find or create the character reference
                 if not project.story.character_references:
