@@ -596,28 +596,28 @@ What is the ONE DRAMATIC MOMENT that would make the best illustration? Describe 
         if character.species:
             prompt_parts.append(f"who is a {character.species}")
 
-        # Physical description
+        # Physical description - use sentence-aware truncation to avoid mid-sentence cuts
         if character.physical_description:
             prompt_parts.append(
-                f"with this appearance: {self._smart_truncate(character.physical_description, 150)}"
+                f"with this appearance: {self._smart_truncate_sentences(character.physical_description, 300)}"
             )
 
-        # Clothing
+        # Clothing - use sentence-aware truncation for multi-sentence descriptions
         if character.clothing:
             prompt_parts.append(
-                f"wearing {self._smart_truncate(character.clothing, 100)}"
+                f"wearing {self._smart_truncate_sentences(character.clothing, 200)}"
             )
 
         # Distinctive features
         if character.distinctive_features:
             prompt_parts.append(
-                f"with distinctive features: {self._smart_truncate(character.distinctive_features, 100)}"
+                f"with distinctive features: {self._smart_truncate_sentences(character.distinctive_features, 200)}"
             )
 
         # Personality traits (for expression/pose)
         if character.personality_traits:
             prompt_parts.append(
-                f"showing a {self._smart_truncate(character.personality_traits, 80)} expression"
+                f"showing a {self._smart_truncate_sentences(character.personality_traits, 150)} expression"
             )
 
         # Critical restrictions - be very explicit
