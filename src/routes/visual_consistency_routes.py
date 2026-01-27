@@ -6,6 +6,9 @@ enabling visual consistency across story illustrations using conversation sessio
 """
 
 import asyncio
+import base64
+import time
+import httpx
 from flask import Blueprint, request, jsonify, current_app
 from werkzeug.exceptions import BadRequest
 
@@ -23,6 +26,67 @@ def run_async(coroutine):
         return loop.run_until_complete(coroutine)
     finally:
         loop.close()
+
+
+async def save_image_to_disk(image_url: str, project_id: str, image_type: str, filename: str) -> str:
+    """
+    Save an image to disk and return the relative path.
+
+    Args:
+        image_url: The image URL or base64 data URL
+        project_id: The project/story ID
+        image_type: Type of image ('art_bible', 'character', 'page')
+        filename: The filename to save as
+
+    Returns:
+        Relative path to the saved image (e.g., 'images/project-id/art_bible/filename.png')
+    """
+    # Get project repository to access image directories
+    project_repo = current_app.config['REPOSITORIES']['project']
+
+    # Get the project's images directory
+    project_images_dir = project_repo.get_project_images_dir(project_id)
+
+    # Determine subdirectory based on image type
+    if image_type == 'art_bible':
+        save_dir = project_images_dir / 'art_bible'
+    elif image_type == 'character':
+        save_dir = project_images_dir / 'characters'
+    else:  # page
+        save_dir = project_images_dir / 'pages'
+
+    # Full path for the saved image
+    save_path = save_dir / filename
+
+    # Check if it's a base64 data URL or a regular URL
+    if image_url.startswith('data:'):
+        # Parse base64 data URL: data:image/png;base64,<data>
+        try:
+            header, encoded_data = image_url.split(',', 1)
+            image_data = base64.b64decode(encoded_data)
+        except Exception as e:
+            raise ValueError(f'Failed to decode base64 image: {str(e)}')
+    else:
+        # Download the image from URL
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(image_url)
+            if response.status_code != 200:
+                raise Exception(f'Failed to download image: HTTP {response.status_code}')
+            image_data = response.content
+
+    # Save the image
+    with open(save_path, 'wb') as f:
+        f.write(image_data)
+
+    # Map image_type to the actual directory name
+    type_to_dir = {
+        'art_bible': 'art_bible',
+        'character': 'characters',
+        'page': 'pages'
+    }
+    relative_path = f'images/{project_id}/{type_to_dir[image_type]}/{filename}'
+
+    return relative_path
 
 
 @visual_bp.route('/art-bible/generate-prompt', methods=['POST'])
@@ -165,8 +229,29 @@ def generate_art_bible_image():
         session_id = image_client.get_session_id(story_id)
         current_app.logger.info(f"Art bible image generated: URL length={len(image_url) if image_url else 0}, session_id={session_id}")
 
+        # Save the image to disk
+        filename = f'art_bible_{int(time.time() * 1000)}.png'
+        local_path = run_async(save_image_to_disk(image_url, story_id, 'art_bible', filename))
+        current_app.logger.info(f"Art bible image saved to: {local_path}")
+
+        # Update the project file with the new image path
+        try:
+            project_repo = current_app.config['REPOSITORIES']['project']
+            project = project_repo.get_by_id(story_id)
+            if project and project.story:
+                if not project.story.art_bible:
+                    from src.models.art_bible import ArtBible
+                    project.story.art_bible = ArtBible(prompt=prompt, art_style=art_style)
+                project.story.art_bible.local_image_path = local_path
+                project.story.art_bible.prompt = prompt
+                project.story.image_session_id = session_id
+                project_repo.save(project)
+                current_app.logger.info(f"Project updated with art bible image path")
+        except Exception as e:
+            current_app.logger.warning(f"Failed to update project with art bible: {e}")
+
         return jsonify({
-            'image_url': image_url,
+            'local_image_path': local_path,
             'prompt': prompt,
             'art_style': art_style,
             'session_id': session_id  # Return session ID for persistence
@@ -348,8 +433,46 @@ def generate_character_reference_image():
         session_id = image_client.get_session_id(story_id)
         current_app.logger.info(f"Character reference image generated: URL length={len(image_url) if image_url else 0}, session_id={session_id}")
 
+        # Save the image to disk
+        # Sanitize character name for filename
+        safe_char_name = character_name.replace(' ', '_').replace('/', '_').replace('\\', '_')
+        filename = f'character_{safe_char_name}_{int(time.time() * 1000)}.png'
+        local_path = run_async(save_image_to_disk(image_url, story_id, 'character', filename))
+        current_app.logger.info(f"Character reference image saved to: {local_path}")
+
+        # Update the project file with the new image path
+        try:
+            project_repo = current_app.config['REPOSITORIES']['project']
+            project = project_repo.get_by_id(story_id)
+            if project and project.story:
+                # Find or create the character reference
+                if not project.story.character_references:
+                    project.story.character_references = []
+
+                existing_ref = next(
+                    (ref for ref in project.story.character_references if ref.character_name == character_name),
+                    None
+                )
+                if existing_ref:
+                    existing_ref.local_image_path = local_path
+                    existing_ref.prompt = prompt
+                else:
+                    from src.models.art_bible import CharacterReference
+                    new_ref = CharacterReference(
+                        character_name=character_name,
+                        prompt=prompt,
+                        local_image_path=local_path
+                    )
+                    project.story.character_references.append(new_ref)
+
+                project.story.image_session_id = session_id
+                project_repo.save(project)
+                current_app.logger.info(f"Project updated with character reference image path")
+        except Exception as e:
+            current_app.logger.warning(f"Failed to update project with character reference: {e}")
+
         return jsonify({
-            'image_url': image_url,
+            'local_image_path': local_path,
             'character_name': character_name,
             'prompt': prompt,
             'session_id': session_id  # Return session ID for persistence

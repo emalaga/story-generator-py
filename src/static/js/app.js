@@ -107,7 +107,6 @@ function updateImageGenerationTab() {
                         ${(page.local_image_path || page.image_url)
                             ? `<img src="${getImageUrl(page.local_image_path, page.image_url)}" alt="Page ${page.page_number} illustration">
                                <div class="image-action-buttons">
-                                   <button class="btn-small save-image-btn" onclick="savePageImage(${page.page_number})">Save Image</button>
                                    <button class="btn-small btn-delete-image" onclick="deletePageImage(${page.page_number})">Delete Image</button>
                                </div>`
                             : '<div class="image-placeholder">No image generated yet</div>'
@@ -515,7 +514,7 @@ async function generatePageImage(pageNumber) {
 
         console.log(`[generatePageImage] Parsing JSON response...`);
         const result = await response.json();
-        console.log(`[generatePageImage] JSON parsed, image_url length: ${result.image_url ? result.image_url.length : 0}`);
+        console.log(`[generatePageImage] JSON parsed, local_image_path: ${result.local_image_path}`);
 
         // Store session ID for conversation continuity
         if (result.session_id) {
@@ -523,18 +522,23 @@ async function generatePageImage(pageNumber) {
             console.log(`[generatePageImage] Session ID updated: ${result.session_id}`);
         }
 
-        // Update the page with the image URL
-        page.image_url = result.image_url;
-        console.log(`[generatePageImage] page.image_url updated`);
+        // Update the page with the local image path (image is already saved by backend)
+        page.local_image_path = result.local_image_path;
+        console.log(`[generatePageImage] page.local_image_path updated`);
 
-        // Update the display
+        // Also save the prompt that was used
+        const promptTextareaForSave = document.getElementById(`page-${pageNumber}-prompt`);
+        if (promptTextareaForSave) {
+            page.image_prompt = promptTextareaForSave.value;
+        }
+
+        // Update the display using the local path
         const previewSection = document.getElementById(`page-${pageNumber}-image-preview`);
         console.log(`[generatePageImage] previewSection found: ${!!previewSection}`);
         if (previewSection) {
             previewSection.innerHTML = `
-                <img src="${result.image_url}" alt="Page ${pageNumber} illustration" onerror="console.error('Image failed to load for page ${pageNumber}')">
+                <img src="${getImageUrl(result.local_image_path, null)}" alt="Page ${pageNumber} illustration" onerror="console.error('Image failed to load for page ${pageNumber}')">
                 <div class="image-action-buttons">
-                    <button class="btn-small save-image-btn" onclick="savePageImage(${pageNumber})">Save Image</button>
                     <button class="btn-small btn-delete-image" onclick="deletePageImage(${pageNumber})">Delete Image</button>
                 </div>
             `;
@@ -543,10 +547,10 @@ async function generatePageImage(pageNumber) {
 
         // Hide loading indicator
         loadingDiv.classList.add('hidden');
-        console.log(`[generatePageImage] Loading hidden, starting auto-save...`);
+        console.log(`[generatePageImage] Loading hidden, auto-saving project...`);
 
-        // Auto-save the image immediately (OpenAI URLs expire quickly)
-        await savePageImage(pageNumber);
+        // Auto-save project to persist the changes
+        await autoSaveProject();
         console.log(`[generatePageImage] Auto-save completed`);
     } catch (error) {
         console.error(`[generatePageImage] ERROR:`, error);
@@ -826,7 +830,6 @@ function setupArtBibleSection() {
             previewDiv.innerHTML = `
                 <img src="${getImageUrl(artBible.local_image_path, artBible.image_url)}" alt="Art Bible Reference">
                 <div class="image-action-buttons">
-                    <button class="btn-small save-image-btn" onclick="saveArtBibleImage()">Save Image</button>
                     <button class="btn-small btn-delete-image" onclick="deleteArtBibleImage()">Delete Image</button>
                 </div>
                 <p>Art Bible reference loaded.</p>
@@ -916,11 +919,11 @@ function setupArtBibleSection() {
 
             const result = await response.json();
 
-            // Update art bible with image URL
+            // Update art bible with local image path (image is already saved by backend)
             if (!currentStory.art_bible) {
                 currentStory.art_bible = {};
             }
-            currentStory.art_bible.image_url = result.image_url;
+            currentStory.art_bible.local_image_path = result.local_image_path;
             currentStory.art_bible.prompt = prompt;
 
             // Store session ID for conversation continuity
@@ -928,22 +931,21 @@ function setupArtBibleSection() {
                 currentStory.image_session_id = result.session_id;
             }
 
-            // Display art bible image
+            // Display art bible image using the local path
             const previewDiv = document.getElementById('art-bible-preview');
             previewDiv.classList.remove('hidden');
             previewDiv.innerHTML = `
-                <img src="${result.image_url}" alt="Art Bible Reference">
+                <img src="${getImageUrl(result.local_image_path, null)}" alt="Art Bible Reference">
                 <div class="image-action-buttons">
-                    <button class="btn-small save-image-btn" onclick="saveArtBibleImage()">Save Image</button>
                     <button class="btn-small btn-delete-image" onclick="deleteArtBibleImage()">Delete Image</button>
                 </div>
-                <p>Art Bible generated successfully! This will be used as a style reference for all story illustrations.</p>
+                <p>Art Bible generated and saved successfully! This will be used as a style reference for all story illustrations.</p>
             `;
 
             loadingDiv.classList.add('hidden');
 
-            // Auto-save the image immediately (OpenAI URLs expire quickly)
-            await saveArtBibleImage();
+            // Auto-save project to persist the changes
+            await autoSaveProject();
 
         } catch (error) {
             loadingDiv.classList.add('hidden');
@@ -1032,7 +1034,6 @@ function setupCharacterReferences() {
                 ${existingRef && (existingRef.local_image_path || existingRef.image_url) ? `
                     <img src="${getImageUrl(existingRef.local_image_path, existingRef.image_url)}" alt="${character.name} Reference">
                     <div class="image-action-buttons">
-                        <button class="btn-small save-image-btn" onclick="saveCharacterImage(${index})">Save Image</button>
                         <button class="btn-small btn-delete-image" onclick="deleteCharacterImage(${index})">Delete Image</button>
                     </div>
                 ` : ''}
@@ -1150,37 +1151,36 @@ async function generateCharacterImage(charIndex) {
             currentStory.image_session_id = result.session_id;
         }
 
-        // Update character reference with image URL
+        // Update character reference with local image path (image is already saved by backend)
         const existingIndex = currentStory.character_references.findIndex(
             ref => ref.character_name === character.name
         );
 
         if (existingIndex >= 0) {
-            currentStory.character_references[existingIndex].image_url = result.image_url;
+            currentStory.character_references[existingIndex].local_image_path = result.local_image_path;
         } else {
             currentStory.character_references.push({
                 character_name: character.name,
                 prompt: prompt,
-                image_url: result.image_url
+                local_image_path: result.local_image_path
             });
         }
 
-        // Display character reference image
+        // Display character reference image using the local path
         const previewDiv = document.getElementById(`char-preview-${charIndex}`);
         previewDiv.classList.remove('hidden');
         previewDiv.innerHTML = `
-            <img src="${result.image_url}" alt="${character.name} Reference">
+            <img src="${getImageUrl(result.local_image_path, null)}" alt="${character.name} Reference">
             <div class="image-action-buttons">
-                <button class="btn-small save-image-btn" onclick="saveCharacterImage(${charIndex})">Save Image</button>
                 <button class="btn-small btn-delete-image" onclick="deleteCharacterImage(${charIndex})">Delete Image</button>
             </div>
-            <p>Reference image for ${character.name} generated successfully!</p>
+            <p>Reference image for ${character.name} generated and saved successfully!</p>
         `;
 
         loadingDiv.classList.add('hidden');
 
-        // Auto-save the image immediately (OpenAI URLs expire quickly)
-        await saveCharacterImage(charIndex);
+        // Auto-save project to persist the changes
+        await autoSaveProject();
 
     } catch (error) {
         loadingDiv.classList.add('hidden');
