@@ -343,6 +343,181 @@ def generate_image_for_page(story_id, page_num):
         return jsonify({'error': 'Internal server error'}), 500
 
 
+@image_bp.route('/stories/<story_id>/cover', methods=['POST'])
+def generate_cover_image(story_id):
+    """
+    POST /api/images/stories/:id/cover - Generate cover image for the story
+
+    Uses conversation session for visual consistency with art bible and characters.
+
+    Request body:
+    {
+        "custom_prompt": str (required) - the cover prompt,
+        "art_style": str (optional),
+        "characters": List[dict] (optional),
+        "session_id": str (optional) - existing session ID for continuation,
+        "size": str (optional) - Image size (default: 1024x1024),
+        "quality": str (optional) - Image quality/detail (default: low)
+    }
+
+    Returns:
+        200: Cover image generated successfully with session_id
+        400: Invalid request
+        500: Server error
+    """
+    try:
+        # Validate request
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+
+        try:
+            data = request.get_json()
+        except BadRequest:
+            return jsonify({'error': 'Invalid JSON'}), 400
+
+        # Get image client and generator service
+        image_client = current_app.config['SERVICES']['image_client']
+        image_generator = current_app.config['SERVICES']['image_generator']
+
+        # Get parameters
+        custom_prompt = data.get('custom_prompt', '')
+        if not custom_prompt:
+            return jsonify({'error': 'Missing required field: custom_prompt'}), 400
+
+        art_style = data.get('art_style', 'cartoon')
+        session_id = data.get('session_id')
+        story_title = data.get('story_title', '')
+        # Get size and quality from request, with defaults
+        image_size = data.get('size', '1024x1024')
+        image_quality = data.get('quality', 'low')
+        # Accept either 'characters' or 'character_profiles'
+        characters_data = data.get('character_profiles', data.get('characters', []))
+
+        # Parse character profiles
+        from src.models.character import CharacterProfile
+        from src.models.story import Story, StoryMetadata, StoryPage
+        from src.models.art_bible import ArtBible, CharacterReference
+
+        character_profiles = []
+        for char_data in characters_data:
+            profile = CharacterProfile(
+                name=char_data.get('name', ''),
+                species=char_data.get('species'),
+                physical_description=char_data.get('physical_description'),
+                clothing=char_data.get('clothing'),
+                distinctive_features=char_data.get('distinctive_features'),
+                personality_traits=char_data.get('personality_traits')
+            )
+            character_profiles.append(profile)
+
+        # Parse art bible if present (for session recovery context)
+        art_bible = None
+        if 'art_bible' in data and data['art_bible']:
+            art_bible_data = data['art_bible']
+            art_bible = ArtBible(
+                prompt=art_bible_data.get('prompt', ''),
+                image_url=art_bible_data.get('image_url'),
+                art_style=art_bible_data.get('art_style', art_style),
+                style_notes=art_bible_data.get('style_notes'),
+                color_palette=art_bible_data.get('color_palette'),
+                lighting_style=art_bible_data.get('lighting_style'),
+                brush_technique=art_bible_data.get('brush_technique')
+            )
+
+        # Parse character references if present (for session recovery context)
+        character_references = []
+        if 'character_references' in data and data['character_references']:
+            for char_ref_data in data['character_references']:
+                char_ref = CharacterReference(
+                    character_name=char_ref_data.get('character_name', ''),
+                    prompt=char_ref_data.get('prompt', ''),
+                    image_url=char_ref_data.get('image_url'),
+                    species=char_ref_data.get('species'),
+                    physical_description=char_ref_data.get('physical_description'),
+                    clothing=char_ref_data.get('clothing'),
+                    distinctive_features=char_ref_data.get('distinctive_features')
+                )
+                character_references.append(char_ref)
+
+        # Create a Story object for session management
+        story = Story(
+            id=story_id,
+            metadata=StoryMetadata(
+                title=story_title,
+                language='en',
+                complexity='simple',
+                vocabulary_diversity='simple',
+                age_group='4-8',
+                num_pages=1,
+                art_style=art_style
+            ),
+            pages=[],
+            characters=character_profiles,
+            art_bible=art_bible,
+            character_references=character_references if character_references else None,
+            image_session_id=session_id
+        )
+
+        # If we have a session ID, load it into the client
+        if session_id:
+            image_client.set_session_id(story_id, session_id)
+
+        # Log for debugging
+        current_app.logger.info(f"Generating cover image with {len(character_profiles)} characters")
+        current_app.logger.info(f"  Session ID: {session_id or 'None (will create new)'}")
+
+        # Ensure session exists
+        run_async(image_generator.ensure_session(story))
+        current_app.logger.info(f"  ensure_session completed, session_id: {story.image_session_id}")
+
+        # Generate cover image directly with custom prompt
+        current_app.logger.info(f"  Calling generate_image with cover prompt, size={image_size}, quality={image_quality}...")
+        image_url = run_async(image_client.generate_image(
+            story_id,
+            custom_prompt,
+            size=image_size,
+            quality=image_quality
+        ))
+        current_app.logger.info(f"  generate_image completed, URL length: {len(image_url) if image_url else 0}")
+
+        # Get updated session ID
+        new_session_id = image_client.get_session_id(story_id)
+
+        # Save the image to disk
+        filename = f'cover_{int(time.time() * 1000)}.png'
+        local_path = run_async(save_image_to_disk(image_url, story_id, 'page', filename))
+        current_app.logger.info(f"  Cover image saved to: {local_path}")
+
+        # Update the project file with the new cover image path
+        try:
+            from src.models.story import CoverPage
+            project_repo = current_app.config['REPOSITORIES']['project']
+            project = project_repo.get(story_id)
+            if project and project.story:
+                # Initialize cover_page if not present
+                if not project.story.cover_page:
+                    project.story.cover_page = CoverPage()
+                project.story.cover_page.local_image_path = local_path
+                project.story.cover_page.image_prompt = custom_prompt
+                project.story.image_session_id = new_session_id
+                project_repo.save(project)
+                current_app.logger.info(f"  Project updated with cover image path")
+        except Exception as e:
+            current_app.logger.warning(f"  Failed to update project with cover image: {e}")
+
+        return jsonify({
+            'local_image_path': local_path,
+            'session_id': new_session_id  # Return session ID for persistence
+        }), 200
+
+    except ValueError as e:
+        current_app.logger.error(f"ValueError generating cover image: {e}")
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        current_app.logger.error(f"Error generating cover image: {e}", exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
+
+
 @image_bp.route('/save', methods=['POST'])
 def save_image():
     """

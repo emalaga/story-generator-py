@@ -13,7 +13,7 @@ from dataclasses import asdict
 from datetime import datetime
 
 from src.models.project import Project, ProjectStatus
-from src.models.story import Story, StoryMetadata, StoryPage, PDFOptions
+from src.models.story import Story, StoryMetadata, StoryPage, PDFOptions, CoverPage
 from src.models.character import CharacterProfile
 from src.models.image_prompt import ImagePrompt
 from src.models.art_bible import ArtBible, CharacterReference
@@ -227,6 +227,7 @@ class ProjectRepository:
             'characters': [asdict(char) for char in story.characters] if story.characters else None,
             'art_bible': asdict(story.art_bible) if story.art_bible else None,
             'character_references': [asdict(char_ref) for char_ref in story.character_references] if story.character_references else None,
+            'cover_page': asdict(story.cover_page) if story.cover_page else None,
             'pdf_options': asdict(story.pdf_options) if story.pdf_options else None,
             'created_at': story.created_at.isoformat(),
             'updated_at': story.updated_at.isoformat()
@@ -306,6 +307,10 @@ class ProjectRepository:
         if data.get('pdf_options') is not None:
             pdf_options = PDFOptions(**data['pdf_options'])
 
+        cover_page = None
+        if data.get('cover_page') is not None:
+            cover_page = CoverPage(**data['cover_page'])
+
         return Story(
             id=data['id'],
             metadata=metadata,
@@ -314,6 +319,7 @@ class ProjectRepository:
             characters=characters,
             art_bible=art_bible,
             character_references=character_references,
+            cover_page=cover_page,
             pdf_options=pdf_options,
             created_at=datetime.fromisoformat(data['created_at']),
             updated_at=datetime.fromisoformat(data['updated_at'])

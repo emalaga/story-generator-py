@@ -144,3 +144,72 @@ def generate_image_prompt():
     except Exception as e:
         current_app.logger.error(f"Error generating image prompt: {e}")
         return jsonify({'error': f'Failed to generate prompt: {str(e)}'}), 500
+
+
+@prompt_bp.route('/cover', methods=['POST'])
+def generate_cover_prompt():
+    """
+    POST /api/prompts/cover - Generate a cover page prompt for a story book
+
+    Request body:
+    {
+        "story_title": str (required),
+        "story_summary": str (required),
+        "main_character": dict (optional),
+        "characters": list (optional),
+        "art_style": str (optional),
+        "genre": str (optional),
+        "art_bible": dict (optional)
+    }
+
+    Returns:
+        200: Cover prompt generated successfully
+        400: Invalid request
+        500: Server error
+    """
+    try:
+        # Validate request
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+
+        try:
+            data = request.get_json()
+        except BadRequest:
+            return jsonify({'error': 'Invalid JSON'}), 400
+
+        # Validate required fields
+        if 'story_title' not in data:
+            return jsonify({'error': 'Missing required field: story_title'}), 400
+
+        story_title = data['story_title']
+        story_summary = data.get('story_summary', '')
+        main_character = data.get('main_character')
+        characters = data.get('characters', [])
+        art_style = data.get('art_style', 'cartoon')
+        genre = data.get('genre', '')
+
+        # Get prompt builder from app
+        prompt_builder = current_app.config.get('PROMPT_BUILDER')
+        if not prompt_builder:
+            from src.domain.prompt_builder import PromptBuilder
+            prompt_builder = PromptBuilder()
+
+        # Build cover prompt using AI
+        cover_prompt = run_async(prompt_builder.build_cover_prompt(
+            story_title=story_title,
+            story_summary=story_summary,
+            main_character=main_character,
+            characters=characters,
+            art_style=art_style,
+            genre=genre
+        ))
+
+        current_app.logger.info(f"Generated cover prompt ({len(cover_prompt)} chars): {cover_prompt[:200]}...")
+
+        return jsonify({'prompt': cover_prompt}), 200
+
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        current_app.logger.error(f"Error generating cover prompt: {e}")
+        return jsonify({'error': f'Failed to generate cover prompt: {str(e)}'}), 500

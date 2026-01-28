@@ -11,7 +11,7 @@ from werkzeug.exceptions import BadRequest
 from datetime import datetime
 
 from src.models.project import Project, ProjectStatus
-from src.models.story import Story, StoryMetadata, StoryPage, PDFOptions
+from src.models.story import Story, StoryMetadata, StoryPage, PDFOptions, CoverPage
 from src.models.character import CharacterProfile
 from src.models.image_prompt import ImagePrompt
 from src.models.art_bible import ArtBible, CharacterReference
@@ -167,6 +167,16 @@ def create_project():
                 show_page_numbers=pdf_opts_data.get('show_page_numbers', True)
             )
 
+        # Parse cover page if present
+        cover_page = None
+        if story_data.get('cover_page') is not None:
+            cover_page_data = story_data['cover_page']
+            cover_page = CoverPage(
+                image_prompt=cover_page_data.get('image_prompt'),
+                image_url=cover_page_data.get('image_url'),
+                local_image_path=cover_page_data.get('local_image_path')
+            )
+
         # Create Story object
         story = Story(
             id=story_data.get('id', ''),
@@ -175,6 +185,7 @@ def create_project():
             characters=characters,
             art_bible=art_bible,
             character_references=character_references if character_references else None,
+            cover_page=cover_page,
             image_session_id=story_data.get('image_session_id'),
             pdf_options=pdf_options,
             vocabulary=story_data.get('vocabulary', [])
@@ -318,6 +329,11 @@ def get_project(project_id):
                     }
                     for char_ref in (project.story.character_references or [])
                 ],
+                'cover_page': {
+                    'image_prompt': project.story.cover_page.image_prompt,
+                    'image_url': project.story.cover_page.image_url,
+                    'local_image_path': project.story.cover_page.local_image_path
+                } if project.story.cover_page else None,
                 'image_session_id': project.story.image_session_id,
                 'pdf_options': {
                     'font': project.story.pdf_options.font,

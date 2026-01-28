@@ -354,6 +354,53 @@
                             </div>
                         </div>
 
+                        <!-- COVER PAGE SECTION -->
+                        <div id="cover-page-section" class="cover-page-section">
+                            <div class="cover-page-header">
+                                <h3>Cover Page</h3>
+                                <span class="optional-badge">Optional</span>
+                            </div>
+
+                            <div id="cover-page-placeholder" class="cover-page-placeholder">
+                                <p>Create an eye-catching cover for your story book</p>
+                                <button class="btn btn-secondary" onclick="addCoverPage()">
+                                    + Add Cover Page
+                                </button>
+                            </div>
+
+                            <div id="cover-page-content" class="cover-page-content hidden">
+                                <div class="image-page-content">
+                                    <div class="image-preview-section">
+                                        <div id="cover-page-image-preview">
+                                            <div class="image-placeholder">No cover image generated yet</div>
+                                        </div>
+                                        <div class="image-loading hidden" id="cover-page-loading">
+                                            <div class="spinner-small"></div>
+                                            <span>Generating cover image...</span>
+                                        </div>
+                                    </div>
+                                    <div class="image-controls-section">
+                                        <div class="page-prompt-section">
+                                            <label for="cover-page-prompt">Cover Image Prompt (editable):</label>
+                                            <textarea class="page-prompt-edit" id="cover-page-prompt" rows="5" placeholder="Describe the cover scene..."></textarea>
+                                            <button class="btn-small" onclick="generateCoverPagePrompt()">
+                                                Generate Prompt
+                                            </button>
+                                        </div>
+                                        <div class="image-actions">
+                                            <button class="btn-small btn-generate-image" id="cover-page-generate-btn"
+                                                    onclick="generateCoverPageImage()" disabled>
+                                                Generate Cover Image
+                                            </button>
+                                            <button class="btn-small btn-delete" onclick="removeCoverPage()">
+                                                Remove Cover Page
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div id="image-pages-list" class="image-pages-list">
                             <!-- Image generation for each page -->
                         </div>

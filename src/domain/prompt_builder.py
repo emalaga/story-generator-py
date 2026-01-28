@@ -695,3 +695,148 @@ What is the ONE DRAMATIC MOMENT that would make the best illustration? Describe 
         )
 
         return " ".join(prompt_parts)
+
+    async def build_cover_prompt(
+        self,
+        story_title: str,
+        story_summary: str,
+        main_character: Optional[dict] = None,
+        characters: Optional[List[dict]] = None,
+        art_style: str = "cartoon",
+        genre: str = ""
+    ) -> str:
+        """
+        Build a prompt for generating a book cover image.
+
+        Uses AI to create a compelling, movie-poster-style cover prompt that:
+        - Features the main character in an important story moment
+        - Is eye-catching and dramatic
+        - Doesn't reveal the ending
+        - Is suitable for a book cover
+
+        Args:
+            story_title: Title of the story
+            story_summary: Summary or concatenated text from story pages
+            main_character: Optional dict with main character details
+            characters: Optional list of all characters
+            art_style: Art style (e.g., "cartoon", "watercolor")
+            genre: Story genre
+
+        Returns:
+            Generated cover prompt
+        """
+        if not self.ai_client:
+            # Fallback without AI - create a basic prompt
+            return self._build_basic_cover_prompt(story_title, main_character, art_style, genre)
+
+        # Build character context
+        character_context = ""
+        if main_character:
+            char_name = main_character.get('name', 'the protagonist')
+            char_species = main_character.get('species', '')
+            char_desc = main_character.get('physical_description', '')
+            character_context = f"\n\nMain character: {char_name}"
+            if char_species:
+                character_context += f" (a {char_species})"
+            if char_desc:
+                character_context += f" - {char_desc[:200]}"
+        elif characters and len(characters) > 0:
+            char = characters[0]
+            char_name = char.get('name', 'the protagonist')
+            char_species = char.get('species', '')
+            character_context = f"\n\nMain character: {char_name}"
+            if char_species:
+                character_context += f" (a {char_species})"
+
+        system_message = """You are an expert children's book cover designer. Your task is to create a compelling cover image prompt that:
+
+1. Features the main character in a DRAMATIC, EYE-CATCHING pose or moment
+2. Captures a PIVOTAL moment from the story (but NOT the ending)
+3. Has the visual impact of a MOVIE POSTER - bold, exciting, memorable
+4. Is APPROPRIATE for children while still being exciting
+5. Would make a child want to pick up the book immediately
+
+Think about:
+- What makes blockbuster movie posters compelling
+- The "hero shot" - showing the protagonist in their most impressive light
+- Dynamic composition that draws the eye
+- A moment of adventure, discovery, or courage
+
+DO NOT:
+- Describe multiple scenes or a sequence of events
+- Reveal the ending or resolution
+- Include text, title, or credits in the image description
+- Make it boring or static
+
+Return ONLY a vivid, detailed image prompt (60-100 words) describing the cover scene."""
+
+        prompt = f"""Create a compelling book cover image prompt for:
+
+Title: "{story_title}"
+Genre: {genre or 'children\'s fiction'}
+Art Style: {art_style}
+{character_context}
+
+Story summary (for context - do NOT summarize, use it to identify the best cover moment):
+{story_summary[:1500]}
+
+What single dramatic moment or heroic pose would make the most compelling, movie-poster-style cover for this children's book? Describe that scene vividly."""
+
+        try:
+            cover_prompt = await self.ai_client.generate_text(
+                prompt,
+                system_message=system_message,
+                temperature=0.7,
+                max_tokens=300
+            )
+            cover_prompt = cover_prompt.strip()
+
+            # Add art style and technical requirements
+            final_prompt = (
+                f"Create a {art_style} style children's book cover illustration. "
+                f"{cover_prompt} "
+                "This should look like a professional book cover - bold, dynamic composition with "
+                "rich colors and dramatic lighting. Movie-poster quality. Child-friendly but exciting. "
+                "No text, title, or credits - just the illustration."
+            )
+
+            return final_prompt
+
+        except Exception:
+            # Fallback to basic prompt if AI fails
+            return self._build_basic_cover_prompt(story_title, main_character, art_style, genre)
+
+    def _build_basic_cover_prompt(
+        self,
+        story_title: str,
+        main_character: Optional[dict] = None,
+        art_style: str = "cartoon",
+        genre: str = ""
+    ) -> str:
+        """
+        Build a basic cover prompt without AI assistance.
+
+        Used as a fallback when AI client is not available.
+        """
+        prompt_parts = [
+            f"Create a {art_style} style children's book cover illustration for '{story_title}'."
+        ]
+
+        if main_character:
+            char_name = main_character.get('name', 'the protagonist')
+            char_species = main_character.get('species', '')
+            if char_species:
+                prompt_parts.append(f"Feature {char_name}, a {char_species}, in a heroic or adventurous pose.")
+            else:
+                prompt_parts.append(f"Feature {char_name} in a heroic or adventurous pose.")
+
+        if genre:
+            prompt_parts.append(f"The style should fit a {genre} story.")
+
+        prompt_parts.append(
+            "This should look like a professional book cover - bold, dynamic composition with "
+            "rich colors and dramatic lighting. Movie-poster quality. Child-friendly but exciting. "
+            "No text, title, or credits - just the illustration."
+        )
+
+        return " ".join(prompt_parts)

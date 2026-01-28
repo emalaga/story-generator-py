@@ -52,6 +52,14 @@ class StoryPage:
 
 
 @dataclass
+class CoverPage:
+    """Cover page for a story book"""
+    image_prompt: Optional[str] = None
+    image_url: Optional[str] = None
+    local_image_path: Optional[str] = None
+
+
+@dataclass
 class Story:
     """Complete story with metadata and pages"""
     id: str
@@ -61,6 +69,7 @@ class Story:
     characters: Optional[List["CharacterProfile"]] = None
     art_bible: Optional["ArtBible"] = None
     character_references: Optional[List["CharacterReference"]] = None
+    cover_page: Optional[CoverPage] = None  # Optional cover page for the book
     image_session_id: Optional[str] = None  # OpenAI response ID for conversation continuity
     pdf_options: Optional[PDFOptions] = None  # PDF export options
     created_at: datetime = field(default_factory=datetime.now)

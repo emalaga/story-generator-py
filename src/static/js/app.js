@@ -100,6 +100,12 @@ function updateImageGenerationTab() {
     // Setup reload context button if not already done
     setupReloadContextButton();
 
+    // Update cover page display
+    updateCoverPageDisplay();
+
+    // Setup cover page prompt textarea listener
+    setupCoverPageListeners();
+
     // Update pages list
     const pagesList = document.getElementById('image-pages-list');
     pagesList.innerHTML = '';
@@ -908,6 +914,314 @@ async function generatePageImage(pageNumber) {
         console.error(`[generatePageImage] ERROR:`, error);
         loadingDiv.classList.add('hidden');
         showError(`Failed to generate image for page ${pageNumber}: ${error.message}`);
+    }
+}
+
+// ===== Cover Page Functions =====
+
+function addCoverPage() {
+    if (!currentStory) {
+        showError('No story loaded');
+        return;
+    }
+
+    // Initialize cover_page object if not present
+    if (!currentStory.cover_page) {
+        currentStory.cover_page = {
+            image_prompt: null,
+            image_url: null,
+            local_image_path: null
+        };
+    }
+
+    // Show the cover page content, hide placeholder
+    document.getElementById('cover-page-placeholder').classList.add('hidden');
+    document.getElementById('cover-page-content').classList.remove('hidden');
+
+    console.log('Cover page added');
+}
+
+function removeCoverPage() {
+    if (!currentStory) {
+        showError('No story loaded');
+        return;
+    }
+
+    if (!confirm('Are you sure you want to remove the cover page?')) {
+        return;
+    }
+
+    // Delete the cover image file if it exists
+    if (currentStory.cover_page && currentStory.cover_page.local_image_path) {
+        deleteCoverPageImage(false); // Don't confirm again
+    }
+
+    // Clear cover page data
+    currentStory.cover_page = null;
+
+    // Hide cover page content, show placeholder
+    document.getElementById('cover-page-content').classList.add('hidden');
+    document.getElementById('cover-page-placeholder').classList.remove('hidden');
+
+    // Clear the prompt textarea and image preview
+    document.getElementById('cover-page-prompt').value = '';
+    document.getElementById('cover-page-image-preview').innerHTML = '<div class="image-placeholder">No cover image generated yet</div>';
+    document.getElementById('cover-page-generate-btn').disabled = true;
+
+    console.log('Cover page removed');
+}
+
+async function generateCoverPagePrompt() {
+    if (!currentStory) {
+        showError('No story loaded');
+        return;
+    }
+
+    try {
+        // Build a summary of the story for the cover prompt
+        const storyPages = currentStory.pages || [];
+        const storySummary = storyPages.map(p => p.text).join(' ').substring(0, 1000);
+        const mainCharacter = currentStory.characters && currentStory.characters.length > 0
+            ? currentStory.characters[0]
+            : null;
+
+        const response = await fetch(`${API_BASE}/prompts/cover`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                story_title: currentStory.metadata.title,
+                story_summary: storySummary,
+                main_character: mainCharacter,
+                characters: currentStory.characters || [],
+                art_style: currentStory.metadata.art_style || 'cartoon',
+                genre: currentStory.metadata.genre || '',
+                art_bible: currentStory.art_bible || null
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to generate cover prompt');
+        }
+
+        const result = await response.json();
+
+        // Update the prompt textarea
+        const promptTextarea = document.getElementById('cover-page-prompt');
+        promptTextarea.value = result.prompt;
+
+        // Store in cover_page object
+        if (!currentStory.cover_page) {
+            currentStory.cover_page = {};
+        }
+        currentStory.cover_page.image_prompt = result.prompt;
+
+        // Enable the Generate Image button
+        document.getElementById('cover-page-generate-btn').disabled = false;
+
+        console.log('Cover page prompt generated');
+
+    } catch (error) {
+        showError(`Failed to generate cover prompt: ${error.message}`);
+    }
+}
+
+async function generateCoverPageImage() {
+    if (!currentStory) {
+        showError('No story loaded');
+        return;
+    }
+
+    const promptTextarea = document.getElementById('cover-page-prompt');
+    const customPrompt = promptTextarea ? promptTextarea.value.trim() : '';
+
+    if (!customPrompt) {
+        showError('Please generate or enter a cover prompt first');
+        return;
+    }
+
+    // Get size and detail from global dropdowns
+    const size = document.getElementById('page-image-size').value;
+    const detail = document.getElementById('page-image-detail').value;
+
+    // Show loading indicator
+    const loadingDiv = document.getElementById('cover-page-loading');
+    loadingDiv.classList.remove('hidden');
+
+    try {
+        const requestData = {
+            scene_description: 'Book cover',
+            character_profiles: currentStory.characters || [],
+            art_style: currentStory.metadata.art_style || 'cartoon',
+            story_title: currentStory.metadata.title || '',
+            session_id: currentStory.image_session_id || null,
+            art_bible: currentStory.art_bible || null,
+            character_references: currentStory.character_references || null,
+            custom_prompt: customPrompt,
+            size: size,
+            quality: detail,
+            is_cover: true
+        };
+
+        const response = await fetch(`${API_BASE}/images/stories/${currentStory.id}/cover`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestData),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to generate cover image');
+        }
+
+        const result = await response.json();
+
+        // Store session ID for conversation continuity
+        if (result.session_id) {
+            currentStory.image_session_id = result.session_id;
+        }
+
+        // Update cover page with image path
+        if (!currentStory.cover_page) {
+            currentStory.cover_page = {};
+        }
+        currentStory.cover_page.local_image_path = result.local_image_path;
+        currentStory.cover_page.image_prompt = promptTextarea.value;
+
+        // Update the display
+        const previewSection = document.getElementById('cover-page-image-preview');
+        previewSection.innerHTML = `
+            <img src="${getImageUrl(result.local_image_path, null)}" alt="Cover illustration">
+            <div class="image-action-buttons">
+                <button class="btn-small btn-delete-image" onclick="deleteCoverPageImage(true)">Delete Image</button>
+            </div>
+        `;
+
+        // Update button text
+        document.getElementById('cover-page-generate-btn').textContent = 'Regenerate Cover Image';
+
+        loadingDiv.classList.add('hidden');
+
+        // Auto-save project
+        await autoSaveProject();
+
+        console.log('Cover page image generated');
+
+    } catch (error) {
+        loadingDiv.classList.add('hidden');
+        showError(`Failed to generate cover image: ${error.message}`);
+    }
+}
+
+async function deleteCoverPageImage(confirmDelete = true) {
+    if (!currentStory || !currentStory.cover_page) {
+        return;
+    }
+
+    if (confirmDelete && !confirm('Are you sure you want to delete the cover image?')) {
+        return;
+    }
+
+    const imagePath = currentStory.cover_page.local_image_path;
+
+    try {
+        // Delete the file from server if it's a saved local image
+        if (imagePath) {
+            const response = await fetch(`${API_BASE}/images/delete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    image_path: imagePath
+                }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                console.warn('Failed to delete image file:', error.error);
+            }
+        }
+
+        // Clear cover page image data (keep the prompt)
+        currentStory.cover_page.image_url = null;
+        currentStory.cover_page.local_image_path = null;
+
+        // Update the display
+        const previewSection = document.getElementById('cover-page-image-preview');
+        previewSection.innerHTML = '<div class="image-placeholder">No cover image generated yet</div>';
+
+        // Update button text
+        document.getElementById('cover-page-generate-btn').textContent = 'Generate Cover Image';
+
+        console.log('Cover page image deleted');
+
+        // Auto-save project
+        await autoSaveProject();
+
+    } catch (error) {
+        showError(`Failed to delete cover image: ${error.message}`);
+    }
+}
+
+function updateCoverPageDisplay() {
+    const placeholder = document.getElementById('cover-page-placeholder');
+    const content = document.getElementById('cover-page-content');
+    const promptTextarea = document.getElementById('cover-page-prompt');
+    const previewSection = document.getElementById('cover-page-image-preview');
+    const generateBtn = document.getElementById('cover-page-generate-btn');
+
+    if (!currentStory || !currentStory.cover_page) {
+        // No cover page - show placeholder
+        placeholder.classList.remove('hidden');
+        content.classList.add('hidden');
+        return;
+    }
+
+    // Cover page exists - show content
+    placeholder.classList.add('hidden');
+    content.classList.remove('hidden');
+
+    // Populate prompt if available
+    if (currentStory.cover_page.image_prompt) {
+        promptTextarea.value = currentStory.cover_page.image_prompt;
+        generateBtn.disabled = false;
+    } else {
+        promptTextarea.value = '';
+        generateBtn.disabled = true;
+    }
+
+    // Show image if available
+    if (currentStory.cover_page.local_image_path || currentStory.cover_page.image_url) {
+        previewSection.innerHTML = `
+            <img src="${getImageUrl(currentStory.cover_page.local_image_path, currentStory.cover_page.image_url)}" alt="Cover illustration">
+            <div class="image-action-buttons">
+                <button class="btn-small btn-delete-image" onclick="deleteCoverPageImage(true)">Delete Image</button>
+            </div>
+        `;
+        generateBtn.textContent = 'Regenerate Cover Image';
+    } else {
+        previewSection.innerHTML = '<div class="image-placeholder">No cover image generated yet</div>';
+        generateBtn.textContent = 'Generate Cover Image';
+    }
+}
+
+let coverPageListenersSetup = false;
+function setupCoverPageListeners() {
+    if (coverPageListenersSetup) return;
+
+    const promptTextarea = document.getElementById('cover-page-prompt');
+    const generateBtn = document.getElementById('cover-page-generate-btn');
+
+    if (promptTextarea && generateBtn) {
+        promptTextarea.addEventListener('input', () => {
+            generateBtn.disabled = !promptTextarea.value.trim();
+        });
+        coverPageListenersSetup = true;
     }
 }
 
