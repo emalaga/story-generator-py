@@ -92,6 +92,12 @@ function updateImageGenerationTab() {
         <p>${currentStory.pages.length} pages &bull; ${currentStory.metadata.art_style || 'cartoon'} style</p>
     `;
 
+    // Update session status
+    updateSessionStatus();
+
+    // Setup reload context button if not already done
+    setupReloadContextButton();
+
     // Update pages list
     const pagesList = document.getElementById('image-pages-list');
     pagesList.innerHTML = '';
@@ -130,7 +136,9 @@ function updateImageGenerationTab() {
                         </button>
                     </div>
                     <div class="image-actions">
-                        <button class="btn-small" onclick="generatePageImage(${page.page_number})">
+                        <button class="btn-small btn-generate-image" id="page-${page.page_number}-generate-btn"
+                                onclick="generatePageImage(${page.page_number})"
+                                ${page.image_prompt ? '' : 'disabled'}>
                             ${(page.local_image_path || page.image_url) ? 'Regenerate' : 'Generate'} Image
                         </button>
                     </div>
@@ -138,7 +146,145 @@ function updateImageGenerationTab() {
             </div>
         `;
         pagesList.appendChild(pageCard);
+
+        // Add event listener to prompt textarea to enable/disable Generate Image button
+        const promptTextarea = document.getElementById(`page-${page.page_number}-prompt`);
+        const generateBtn = document.getElementById(`page-${page.page_number}-generate-btn`);
+        if (promptTextarea && generateBtn) {
+            promptTextarea.addEventListener('input', () => {
+                generateBtn.disabled = !promptTextarea.value.trim();
+            });
+        }
     });
+}
+
+// ===== Session Status and Visual Context Management =====
+async function updateSessionStatus() {
+    if (!currentStory || !currentStory.id) {
+        setSessionStatusDisplay(false, false);
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/visual-consistency/session/status?story_id=${currentStory.id}`);
+        if (response.ok) {
+            const data = await response.json();
+            setSessionStatusDisplay(data.has_session, data.context_initialized);
+        } else {
+            setSessionStatusDisplay(false, false);
+        }
+    } catch (error) {
+        console.error('Failed to check session status:', error);
+        setSessionStatusDisplay(false, false);
+    }
+}
+
+function setSessionStatusDisplay(hasSession, contextInitialized) {
+    const statusSpan = document.getElementById('session-status');
+    if (!statusSpan) return;
+
+    if (contextInitialized) {
+        statusSpan.textContent = 'Session Active';
+        statusSpan.className = 'session-status valid-session';
+    } else if (hasSession) {
+        statusSpan.textContent = 'Session Exists (Not Initialized)';
+        statusSpan.className = 'session-status partial-session';
+    } else {
+        statusSpan.textContent = 'No Session';
+        statusSpan.className = 'session-status no-session';
+    }
+}
+
+let reloadContextButtonSetup = false;
+function setupReloadContextButton() {
+    if (reloadContextButtonSetup) return;
+
+    const reloadBtn = document.getElementById('reload-context-btn');
+    if (reloadBtn) {
+        reloadBtn.addEventListener('click', reloadVisualContext);
+        reloadContextButtonSetup = true;
+    }
+}
+
+async function reloadVisualContext() {
+    if (!currentStory || !currentStory.id) {
+        showError('No story loaded');
+        return;
+    }
+
+    const reloadBtn = document.getElementById('reload-context-btn');
+    const loadingDiv = document.getElementById('reload-context-loading');
+    const statusSpan = document.getElementById('session-status');
+
+    // Show loading state with elapsed time
+    reloadBtn.disabled = true;
+    loadingDiv.classList.remove('hidden');
+
+    // Update status to show loading with elapsed time
+    const startTime = Date.now();
+    statusSpan.textContent = 'Rebuilding... (0:00)';
+    statusSpan.className = 'session-status loading-session';
+
+    // Update elapsed time every second
+    const timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        statusSpan.textContent = `Rebuilding... (${minutes}:${seconds.toString().padStart(2, '0')})`;
+    }, 1000);
+
+    // Use AbortController with 15 minute timeout for long operations
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15 * 60 * 1000); // 15 minutes
+
+    try {
+        const response = await fetch(`${API_BASE}/visual-consistency/session/rebuild`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                story_id: currentStory.id
+            }),
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+        clearInterval(timerInterval);
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to rebuild visual context');
+        }
+
+        const result = await response.json();
+
+        // Update session ID in current story
+        currentStory.image_session_id = result.session_id;
+
+        // Update status display
+        setSessionStatusDisplay(true, true);
+
+        // Show completion time
+        const totalTime = Math.floor((Date.now() - startTime) / 1000);
+        const mins = Math.floor(totalTime / 60);
+        const secs = totalTime % 60;
+        console.log(`Visual context rebuilt successfully in ${mins}:${secs.toString().padStart(2, '0')}:`, result.session_id);
+    } catch (error) {
+        clearTimeout(timeoutId);
+        clearInterval(timerInterval);
+
+        if (error.name === 'AbortError') {
+            showError('Visual context rebuild timed out after 15 minutes');
+        } else {
+            showError(`Failed to reload visual context: ${error.message}`);
+        }
+        setSessionStatusDisplay(false, false);
+    } finally {
+        // Hide loading state
+        reloadBtn.disabled = false;
+        loadingDiv.classList.add('hidden');
+    }
 }
 
 // ===== Load Configuration from API =====
@@ -444,6 +590,12 @@ async function generateImagePrompt(pageNumber) {
         const promptArea = document.getElementById(`page-${pageNumber}-prompt`);
         if (promptArea) {
             promptArea.value = result.prompt;
+        }
+
+        // Enable the Generate Image button now that we have a prompt
+        const generateBtn = document.getElementById(`page-${pageNumber}-generate-btn`);
+        if (generateBtn) {
+            generateBtn.disabled = false;
         }
 
     } catch (error) {

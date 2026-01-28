@@ -47,7 +47,8 @@ class ImageGeneratorService:
         Ensure a valid conversation session exists for this story.
 
         If no valid session exists, rebuilds visual context by regenerating
-        the art bible and character references.
+        the art bible and character references. This only happens once per
+        story load - subsequent calls reuse the existing session.
 
         Args:
             story: The story to ensure a session for
@@ -58,6 +59,14 @@ class ImageGeneratorService:
         print(f"[ImageGenerator] ensure_session called for story_id={story.id}", flush=True)
         print(f"[ImageGenerator]   story.image_session_id={story.image_session_id}", flush=True)
         logger.info(f"ensure_session called for story {story.id}")
+
+        # First check: if context is already initialized for this story, just return existing session
+        if self.image_client.is_context_initialized(story.id):
+            session_id = self.image_client.get_session_id(story.id)
+            if session_id:
+                print(f"[ImageGenerator]   Context already initialized, using existing session: {session_id}", flush=True)
+                logger.info(f"Context already initialized for story {story.id}, reusing session")
+                return session_id
 
         # Check if we have a session ID and it's loaded in the client
         if story.image_session_id:
@@ -70,16 +79,20 @@ class ImageGeneratorService:
             # Validate the session is still usable
             print(f"[ImageGenerator]   Validating session...", flush=True)
             if await self.image_client.validate_session(story.id):
-                print(f"[ImageGenerator]   Session is valid, returning existing session_id", flush=True)
+                print(f"[ImageGenerator]   Session is valid, marking context as initialized", flush=True)
+                self.image_client.mark_context_initialized(story.id)
                 return story.image_session_id
             print(f"[ImageGenerator]   Session validation failed", flush=True)
 
-        # No valid session - rebuild visual context
+        # No valid session - rebuild visual context (this should only happen once per story load)
         print(f"[ImageGenerator]   No valid session, rebuilding visual context...", flush=True)
         logger.info(f"No valid session for story {story.id}, rebuilding visual context")
         session_id = await self.rebuild_visual_context(story)
         story.image_session_id = session_id
-        print(f"[ImageGenerator]   Visual context rebuilt, new session_id={session_id}", flush=True)
+
+        # Mark context as initialized so we don't rebuild again for subsequent pages
+        self.image_client.mark_context_initialized(story.id)
+        print(f"[ImageGenerator]   Visual context rebuilt, new session_id={session_id}, marked as initialized", flush=True)
         return session_id
 
     async def rebuild_visual_context(self, story: Story) -> str:

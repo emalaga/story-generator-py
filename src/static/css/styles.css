@@ -869,6 +869,16 @@ header h1 {
     background-color: #059669;
 }
 
+.btn-small:disabled {
+    background-color: var(--text-muted);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.btn-small:disabled:hover {
+    background-color: var(--text-muted);
+}
+
 .save-image-btn {
     background-color: #3b82f6;
     margin-top: 10px;
@@ -1269,4 +1279,58 @@ select[disabled] {
     color: var(--text-color);
     margin-bottom: 15px;
     font-size: 1rem;
+}
+
+/* ===== Visual Context Section ===== */
+.visual-context-section {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color);
+}
+
+.visual-context-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.context-loading {
+    display: flex;
+    align-items: center;
+}
+
+.context-loading.hidden {
+    display: none;
+}
+
+.session-status {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.session-status.valid-session {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.session-status.partial-session {
+    background-color: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.session-status.no-session {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.session-status.loading-session {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.3);
 }

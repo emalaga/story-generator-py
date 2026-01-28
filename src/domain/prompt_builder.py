@@ -368,147 +368,88 @@ What is the ONE DRAMATIC MOMENT that would make the best illustration? Describe 
         character_references: Optional[List["CharacterReference"]] = None
     ) -> str:
         """
-        Build a prompt for AI image generation with art bible and character reference guidance.
+        Build a prompt for AI image generation that references session context.
 
-        Creates a detailed prompt optimized for GPT-Image and DALL-E, incorporating
-        character profiles, art bible style constraints, and character references to ensure
-        visual consistency across all illustrations.
+        This prompt assumes the conversation session already contains:
+        - The art bible image and style definition
+        - Character reference images and descriptions
+
+        The prompt references these by name rather than repeating all details,
+        focusing primarily on the scene description.
 
         Args:
             scene_description: Description of the scene to illustrate
-            character_profiles: List of character profiles for consistency
+            character_profiles: List of character profiles (for identifying characters in scene)
             art_style: Artistic style (e.g., "cartoon", "watercolor", "realistic")
-            art_bible: Optional art bible with style guidelines (color, lighting, technique)
-            character_references: Optional character references with detailed appearance info
+            art_bible: Optional art bible (used to check if art bible exists)
+            character_references: Optional character references (used to check which characters have references)
 
         Returns:
-            Formatted prompt string for AI image generation (optimized for GPT-Image/DALL-E)
+            Formatted prompt string for AI image generation that leverages session context
         """
         prompt_parts = []
 
-        # Art style with explicit art bible constraints if available
+        # Reference the art bible from the conversation session
         if art_bible:
-            style_details = []
-            style_details.append(f"{art_style} style")
-
-            # Add all available art bible details for maximum consistency
-            if art_bible.color_palette:
-                style_details.append(f"color palette: {self._smart_truncate(art_bible.color_palette, 80)}")
-            if art_bible.lighting_style:
-                style_details.append(f"lighting: {self._smart_truncate(art_bible.lighting_style, 60)}")
-            if art_bible.brush_technique:
-                style_details.append(f"technique: {self._smart_truncate(art_bible.brush_technique, 60)}")
-            if art_bible.style_notes:
-                style_details.append(f"{self._smart_truncate(art_bible.style_notes, 100)}")
-
             prompt_parts.append(
-                f"CRITICAL: Create a children's book illustration in EXACTLY this style - " +
-                ", ".join(style_details) +
-                ". This MUST match the established visual style perfectly with consistent line weight, shading, and colors throughout the entire book."
+                f"CRITICAL: Generate the next illustration for this children's book. "
+                f"You MUST strictly follow the {art_style} visual style defined in the art bible image "
+                "we established earlier in this conversation. Match the exact same colors, line weight, "
+                "shading technique, and overall aesthetic."
             )
         else:
-            prompt_parts.append(f"A {art_style} style children's book illustration")
+            prompt_parts.append(
+                f"Create a {art_style} style children's book illustration."
+            )
 
-        # Add main characters with character reference constraints if available
-        # Only include characters that are mentioned in the scene description
+        # Identify characters in this scene (by name only - descriptions are in session)
         if character_profiles:
-            character_descriptions = []
             scene_lower = scene_description.lower()
-            # Filter to only characters mentioned in the scene
             characters_in_scene = [
-                profile for profile in character_profiles
+                profile.name for profile in character_profiles
                 if profile.name and profile.name.lower() in scene_lower
             ]
-            for profile in characters_in_scene[:2]:  # Limit to 2 characters max
-                # Try to find matching character reference for this character
-                char_ref = None
-                if character_references:
-                    char_ref = next(
-                        (ref for ref in character_references if ref.character_name == profile.name),
-                        None
-                    )
 
-                if profile.name and profile.species and profile.physical_description:
-                    # Create VERY detailed character description for maximum consistency
-                    char_details = []
+            if characters_in_scene and character_references:
+                # Check which characters have references in the session
+                chars_with_refs = [
+                    name for name in characters_in_scene
+                    if any(ref.character_name == name for ref in character_references)
+                ]
 
-                    # Always include species and physical description
-                    char_details.append(f"a {profile.species}")
-                    char_details.append(self._smart_truncate(profile.physical_description, 120))
-
-                    # Add distinctive features (these are critical for consistency)
-                    if profile.distinctive_features:
-                        char_details.append(self._smart_truncate(profile.distinctive_features, 80))
-
-                    # Add clothing details
-                    if profile.clothing:
-                        char_details.append(f"wearing {self._smart_truncate(profile.clothing, 80)}")
-
-                    # Add personality for expression/pose
-                    if profile.personality_traits:
-                        char_details.append(f"with {self._smart_truncate(profile.personality_traits, 60)} demeanor")
-
-                    if char_ref:
-                        char_desc = (
-                            f"{profile.name} (CRITICAL - MUST be drawn EXACTLY THE SAME in every image: " +
-                            ", ".join(char_details) +
-                            ". Draw this character with IDENTICAL appearance in EVERY illustration)"
+                if chars_with_refs:
+                    if len(chars_with_refs) == 1:
+                        prompt_parts.append(
+                            f"Include {chars_with_refs[0]} in this scene, drawing them EXACTLY as shown "
+                            "in the character reference image we created earlier. "
+                            "The character's appearance, proportions, colors, and clothing must be identical."
                         )
                     else:
-                        char_desc = f"{profile.name} (" + ", ".join(char_details) + ")"
+                        names_str = ", ".join(chars_with_refs[:-1]) + f" and {chars_with_refs[-1]}"
+                        prompt_parts.append(
+                            f"Include {names_str} in this scene, drawing each character EXACTLY as shown "
+                            "in their character reference images we created earlier. "
+                            "Each character's appearance, proportions, colors, and clothing must be identical."
+                        )
+            elif characters_in_scene:
+                # Characters exist but no references - just mention them
+                if len(characters_in_scene) == 1:
+                    prompt_parts.append(f"Show {characters_in_scene[0]} in this scene.")
+                else:
+                    names_str = ", ".join(characters_in_scene[:-1]) + f" and {characters_in_scene[-1]}"
+                    prompt_parts.append(f"Show {names_str} in this scene.")
 
-                    character_descriptions.append(char_desc)
-                elif profile.species and profile.physical_description:
-                    # Character without name but has species and description
-                    phys_desc = self._smart_truncate(profile.physical_description, 100)
-                    char_desc = f"a {profile.species} ({phys_desc}"
-                    if profile.distinctive_features:
-                        char_desc += f", {self._smart_truncate(profile.distinctive_features, 60)}"
-                    if profile.clothing:
-                        char_desc += f", {self._smart_truncate(profile.clothing, 60)}"
-                    char_desc += ")"
-                    character_descriptions.append(char_desc)
+        # Scene description - the main focus of this prompt
+        scene_summary = self._smart_truncate_sentences(scene_description, 400)
+        prompt_parts.append(f"Scene: {scene_summary}")
 
-            if character_descriptions:
-                prompt_parts.append("showing " + " and ".join(character_descriptions))
+        # Final consistency reminder
+        prompt_parts.append(
+            "Maintain perfect visual consistency with all previous illustrations in this story. "
+            "Professional, vibrant, child-friendly children's book illustration."
+        )
 
-        # Scene description - extract key elements without cutting mid-sentence
-        scene_summary = self._smart_truncate_sentences(scene_description, 300)
-
-        # Add the scene action/setting
-        prompt_parts.append(f"in this scene: {scene_summary}")
-
-        # Add final quality and consistency instructions
-        if art_bible or character_references:
-            prompt_parts.append(
-                "CRITICAL REQUIREMENTS FOR CONSISTENCY: "
-                "1) Use EXACTLY the same art style, colors, line weight, and shading as described above in EVERY detail. "
-                "2) Draw characters with IDENTICAL features, proportions, colors, and clothing in EVERY scene. "
-                "3) Maintain the EXACT same visual aesthetic throughout - this is part of a series that must look cohesive. "
-                "Professional, vibrant, child-friendly children's book illustration."
-            )
-        else:
-            prompt_parts.append("Vibrant colors, child-friendly, professional children's book illustration style.")
-
-        # Join with spaces
-        full_prompt = " ".join(prompt_parts)
-
-        # If prompt is too long, prioritize art bible and character reference constraints
-        # by shortening the scene summary (not character details)
-        if len(full_prompt) > 1500:
-            # Use sentence-aware truncation to avoid cutting mid-word or mid-sentence
-            scene_summary_short = self._smart_truncate_sentences(scene_description, 120)
-            # Rebuild with shorter summary
-            summary_idx = None
-            for i, part in enumerate(prompt_parts):
-                if "in this scene:" in part:
-                    summary_idx = i
-                    break
-            if summary_idx is not None:
-                prompt_parts[summary_idx] = f"in this scene: {scene_summary_short}"
-                full_prompt = " ".join(prompt_parts)
-
-        return full_prompt
+        return " ".join(prompt_parts)
 
     def build_art_bible_prompt(
         self,

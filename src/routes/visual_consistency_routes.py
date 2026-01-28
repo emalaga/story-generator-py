@@ -595,3 +595,110 @@ def clear_session():
     except Exception as e:
         current_app.logger.error(f"Error clearing session: {e}")
         return jsonify({'error': f'Failed to clear session: {str(e)}'}), 500
+
+
+@visual_bp.route('/session/status', methods=['GET'])
+def get_session_status():
+    """
+    GET /api/visual-consistency/session/status?story_id=xxx
+
+    Check the session status for a story.
+
+    Query params:
+        story_id: str (required)
+
+    Returns:
+        200: Session status
+        400: Invalid request
+    """
+    story_id = request.args.get('story_id')
+    if not story_id:
+        return jsonify({'error': 'Missing required query param: story_id'}), 400
+
+    image_client = current_app.config['SERVICES']['image_client']
+
+    session_id = image_client.get_session_id(story_id)
+    context_initialized = image_client.is_context_initialized(story_id)
+
+    return jsonify({
+        'story_id': story_id,
+        'has_session': session_id is not None,
+        'session_id': session_id,
+        'context_initialized': context_initialized
+    }), 200
+
+
+@visual_bp.route('/session/rebuild', methods=['POST'])
+def rebuild_session():
+    """
+    POST /api/visual-consistency/session/rebuild
+
+    Rebuild the visual context (art bible + character references) for a story.
+    This will regenerate images to establish the session context.
+
+    Request body:
+    {
+        "story_id": str (required)
+    }
+
+    Returns:
+        200: Context rebuilt successfully
+        400: Invalid request
+        404: Story not found
+        500: Server error
+    """
+    try:
+        # Validate request
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+
+        try:
+            data = request.get_json()
+        except BadRequest:
+            return jsonify({'error': 'Invalid JSON'}), 400
+
+        # Validate required fields
+        if 'story_id' not in data:
+            return jsonify({'error': 'Missing required field: story_id'}), 400
+
+        story_id = data['story_id']
+
+        # Get services
+        image_client = current_app.config['SERVICES']['image_client']
+        image_generator = current_app.config['SERVICES']['image_generator']
+        project_repo = current_app.config['REPOSITORIES']['project']
+
+        # Load the project to get story details
+        project = project_repo.get(story_id)
+        if not project or not project.story:
+            return jsonify({'error': 'Story not found'}), 404
+
+        story = project.story
+
+        # Clear any existing session and context flag
+        image_client.clear_session(story_id)
+
+        current_app.logger.info(f"Rebuilding visual context for story {story_id}")
+
+        # Rebuild visual context
+        session_id = run_async(image_generator.rebuild_visual_context(story))
+
+        # Mark context as initialized
+        image_client.mark_context_initialized(story_id)
+
+        # Update story with new session ID and save
+        story.image_session_id = session_id
+        project_repo.save(project)
+
+        current_app.logger.info(f"Visual context rebuilt, new session_id: {session_id}")
+
+        return jsonify({
+            'session_id': session_id,
+            'story_id': story_id,
+            'context_initialized': True,
+            'message': 'Visual context rebuilt successfully'
+        }), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error rebuilding session: {e}", exc_info=True)
+        return jsonify({'error': f'Failed to rebuild visual context: {str(e)}'}), 500

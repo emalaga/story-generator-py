@@ -55,6 +55,10 @@ class GPTImageClient(BaseImageClient):
         # Session state: story_id -> last response_id
         self._sessions: Dict[str, str] = {}
 
+        # Track which stories have had their visual context initialized in this session
+        # This prevents repeated rebuilds when generating multiple pages
+        self._context_initialized: Dict[str, bool] = {}
+
     def get_session_id(self, story_id: str) -> Optional[str]:
         """Get the current session (response) ID for a story."""
         return self._sessions.get(story_id)
@@ -63,10 +67,20 @@ class GPTImageClient(BaseImageClient):
         """Set the session ID for a story (used when loading from persistence)."""
         self._sessions[story_id] = response_id
 
+    def is_context_initialized(self, story_id: str) -> bool:
+        """Check if visual context (art bible + characters) has been initialized for this story."""
+        return self._context_initialized.get(story_id, False)
+
+    def mark_context_initialized(self, story_id: str):
+        """Mark that visual context has been initialized for this story."""
+        self._context_initialized[story_id] = True
+
     def clear_session(self, story_id: str):
         """Clear the session for a story (used when starting a new story)."""
         if story_id in self._sessions:
             del self._sessions[story_id]
+        if story_id in self._context_initialized:
+            del self._context_initialized[story_id]
 
     async def start_session(self, story_id: str, art_style: str, story_title: str = "") -> str:
         """
