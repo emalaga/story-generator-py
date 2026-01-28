@@ -476,9 +476,9 @@ function displayStory(story) {
         <p><strong>Art Style:</strong> ${story.metadata.art_style || 'N/A'}</p>
     `;
 
-    // Display pages (text only, editable)
+    // Display pages (text only, editable) with drag-and-drop support
     const pagesDiv = document.getElementById('story-pages');
-    pagesDiv.innerHTML = '<h3>Story Pages</h3>';
+    pagesDiv.innerHTML = '<h3>Story Pages <span class="drag-hint">(drag to reorder)</span></h3>';
 
     // Check if pages exist
     if (!story.pages || story.pages.length === 0) {
@@ -487,34 +487,51 @@ function displayStory(story) {
         return;
     }
 
-    story.pages.forEach(page => {
+    story.pages.forEach((page, index) => {
         const pageDiv = document.createElement('div');
         pageDiv.className = 'story-page';
+        pageDiv.draggable = true;
+        pageDiv.dataset.pageIndex = index;
         pageDiv.innerHTML = `
-            <h4>Page ${page.page_number}</h4>
+            <div class="page-header">
+                <span class="drag-handle">&#9776;</span>
+                <h4>Page ${page.page_number}</h4>
+            </div>
             <div class="page-text-section">
-                <textarea class="page-text-edit" id="page-${page.page_number}-text" rows="4">${page.text}</textarea>
-                <button class="btn-text-save" onclick="savePageText(${page.page_number})">Save Text</button>
+                <textarea class="page-text-edit" id="page-${index}-text" rows="4">${page.text}</textarea>
+                <div class="page-buttons">
+                    <button class="btn-text-save" onclick="savePageText(${index})">Save Text</button>
+                    <button class="btn-delete-page" onclick="deletePage(${index})">Delete Page</button>
+                </div>
             </div>
         `;
+
+        // Drag events
+        pageDiv.addEventListener('dragstart', handleDragStart);
+        pageDiv.addEventListener('dragend', handleDragEnd);
+        pageDiv.addEventListener('dragover', handleDragOver);
+        pageDiv.addEventListener('drop', handleDrop);
+        pageDiv.addEventListener('dragenter', handleDragEnter);
+        pageDiv.addEventListener('dragleave', handleDragLeave);
+
         pagesDiv.appendChild(pageDiv);
     });
 }
 
 // ===== Save Page Text =====
-function savePageText(pageNumber) {
+function savePageText(pageIndex) {
     if (!currentStory) {
         showError('No story loaded');
         return;
     }
 
-    const page = currentStory.pages.find(p => p.page_number === pageNumber);
-    if (!page) {
+    if (pageIndex < 0 || pageIndex >= currentStory.pages.length) {
         showError('Page not found');
         return;
     }
 
-    const textArea = document.getElementById(`page-${pageNumber}-text`);
+    const page = currentStory.pages[pageIndex];
+    const textArea = document.getElementById(`page-${pageIndex}-text`);
     const newText = textArea.value.trim();
 
     if (!newText) {
@@ -527,6 +544,168 @@ function savePageText(pageNumber) {
 
     // Show success feedback
     alert('Page text saved! Switch to the Image Generation tab to create images.');
+}
+
+// ===== Add New Page =====
+function addNewPage() {
+    if (!currentStory) {
+        showError('No story loaded');
+        return;
+    }
+
+    // Initialize pages array if needed
+    if (!currentStory.pages) {
+        currentStory.pages = [];
+    }
+
+    // Calculate the new page number (last page + 1)
+    const newPageNumber = currentStory.pages.length + 1;
+
+    // Create a new page object
+    const newPage = {
+        page_number: newPageNumber,
+        text: '',
+        image_prompt: null,
+        image_url: null,
+        local_image_path: null
+    };
+
+    // Add to end of pages array
+    currentStory.pages.push(newPage);
+
+    // Update metadata
+    currentStory.metadata.num_pages = currentStory.pages.length;
+
+    // Refresh the display
+    displayStory(currentStory);
+
+    // Scroll to the new page
+    setTimeout(() => {
+        const newPageElement = document.querySelector(`[data-page-index="${currentStory.pages.length - 1}"]`);
+        if (newPageElement) {
+            newPageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Focus on the textarea of the new page
+            const textarea = document.getElementById(`page-${currentStory.pages.length - 1}-text`);
+            if (textarea) {
+                textarea.focus();
+            }
+        }
+    }, 100);
+
+    console.log('New page added:', newPageNumber);
+}
+
+// ===== Delete Page =====
+function deletePage(pageIndex) {
+    if (!currentStory) {
+        showError('No story loaded');
+        return;
+    }
+
+    if (pageIndex < 0 || pageIndex >= currentStory.pages.length) {
+        showError('Page not found');
+        return;
+    }
+
+    const pageNumber = currentStory.pages[pageIndex].page_number;
+
+    if (!confirm(`Are you sure you want to delete Page ${pageNumber}?`)) {
+        return;
+    }
+
+    // Remove the page from the array
+    currentStory.pages.splice(pageIndex, 1);
+
+    // Renumber pages
+    renumberPages();
+
+    // Update metadata
+    currentStory.metadata.num_pages = currentStory.pages.length;
+
+    // Refresh the display
+    displayStory(currentStory);
+
+    console.log(`Page ${pageNumber} deleted`);
+}
+
+// ===== Renumber Pages =====
+function renumberPages() {
+    if (!currentStory || !currentStory.pages) return;
+
+    currentStory.pages.forEach((page, index) => {
+        page.page_number = index + 1;
+    });
+}
+
+// ===== Drag and Drop Handlers =====
+let draggedPageIndex = null;
+
+function handleDragStart(e) {
+    draggedPageIndex = parseInt(e.currentTarget.dataset.pageIndex);
+    e.currentTarget.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', draggedPageIndex);
+}
+
+function handleDragEnd(e) {
+    e.currentTarget.classList.remove('dragging');
+    // Remove drag-over class from all pages
+    document.querySelectorAll('.story-page').forEach(page => {
+        page.classList.remove('drag-over');
+    });
+    draggedPageIndex = null;
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+}
+
+function handleDragEnter(e) {
+    e.preventDefault();
+    const targetPage = e.currentTarget;
+    const targetIndex = parseInt(targetPage.dataset.pageIndex);
+
+    // Only add drag-over class if it's not the dragged element
+    if (targetIndex !== draggedPageIndex) {
+        targetPage.classList.add('drag-over');
+    }
+}
+
+function handleDragLeave(e) {
+    // Only remove drag-over if we're actually leaving the element
+    // (not entering a child element)
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+        e.currentTarget.classList.remove('drag-over');
+    }
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+
+    const fromIndex = draggedPageIndex;
+    const toIndex = parseInt(e.currentTarget.dataset.pageIndex);
+
+    if (fromIndex === null || fromIndex === toIndex) {
+        return;
+    }
+
+    // Reorder the pages array
+    const [movedPage] = currentStory.pages.splice(fromIndex, 1);
+    currentStory.pages.splice(toIndex, 0, movedPage);
+
+    // Renumber pages
+    renumberPages();
+
+    // Refresh the display
+    displayStory(currentStory);
+
+    console.log(`Page moved from position ${fromIndex + 1} to ${toIndex + 1}`);
 }
 
 // ===== Save Character =====

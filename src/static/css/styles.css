@@ -1348,3 +1348,89 @@ select[disabled] {
     color: #3b82f6;
     border: 1px solid rgba(59, 130, 246, 0.3);
 }
+
+/* ===== Page Management (Drag & Drop, Add/Delete) ===== */
+.page-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.page-header h4 {
+    margin: 0;
+}
+
+.drag-handle {
+    cursor: grab;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.drag-handle:hover {
+    background-color: var(--border-color);
+    color: var(--primary-color);
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.drag-hint {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: normal;
+    margin-left: 8px;
+}
+
+/* Dragging state */
+.story-page.dragging {
+    opacity: 0.5;
+    background-color: var(--border-color);
+    transform: scale(0.98);
+}
+
+/* Drag-over state */
+.story-page.drag-over {
+    border-top: 3px solid var(--primary-color);
+    margin-top: -3px;
+}
+
+/* Page buttons container */
+.page-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* Delete page button */
+.btn-delete-page {
+    padding: 8px 16px;
+    background-color: var(--error-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-delete-page:hover {
+    background-color: #dc2626;
+}
+
+/* Page management actions (Add Page button) */
+.page-management-actions {
+    margin: 20px 0;
+    display: flex;
+    justify-content: center;
+}
+
+.page-management-actions .btn {
+    min-width: 150px;
+}
