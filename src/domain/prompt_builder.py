@@ -620,9 +620,15 @@ What is the ONE DRAMATIC MOMENT that would make the best illustration? Describe 
                 f"showing a {self._smart_truncate_sentences(character.personality_traits, 150)} expression"
             )
 
-        # Critical restrictions - be very explicit
+        # Critical restrictions - be VERY explicit to avoid character sheets/grids
         prompt_parts.append(
-            "Create a single image of the character in a natural standing or sitting pose with a plain white background. No text, No lines, No other elements."
+            "IMPORTANT: Create ONE SINGLE full-color illustration showing the character ONCE in a natural standing or sitting pose. "
+            "Use vibrant, rich colors appropriate for a children's book. "
+            "Plain white background. "
+            "DO NOT create a character sheet, model sheet, turnaround, reference sheet, or grid. "
+            "DO NOT show multiple views, angles, or copies of the character. "
+            "DO NOT use black and white or grayscale. "
+            "Just ONE colorful illustration of the character."
         )
 
         return " ".join(prompt_parts)
