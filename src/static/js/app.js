@@ -631,7 +631,7 @@ function displayProjects(projects) {
     projectsList.innerHTML = '';
     projects.forEach(project => {
         const projectDiv = document.createElement('div');
-        projectDiv.className = 'project-item-full';
+        projectDiv.className = 'project-item-compact';
 
         // Format creation date
         const createdDate = project.created_at ? new Date(project.created_at).toLocaleDateString() : 'Unknown';
@@ -641,26 +641,40 @@ function displayProjects(projects) {
         const language = project.language || 'N/A';
         const customPrompt = project.user_prompt || '';
 
+        const detailsId = `project-details-${project.id}`;
+
         projectDiv.innerHTML = `
-            <div class="project-info-full">
-                <h4>${project.title || 'Untitled'}</h4>
-                ${customPrompt ? `<p class="project-custom-prompt"><strong>Story Idea:</strong> ${customPrompt.length > 200 ? customPrompt.substring(0, 200) + '...' : customPrompt}</p>` : ''}
-                <div class="project-details">
+            <div class="project-row">
+                <button class="project-expand-btn" aria-expanded="false" aria-controls="${detailsId}" title="Show details">
+                    <span class="expand-arrow">&#9654;</span>
+                </button>
+                <h4 class="project-title">${project.title || 'Untitled'}</h4>
+                <div class="project-actions-inline">
+                    <button class="btn btn-primary btn-small btn-load-project" onclick="event.stopPropagation(); loadProject('${project.id}')">Load</button>
+                    <button class="btn-delete btn-small" onclick="event.stopPropagation(); deleteProject('${project.id}')">Delete</button>
+                </div>
+            </div>
+            <div id="${detailsId}" class="project-details-collapsible hidden">
+                <div class="project-details-content">
                     <span class="project-detail"><strong>Pages:</strong> ${numPages}</span>
                     <span class="project-detail"><strong>Language:</strong> ${language}</span>
                     <span class="project-detail"><strong>Created:</strong> ${createdDate}</span>
+                    ${customPrompt ? `<p class="project-custom-prompt"><strong>Story Idea:</strong> ${customPrompt.length > 200 ? customPrompt.substring(0, 200) + '...' : customPrompt}</p>` : ''}
                 </div>
             </div>
-            <div class="project-actions-full">
-                <button class="btn btn-primary btn-load-project" onclick="event.stopPropagation(); loadProject('${project.id}')">Load Project</button>
-                <button class="btn-delete" onclick="event.stopPropagation(); deleteProject('${project.id}')">Delete</button>
-            </div>
         `;
-        projectDiv.onclick = (e) => {
-            if (!e.target.classList.contains('btn-delete') && !e.target.classList.contains('btn-load-project')) {
-                loadProject(project.id);
-            }
-        };
+
+        // Add toggle functionality for expand button
+        const expandBtn = projectDiv.querySelector('.project-expand-btn');
+        const detailsSection = projectDiv.querySelector('.project-details-collapsible');
+        expandBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isExpanded = expandBtn.getAttribute('aria-expanded') === 'true';
+            expandBtn.setAttribute('aria-expanded', !isExpanded);
+            expandBtn.classList.toggle('expanded', !isExpanded);
+            detailsSection.classList.toggle('hidden', isExpanded);
+        });
+
         projectsList.appendChild(projectDiv);
     });
 }

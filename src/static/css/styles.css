@@ -604,6 +604,109 @@ header h1 {
     font-size: 1rem;
 }
 
+/* Compact collapsible project list */
+.project-item-compact {
+    background-color: var(--bg-color);
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+    transition: background-color 0.2s;
+}
+
+.project-item-compact:hover {
+    background-color: var(--border-color);
+}
+
+.project-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+}
+
+.project-expand-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    transition: transform 0.2s, color 0.2s;
+}
+
+.project-expand-btn:hover {
+    color: var(--primary-color);
+}
+
+.project-expand-btn .expand-arrow {
+    font-size: 0.8rem;
+    transition: transform 0.2s;
+}
+
+.project-expand-btn.expanded .expand-arrow {
+    transform: rotate(90deg);
+}
+
+.project-title {
+    flex: 1;
+    color: var(--primary-color);
+    font-size: 1rem;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.project-actions-inline {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.project-actions-inline .btn-small {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
+.project-actions-inline .btn-delete.btn-small {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
+.project-details-collapsible {
+    padding: 0 16px 16px 44px;
+    animation: slideDown 0.2s ease-out;
+}
+
+.project-details-collapsible.hidden {
+    display: none;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.project-details-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color);
+}
+
+.project-details-content .project-custom-prompt {
+    width: 100%;
+    margin-top: 4px;
+}
+
 @media (max-width: 768px) {
     .project-item-full {
         flex-direction: column;
@@ -617,6 +720,30 @@ header h1 {
     .project-details {
         flex-direction: column;
         gap: 5px;
+    }
+
+    .project-row {
+        flex-wrap: wrap;
+    }
+
+    .project-title {
+        flex-basis: calc(100% - 40px);
+        order: 1;
+    }
+
+    .project-expand-btn {
+        order: 0;
+    }
+
+    .project-actions-inline {
+        order: 2;
+        width: 100%;
+        margin-top: 8px;
+        padding-left: 32px;
+    }
+
+    .project-details-collapsible {
+        padding-left: 16px;
     }
 }
 
