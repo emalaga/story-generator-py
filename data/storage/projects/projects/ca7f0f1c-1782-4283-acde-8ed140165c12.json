@@ -21,8 +21,8 @@
         "page_number": 1,
         "text": "Érase una vez, un pequeño cohete llamado Roco que amaba explorar el universo. Un día, mientras zumbaba entre las estrellas y los planetas, Roco se desvió de su ruta. Miró a su alrededor y todo lo que vio fue la oscuridad infinita del espacio. Roco se sintió muy asustado y solo. \"¿Cómo voy a encontrar mi camino de regreso a casa?\" pensó nerviosamente. Justo cuando estaba a punto de perder toda esperanza, una luz brillante apareció en la distancia.",
         "image_url": null,
-        "image_prompt": null,
-        "local_image_path": null
+        "image_prompt": "CRITICAL: Create a children's book illustration in EXACTLY this style - watercolor children's book illustration style. This MUST match the established visual style perfectly with consistent line weight, shading, and colors throughout the entire book. showing Roco (CRITICAL - MUST be drawn EXACTLY THE SAME in every image: a Rocket, Roco is a small rocket, about the size of a school bus. He is primarily red with white stripes running vertically down, Roco's distinctive features include his bright red color, his white stripes,, with Roco's wide and curious eyes reflect his adventurous and demeanor. Draw this character with IDENTICAL appearance in EVERY illustration) in this scene: The moment when Roco, lost in the infinite darkness of space, spots a bright light appearing in the distance. CRITICAL REQUIREMENTS FOR CONSISTENCY: 1) Use EXACTLY the same art style, colors, line weight, and shading as described above in EVERY detail. 2) Draw characters with IDENTICAL features, proportions, colors, and clothing in EVERY scene. 3) Maintain the EXACT same visual aesthetic throughout - this is part of a series that must look cohesive. Professional, vibrant, child-friendly children's book illustration.",
+        "local_image_path": "images/ca7f0f1c-1782-4283-acde-8ed140165c12/pages/page_1_1769572778822.png"
       },
       {
         "page_number": 2,
@@ -58,10 +58,41 @@
         "personality_traits": "Alfi's intelligence and friendliness are evident in his appearance. His eyes have a curious and knowledgeable sparkle, and his constant smile shows his friendly nature."
       }
     ],
-    "art_bible": null,
-    "character_references": null,
-    "created_at": "2026-01-21T16:37:58.646281",
-    "updated_at": "2026-01-21T16:37:58.646301"
+    "art_bible": {
+      "prompt": "Create a sample scene illustration in watercolor children's book illustration style for a children's book. The scene should fit a Adventure story for children. This is a reference illustration for a story titled 'The little rocket'. The scene should showcase the visual style, colors, lighting, and artistic approach that will be used throughout the book. No text, labels, color swatches, or technical diagrams. Just a beautiful example illustration that demonstrates the artistic direction.",
+      "image_url": null,
+      "local_image_path": "images/ca7f0f1c-1782-4283-acde-8ed140165c12/art_bible/art_bible_1769572411295.png",
+      "art_style": "watercolor children's book illustration",
+      "style_notes": null,
+      "color_palette": null,
+      "lighting_style": null,
+      "brush_technique": null
+    },
+    "character_references": [
+      {
+        "character_name": "Roco",
+        "prompt": "A watercolor children's book illustration style illustration of Roco who is a Rocket with this appearance: Roco is a small rocket, about the size of a school bus. He is primarily red with white stripes running vertically down his sides. His nose cone is a shiny silver and his thrusters are a dark grey. He has two small, round windows near the top that serve as his eyes, which are always wide and curious. with distinctive features: Roco's distinctive features include his bright red color, his white stripes, and his silver nose cone. His round windows as eyes give him a friendly and approachable appearance. showing a Roco's wide and curious eyes reflect his adventurous and inquisitive nature. expression IMPORTANT: Create ONE SINGLE full-color illustration showing the character ONCE in a natural standing or sitting pose. Use vibrant, rich colors appropriate for a children's book. Plain white background. DO NOT create a character sheet, model sheet, turnaround, reference sheet, or grid. DO NOT show multiple views, angles, or copies of the character. DO NOT use black and white or grayscale. Just ONE colorful illustration of the character.",
+        "image_url": null,
+        "local_image_path": "images/ca7f0f1c-1782-4283-acde-8ed140165c12/characters/character_Roco_1769572563330.png",
+        "species": "Rocket",
+        "physical_description": "Roco is a small rocket, about the size of a school bus. He is primarily red with white stripes running vertically down his sides. His nose cone is a shiny silver and his thrusters are a dark grey. He has two small, round windows near the top that serve as his eyes, which are always wide and curious.",
+        "clothing": null,
+        "distinctive_features": null
+      },
+      {
+        "character_name": "Alfi",
+        "prompt": "A watercolor children's book illustration style illustration of Alfi who is a Alien with this appearance: Alfi is a friendly alien with bright green skin. He is medium-sized, with a round body, long, thin arms, and three fingers on each hand. His eyes are large and round, glowing with a soft blue light. His head is slightly larger than his body, with two small antennae sticking out from the top. wearing Alfi wears a silver spacesuit with a large, round glass helmet that allows his antennae to stick out. with distinctive features: Alfi's bright green skin, large blue eyes, and antennae are his most distinctive features. His friendly smile is also a key aspect of his character. showing a Alfi's intelligence and friendliness are evident in his appearance. expression IMPORTANT: Create ONE SINGLE full-color illustration showing the character ONCE in a natural standing or sitting pose. Use vibrant, rich colors appropriate for a children's book. Plain white background. DO NOT create a character sheet, model sheet, turnaround, reference sheet, or grid. DO NOT show multiple views, angles, or copies of the character. DO NOT use black and white or grayscale. Just ONE colorful illustration of the character.",
+        "image_url": null,
+        "local_image_path": "images/ca7f0f1c-1782-4283-acde-8ed140165c12/characters/character_Alfi_1769572602608.png",
+        "species": "Alien",
+        "physical_description": "Alfi is a friendly alien with bright green skin. He is medium-sized, with a round body, long, thin arms, and three fingers on each hand. His eyes are large and round, glowing with a soft blue light. His head is slightly larger than his body, with two small antennae sticking out from the top. His feet are small and round, with three toes each.",
+        "clothing": null,
+        "distinctive_features": null
+      }
+    ],
+    "pdf_options": null,
+    "created_at": "2026-01-27T19:59:38.828459",
+    "updated_at": "2026-01-27T19:59:38.828463"
   },
   "character_profiles": [
     {
@@ -82,6 +113,6 @@
     }
   ],
   "image_prompts": [],
-  "created_at": "2026-01-21T16:37:58.646346",
-  "updated_at": "2026-01-21T16:37:58.646350"
+  "created_at": "2026-01-27T19:59:38.828471",
+  "updated_at": "2026-01-27T19:59:38.828472"
 }
