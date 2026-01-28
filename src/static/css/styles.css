@@ -959,6 +959,26 @@ header h1 {
     border-color: var(--primary-color);
 }
 
+.btn-save-prompt {
+    margin-top: 8px;
+    background-color: var(--success-color, #28a745);
+    color: white;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background-color 0.2s;
+}
+
+.btn-save-prompt:hover {
+    background-color: #218838;
+}
+
+.btn-save-prompt.hidden {
+    display: none;
+}
+
 .reference-preview {
     margin-top: 20px;
     text-align: center;

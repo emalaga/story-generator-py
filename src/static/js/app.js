@@ -882,17 +882,42 @@ function setupArtBibleSection() {
             document.getElementById('art-bible-section').classList.remove('hidden');
             document.getElementById('art-bible-prompt').value = result.prompt;
 
-            // Store art bible in story if not present
+            // Store art bible in story (create or update)
             if (!currentStory.art_bible) {
                 currentStory.art_bible = {
                     prompt: result.prompt,
                     art_style: result.art_style
                 };
+            } else {
+                currentStory.art_bible.prompt = result.prompt;
             }
+
+            // Hide save button since prompt was just auto-saved
+            document.getElementById('save-art-bible-prompt-btn').classList.add('hidden');
 
         } catch (error) {
             showError(`Failed to generate art bible prompt: ${error.message}`);
         }
+    };
+
+    // Art Bible prompt change listener - show Save button when user edits
+    const artBiblePromptTextarea = document.getElementById('art-bible-prompt');
+    const saveArtBiblePromptBtn = document.getElementById('save-art-bible-prompt-btn');
+
+    artBiblePromptTextarea.addEventListener('input', () => {
+        // Show save button when user makes changes
+        saveArtBiblePromptBtn.classList.remove('hidden');
+    });
+
+    // Save Art Bible prompt
+    saveArtBiblePromptBtn.onclick = () => {
+        const prompt = artBiblePromptTextarea.value;
+        if (!currentStory.art_bible) {
+            currentStory.art_bible = { prompt: prompt };
+        } else {
+            currentStory.art_bible.prompt = prompt;
+        }
+        saveArtBiblePromptBtn.classList.add('hidden');
     };
 
     // Generate art bible image
@@ -1015,6 +1040,7 @@ function setupCharacterReferences() {
             <div id="char-ref-prompt-${index}" class="character-ref-prompt ${showPromptSection ? '' : 'hidden'}">
                 <label>Character Reference Prompt (editable):</label>
                 <textarea id="char-prompt-${index}" class="prompt-textarea" rows="5">${existingRef && existingRef.prompt ? existingRef.prompt : ''}</textarea>
+                <button id="save-char-prompt-${index}" class="btn-small btn-save-prompt hidden" onclick="saveCharacterPrompt(${index})">Save Prompt</button>
                 <div class="image-options-row" style="margin-top: 10px;">
                     <div class="form-group-inline">
                         <label for="char-size-${index}">Size:</label>
@@ -1055,7 +1081,46 @@ function setupCharacterReferences() {
         `;
 
         charactersList.appendChild(charCard);
+
+        // Add input listener to show Save button when user edits prompt
+        const charPromptTextarea = document.getElementById(`char-prompt-${index}`);
+        const saveCharPromptBtn = document.getElementById(`save-char-prompt-${index}`);
+        if (charPromptTextarea && saveCharPromptBtn) {
+            charPromptTextarea.addEventListener('input', () => {
+                saveCharPromptBtn.classList.remove('hidden');
+            });
+        }
     });
+}
+
+// Save character prompt manually
+function saveCharacterPrompt(charIndex) {
+    const character = currentStory.characters[charIndex];
+    const prompt = document.getElementById(`char-prompt-${charIndex}`).value;
+    const saveBtn = document.getElementById(`save-char-prompt-${charIndex}`);
+
+    if (!currentStory.character_references) {
+        currentStory.character_references = [];
+    }
+
+    // Update or create character reference
+    const existingIndex = currentStory.character_references.findIndex(
+        ref => ref.character_name === character.name
+    );
+
+    if (existingIndex >= 0) {
+        currentStory.character_references[existingIndex].prompt = prompt;
+    } else {
+        currentStory.character_references.push({
+            character_name: character.name,
+            prompt: prompt,
+            species: character.species,
+            physical_description: character.physical_description
+        });
+    }
+
+    // Hide save button after saving
+    saveBtn.classList.add('hidden');
 }
 
 async function generateCharacterPrompt(charIndex) {
@@ -1111,6 +1176,12 @@ async function generateCharacterPrompt(charIndex) {
                 species: character.species,
                 physical_description: character.physical_description
             });
+        }
+
+        // Hide save button since prompt was just auto-saved
+        const saveBtn = document.getElementById(`save-char-prompt-${charIndex}`);
+        if (saveBtn) {
+            saveBtn.classList.add('hidden');
         }
 
     } catch (error) {
