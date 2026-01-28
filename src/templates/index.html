@@ -16,6 +16,7 @@
         <div class="tabs">
             <button class="tab-button active" data-tab="projects">Projects</button>
             <button class="tab-button" data-tab="text-generation">Text Generation</button>
+            <button class="tab-button" data-tab="characters">Characters</button>
             <button class="tab-button" data-tab="visual-consistency">Visual Consistency</button>
             <button class="tab-button" data-tab="image-generation">Image Generation</button>
             <button class="tab-button" data-tab="pdf-export">PDF Export</button>
@@ -158,10 +159,6 @@
                                 <!-- Story pages populated dynamically -->
                             </div>
 
-                            <div id="story-characters" class="story-characters">
-                                <!-- Characters populated dynamically -->
-                            </div>
-
                             <div class="story-actions">
                                 <button id="save-project-btn" class="btn btn-secondary">
                                     Save Project
@@ -181,6 +178,34 @@
                         </div>
                     </section>
                 </div>
+            </div>
+
+            <!-- CHARACTERS TAB -->
+            <div id="characters-tab" class="tab-content">
+                <section class="card">
+                    <h2>Story Characters</h2>
+
+                    <div id="characters-no-story" class="placeholder-card">
+                        <div class="placeholder-content">
+                            <h3>No Story Loaded</h3>
+                            <p>Please generate a story in the "Text Generation" tab first.</p>
+                        </div>
+                    </div>
+
+                    <div id="characters-content" class="hidden">
+                        <div id="characters-story-info" class="story-info-bar">
+                            <!-- Story title and info -->
+                        </div>
+
+                        <p class="section-description">
+                            Edit character details to ensure visual consistency in your illustrations.
+                        </p>
+
+                        <div id="characters-list" class="characters-list">
+                            <!-- Characters populated dynamically -->
+                        </div>
+                    </div>
+                </section>
             </div>
 
             <!-- VISUAL CONSISTENCY TAB -->

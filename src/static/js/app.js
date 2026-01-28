@@ -63,7 +63,9 @@ function switchTab(tabName) {
     currentTab = tabName;
 
     // Update tabs based on which one is selected
-    if (tabName === 'visual-consistency') {
+    if (tabName === 'characters') {
+        updateCharactersTab();
+    } else if (tabName === 'visual-consistency') {
         updateVisualConsistencyTab();
     } else if (tabName === 'image-generation') {
         updateImageGenerationTab();
@@ -155,6 +157,62 @@ function updateImageGenerationTab() {
                 generateBtn.disabled = !promptTextarea.value.trim();
             });
         }
+    });
+}
+
+// ===== Characters Tab =====
+function updateCharactersTab() {
+    const noStoryDiv = document.getElementById('characters-no-story');
+    const contentDiv = document.getElementById('characters-content');
+
+    if (!currentStory || !currentStory.characters || currentStory.characters.length === 0) {
+        noStoryDiv.classList.remove('hidden');
+        contentDiv.classList.add('hidden');
+        return;
+    }
+
+    noStoryDiv.classList.add('hidden');
+    contentDiv.classList.remove('hidden');
+
+    // Update story info bar
+    const infoBar = document.getElementById('characters-story-info');
+    infoBar.innerHTML = `
+        <h3>${currentStory.metadata.title}</h3>
+        <p>${currentStory.characters.length} character${currentStory.characters.length !== 1 ? 's' : ''}</p>
+    `;
+
+    // Display characters
+    const charactersList = document.getElementById('characters-list');
+    charactersList.innerHTML = '';
+
+    currentStory.characters.forEach((char, index) => {
+        const charDiv = document.createElement('div');
+        charDiv.className = 'character-card';
+        charDiv.innerHTML = `
+            <h4>${char.name}</h4>
+            <div class="character-field">
+                <label for="char-${index}-species"><strong>Species:</strong></label>
+                <input type="text" id="char-${index}-species" value="${char.species || ''}" placeholder="e.g., rabbit, human, dragon">
+            </div>
+            <div class="character-field">
+                <label for="char-${index}-description"><strong>Description:</strong></label>
+                <textarea id="char-${index}-description" rows="2" placeholder="Physical appearance...">${char.physical_description || ''}</textarea>
+            </div>
+            <div class="character-field">
+                <label for="char-${index}-clothing"><strong>Clothing:</strong></label>
+                <textarea id="char-${index}-clothing" rows="2" placeholder="What they wear...">${char.clothing || ''}</textarea>
+            </div>
+            <div class="character-field">
+                <label for="char-${index}-features"><strong>Features:</strong></label>
+                <textarea id="char-${index}-features" rows="2" placeholder="Distinctive features...">${char.distinctive_features || ''}</textarea>
+            </div>
+            <div class="character-field">
+                <label for="char-${index}-traits"><strong>Traits:</strong></label>
+                <textarea id="char-${index}-traits" rows="2" placeholder="Personality traits...">${char.personality_traits || ''}</textarea>
+            </div>
+            <button class="btn-text-save" onclick="saveCharacter(${index})">Save Character</button>
+        `;
+        charactersList.appendChild(charDiv);
     });
 }
 
@@ -441,43 +499,6 @@ function displayStory(story) {
         `;
         pagesDiv.appendChild(pageDiv);
     });
-
-    // Display characters (editable)
-    const charactersDiv = document.getElementById('story-characters');
-    if (story.characters && story.characters.length > 0) {
-        charactersDiv.innerHTML = '<h3>Characters</h3>';
-        story.characters.forEach((char, index) => {
-            const charDiv = document.createElement('div');
-            charDiv.className = 'character-card';
-            charDiv.innerHTML = `
-                <h4>${char.name}</h4>
-                <div class="character-field">
-                    <label for="char-${index}-species"><strong>Species:</strong></label>
-                    <input type="text" id="char-${index}-species" value="${char.species || ''}" placeholder="e.g., rabbit, human, dragon">
-                </div>
-                <div class="character-field">
-                    <label for="char-${index}-description"><strong>Description:</strong></label>
-                    <textarea id="char-${index}-description" rows="2" placeholder="Physical appearance...">${char.physical_description || ''}</textarea>
-                </div>
-                <div class="character-field">
-                    <label for="char-${index}-clothing"><strong>Clothing:</strong></label>
-                    <textarea id="char-${index}-clothing" rows="2" placeholder="What they wear...">${char.clothing || ''}</textarea>
-                </div>
-                <div class="character-field">
-                    <label for="char-${index}-features"><strong>Features:</strong></label>
-                    <textarea id="char-${index}-features" rows="2" placeholder="Distinctive features...">${char.distinctive_features || ''}</textarea>
-                </div>
-                <div class="character-field">
-                    <label for="char-${index}-traits"><strong>Traits:</strong></label>
-                    <textarea id="char-${index}-traits" rows="2" placeholder="Personality traits...">${char.personality_traits || ''}</textarea>
-                </div>
-                <button class="btn-text-save" onclick="saveCharacter(${index})">Save Character</button>
-            `;
-            charactersDiv.appendChild(charDiv);
-        });
-    } else {
-        charactersDiv.innerHTML = '';
-    }
 }
 
 // ===== Save Page Text =====
