@@ -465,6 +465,12 @@ async function handleStoryGeneration(e) {
     }
 }
 
+// ===== Word Count Helper =====
+function countWords(text) {
+    if (!text || !text.trim()) return 0;
+    return text.trim().split(/\s+/).length;
+}
+
 // ===== Display Story (Text Only) =====
 function displayStory(story) {
     // Hide placeholder, show story
@@ -498,6 +504,7 @@ function displayStory(story) {
         pageDiv.className = 'story-page';
         pageDiv.draggable = true;
         pageDiv.dataset.pageIndex = index;
+        const wordCount = countWords(page.text);
         pageDiv.innerHTML = `
             <div class="page-header">
                 <span class="drag-handle">&#9776;</span>
@@ -505,6 +512,7 @@ function displayStory(story) {
             </div>
             <div class="page-text-section">
                 <textarea class="page-text-edit" id="page-${index}-text" rows="4">${page.text}</textarea>
+                <div class="page-word-count" id="page-${index}-word-count">${wordCount} word${wordCount !== 1 ? 's' : ''}</div>
                 <div class="page-buttons">
                     <button class="btn-text-save" onclick="savePageText(${index})">Save Text</button>
                     <button class="btn-delete-page" onclick="deletePage(${index})">Delete Page</button>
@@ -547,6 +555,13 @@ function savePageText(pageIndex) {
 
     // Update the page text in memory
     page.text = newText;
+
+    // Update the word count display
+    const wordCount = countWords(newText);
+    const wordCountDiv = document.getElementById(`page-${pageIndex}-word-count`);
+    if (wordCountDiv) {
+        wordCountDiv.textContent = `${wordCount} word${wordCount !== 1 ? 's' : ''}`;
+    }
 
     // Show success feedback
     alert('Page text saved! Switch to the Image Generation tab to create images.');

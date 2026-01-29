@@ -367,6 +367,13 @@ header h1 {
     border-color: var(--primary-color);
 }
 
+.page-word-count {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    text-align: right;
+}
+
 .btn-text-save {
     padding: 8px 16px;
     background-color: var(--primary-color);
