@@ -83,21 +83,35 @@ class StoryGeneratorService:
         # Step 2: Generate story text using AI
         # Use higher temperature for creative writing
         # Calculate max_tokens to ensure enough room for the full story
-        # ~1.5 tokens per word + buffer for formatting (page headers, etc.)
+        # ~2 tokens per word (conservative estimate) + generous buffer for formatting
         words_per_page = metadata.words_per_page or 50
         total_words_needed = metadata.num_pages * words_per_page
-        # Add 50% buffer for formatting and safety
-        max_tokens = int(total_words_needed * 1.5 * 1.5)
-        # Ensure minimum of 1000 tokens and cap at 8000
-        max_tokens = max(1000, min(max_tokens, 8000))
+        # Use 2 tokens per word and double it for safety margin
+        max_tokens = int(total_words_needed * 2 * 2)
+        # Ensure minimum of 2000 tokens and cap at 16000
+        max_tokens = max(2000, min(max_tokens, 16000))
 
         print(f"[STORY GENERATOR] Requesting {metadata.num_pages} pages x {words_per_page} words = {total_words_needed} words")
         print(f"[STORY GENERATOR] Setting max_tokens to {max_tokens}")
 
+        # System message to enforce word count as primary directive
+        # This is critical because LLMs tend to produce shorter responses
+        system_message = f"""You are a children's story writer. Your PRIMARY DIRECTIVE is to write EXACTLY {words_per_page} words per page.
+
+CRITICAL WORD COUNT REQUIREMENTS:
+- Each page MUST contain approximately {words_per_page} words (minimum {int(words_per_page * 0.8)}, maximum {int(words_per_page * 1.2)})
+- This is NON-NEGOTIABLE. Do NOT write short pages.
+- Count your words carefully. A page with only 50-70 words is UNACCEPTABLE when {words_per_page} words are requested.
+- Write rich, descriptive prose with sensory details, dialogue, and character thoughts to reach the word count.
+- If a page feels complete but is too short, ADD more description, character reactions, or environmental details.
+
+You will be penalized for pages that are significantly shorter than the required word count."""
+
         story_text = await self.ai_client.generate_text(
             prompt,
             temperature=0.8,
-            max_tokens=max_tokens
+            max_tokens=max_tokens,
+            system_message=system_message
         )
 
         # Debug: Show generated story text

@@ -53,20 +53,26 @@ class PromptBuilder:
         """
         prompt_parts = []
 
-        # Story type and requirements
+        # Calculate word requirements
+        words_per_page = metadata.words_per_page or 50
+        min_words = int(words_per_page * 0.9)
+        total_words = metadata.num_pages * words_per_page
+
+        # Estimate sentences per page (average ~12-15 words per sentence)
+        sentences_per_page = max(8, words_per_page // 12)
+
+        # CRITICAL: Word count as PRIMARY instruction at the very beginning
         prompt_parts.append(
-            f"Write a {metadata.complexity} children's story in {metadata.language} "
-            f"for ages {metadata.age_group}."
+            f"MANDATORY WORD COUNT: Write a story with EXACTLY {metadata.num_pages} pages. "
+            f"Each page MUST have AT LEAST {min_words} words (target: {words_per_page} words). "
+            f"This means each page needs approximately {sentences_per_page}-{sentences_per_page + 3} full sentences. "
+            f"Total story length: approximately {total_words} words."
         )
 
-        # Number of pages and words per page - emphatic instruction
-        words_per_page = metadata.words_per_page or 50
-        min_words = int(words_per_page * 0.8)
-        max_words = int(words_per_page * 1.2)
+        # Story type and requirements
         prompt_parts.append(
-            f"IMPORTANT LENGTH REQUIREMENT: The story MUST have exactly {metadata.num_pages} pages. "
-            f"Each page MUST contain between {min_words} and {max_words} words (target: {words_per_page} words per page). "
-            f"This word count is CRITICAL - do NOT write shorter pages. Count the words to ensure compliance."
+            f"\n\nWrite a {metadata.complexity} children's story in {metadata.language} "
+            f"for ages {metadata.age_group}."
         )
 
         # Genre if specified
@@ -87,13 +93,17 @@ class PromptBuilder:
             f"the {metadata.age_group} age group."
         )
 
-        # Formatting instructions
+        # Formatting instructions with word count reminder
         prompt_parts.append(
-            "\n\nFormat the story with clear page breaks. "
-            "For each page, write:\n"
-            "Page X:\n[Story text for that page]\n\n"
-            f"Make the story engaging, age-appropriate, and complete within the specified number of pages. "
-            f"REMINDER: Each page must have {words_per_page} words - write full, detailed paragraphs, not short sentences."
+            f"\n\nFORMATTING RULES:\n"
+            f"1. Write exactly {metadata.num_pages} pages\n"
+            f"2. Each page MUST have {min_words}-{words_per_page + 20} words (NOT 50 words - that is TOO SHORT)\n"
+            f"3. Use this format:\n"
+            f"Page 1:\n[Write {words_per_page} words of story here - multiple paragraphs, rich detail]\n\n"
+            f"Page 2:\n[Write {words_per_page} words of story here]\n\n"
+            f"...and so on.\n\n"
+            f"CRITICAL: Do NOT write short pages. Each page needs {sentences_per_page}+ sentences with descriptive details, "
+            f"dialogue, character emotions, and scene-setting. Expand the narrative - do not summarize."
         )
 
         return " ".join(prompt_parts)

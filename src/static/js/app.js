@@ -512,13 +512,20 @@ async function handleStoryGeneration(e) {
     hideError();
 
     try {
+        // Use AbortController with 5-minute timeout for long story generations
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes
+
         const response = await fetch(`${API_BASE}/stories`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(data),
+            signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
             const error = await response.json();
@@ -540,7 +547,11 @@ async function handleStoryGeneration(e) {
         hideLoading();
     } catch (error) {
         hideLoading();
-        showError('Failed to generate story: ' + error.message);
+        if (error.name === 'AbortError') {
+            showError('Story generation timed out. Please try again with fewer pages or shorter word count.');
+        } else {
+            showError('Failed to generate story: ' + error.message);
+        }
     }
 }
 
