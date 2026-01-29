@@ -465,6 +465,13 @@ def generate_pdf(project_id):
         include_title_page = data.get('include_title_page', True)
         show_page_numbers = data.get('show_page_numbers', True)
 
+        # Get cover-specific options (defaults to page options if not specified)
+        cover_font_requested = data.get('cover_font', requested_font)
+        cover_font = font_manager.ensure_font_available(cover_font_requested)
+        cover_font_size = int(data.get('cover_font_size', font_size))
+        cover_font_color_str = data.get('cover_font_color', font_color_str)
+        cover_text_placement = data.get('cover_text_placement', text_placement)
+
         # Map font colors
         font_color_map = {
             'black': colors.black,
@@ -475,6 +482,7 @@ def generate_pdf(project_id):
             'dark-red': colors.Color(0.6, 0, 0)
         }
         font_color = font_color_map.get(font_color_str, colors.black)
+        cover_font_color = font_color_map.get(cover_font_color_str, colors.black)
 
         # Determine page size
         page_size_map = {
@@ -557,14 +565,15 @@ def generate_pdf(project_id):
         # Create styles
         styles = getSampleStyleSheet()
 
-        # Custom title style
+        # Custom title style (uses cover-specific options)
         title_style = ParagraphStyle(
             'CustomTitle',
             parent=styles['Title'],
-            fontName=font,
-            fontSize=font_size * 2,
+            fontName=cover_font,
+            fontSize=cover_font_size * 2,
             spaceAfter=30,
-            alignment=TA_CENTER
+            alignment=TA_CENTER,
+            textColor=cover_font_color
         )
 
         # Custom body style with font color
@@ -603,7 +612,18 @@ def generate_pdf(project_id):
                 current_page = canvas.getPageNumber()
                 story_page_num = current_page - page_counter['title_pages']
 
-                if story_page_num > 0 and story_page_num in page_background_images:
+                # Handle title page (page 1) - use key 0 for cover background
+                if current_page == 1 and 0 in page_background_images:
+                    img_path = page_background_images[0]
+                    try:
+                        canvas.drawImage(img_path, 0, 0,
+                                       width=page_size[0],
+                                       height=page_size[1],
+                                       preserveAspectRatio=False)
+                    except Exception as e:
+                        current_app.logger.warning(f"Could not draw cover background image: {e}")
+                # Handle story pages
+                elif story_page_num > 0 and story_page_num in page_background_images:
                     img_path = page_background_images[story_page_num]
                     try:
                         # Draw image at full page size with no margins
@@ -680,32 +700,78 @@ def generate_pdf(project_id):
 
         # Title page
         if include_title_page:
-            story_content.append(Spacer(1, 2 * inch))
-            story_content.append(Paragraph(story.metadata.title, title_style))
-            story_content.append(Spacer(1, 0.5 * inch))
+            # Determine which image to use for the cover:
+            # 1. Prefer cover page image if available
+            # 2. Fall back to art bible image
+            cover_image_path = None
+            full_cover_img_path = None
 
-            # Add art bible image if available
-            if story.art_bible and story.art_bible.local_image_path:
+            if story.cover_page and story.cover_page.local_image_path:
+                cover_image_path = story.cover_page.local_image_path
+                current_app.logger.info("Using cover page image for title page")
+            elif story.art_bible and story.art_bible.local_image_path:
+                cover_image_path = story.art_bible.local_image_path
+                current_app.logger.info("Using art bible image for title page (no cover available)")
+
+            if cover_image_path:
                 images_dir = project_repo.images_dir
-                # Handle the path - remove 'images/' prefix if present
-                img_path = story.art_bible.local_image_path
+                img_path = cover_image_path
                 if img_path.startswith('images/'):
                     img_path = img_path[7:]
-                full_img_path = images_dir / img_path
+                full_cover_img_path = images_dir / img_path
 
-                if full_img_path.exists():
+            # Handle differently based on PDF mode
+            if pdf_mode == 'text-over-image' and full_cover_img_path and full_cover_img_path.exists():
+                # TEXT-OVER-IMAGE MODE: Use cover as background, overlay title
+                page_background_images[0] = str(full_cover_img_path)
+
+                # Create title style for overlay
+                title_overlay_style = ParagraphStyle(
+                    'TitleOverlay',
+                    parent=title_style,
+                    fontName=cover_font,
+                    fontSize=cover_font_size * 2,
+                    textColor=cover_font_color,
+                    alignment=TA_CENTER,
+                    leftIndent=40,
+                    rightIndent=40
+                )
+
+                title_para = Paragraph(story.metadata.title, title_overlay_style)
+                text_padding = 40
+
+                # Position title based on cover_text_placement
+                if cover_text_placement in ['top-left', 'top-right']:
+                    # Title at top
+                    story_content.append(Spacer(1, text_padding))
+                    story_content.append(title_para)
+                else:  # bottom-left, bottom-right
+                    # Title at bottom - push title down 75% of page height
+                    # (title is short, so we want it near bottom, not leaving room for long text)
+                    bottom_spacer = page_height * 0.75
+                    story_content.append(Spacer(1, bottom_spacer))
+                    story_content.append(title_para)
+
+                story_content.append(PageBreak())
+            else:
+                # TEXT-NEXT-TO-IMAGE MODE: Standard layout
+                story_content.append(Spacer(1, 2 * inch))
+                story_content.append(Paragraph(story.metadata.title, title_style))
+                story_content.append(Spacer(1, 0.5 * inch))
+
+                if full_cover_img_path and full_cover_img_path.exists():
                     try:
-                        img = Image(str(full_img_path))
-                        # Scale image to fit
-                        img_width = min(page_width * 0.5, img.drawWidth)
+                        img = Image(str(full_cover_img_path))
+                        cover_image_scale = 0.7 if story.cover_page else 0.5
+                        img_width = min(page_width * cover_image_scale, img.drawWidth)
                         scale = img_width / img.drawWidth
                         img.drawWidth = img_width
                         img.drawHeight = img.drawHeight * scale
                         story_content.append(img)
                     except Exception as e:
-                        current_app.logger.warning(f"Could not add art bible image: {e}")
+                        current_app.logger.warning(f"Could not add cover/art bible image: {e}")
 
-            story_content.append(PageBreak())
+                story_content.append(PageBreak())
 
         # Story pages
         for page in story.pages:

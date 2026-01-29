@@ -2443,6 +2443,17 @@ function getPDFOptionsFromForm() {
         options.image_size = 'full';
     }
 
+    // Add cover page options
+    const coverFontValue = document.getElementById('pdf-cover-font').value;
+    const coverFontSizeValue = document.getElementById('pdf-cover-font-size').value;
+    const coverFontColorValue = document.getElementById('pdf-cover-font-color').value;
+    const coverTextPlacementValue = document.getElementById('pdf-cover-text-placement').value;
+
+    options.cover_font = coverFontValue === 'same' ? options.font : coverFontValue;
+    options.cover_font_size = coverFontSizeValue === 'same' ? options.font_size : parseInt(coverFontSizeValue);
+    options.cover_font_color = coverFontColorValue === 'same' ? options.font_color : coverFontColorValue;
+    options.cover_text_placement = coverTextPlacementValue === 'same' ? options.text_placement : coverTextPlacementValue;
+
     return options;
 }
 

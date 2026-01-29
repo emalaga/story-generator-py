@@ -1143,6 +1143,21 @@ footer {
     font-size: 1.2rem;
 }
 
+.pdf-cover-options-section {
+    background-color: rgba(139, 92, 246, 0.05);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.pdf-cover-options-section h3 {
+    color: var(--secondary-color);
+}
+
+.section-description {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+}
+
 .pdf-options-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));

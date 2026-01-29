@@ -479,6 +479,10 @@
                                         <option value="28">28pt</option>
                                         <option value="30">30pt</option>
                                         <option value="32">32pt</option>
+                                        <option value="34">34pt</option>
+                                        <option value="36">36pt</option>
+                                        <option value="38">38pt</option>
+                                        <option value="40">40pt</option>
                                     </select>
                                 </div>
 
@@ -549,36 +553,118 @@
 
                                 <!-- Additional Options -->
                                 <div class="form-group">
-                                    <label for="pdf-include-title">Include Title Page</label>
-                                    <input type="checkbox" id="pdf-include-title" name="pdf_include_title" checked>
-                                </div>
-
-                                <div class="form-group">
                                     <label for="pdf-page-numbers">Show Page Numbers</label>
                                     <input type="checkbox" id="pdf-page-numbers" name="pdf_page_numbers" checked>
                                 </div>
                             </div>
+                        </div>
 
-                            <div class="pdf-actions">
-                                <button id="save-pdf-options-btn" class="btn btn-secondary">
-                                    Save PDF Options
-                                </button>
-                                <button id="generate-pdf-btn" class="btn btn-primary">
-                                    Generate PDF
-                                </button>
-                            </div>
+                        <!-- Cover Page Options Section -->
+                        <div class="pdf-options-section pdf-cover-options-section">
+                            <h3>Cover Page Options</h3>
+                            <p class="section-description">These settings apply only to the cover/title page. Leave defaults to match page settings.</p>
 
-                            <div class="image-loading hidden" id="pdf-loading">
-                                <div class="spinner-small"></div>
-                                <span>Generating PDF...</span>
-                            </div>
+                            <div class="pdf-options-grid">
+                                <div class="form-group">
+                                    <label for="pdf-cover-font">Cover Font Family</label>
+                                    <select id="pdf-cover-font" name="pdf_cover_font">
+                                        <option value="same" selected>Same as Pages</option>
+                                        <optgroup label="Built-in Fonts">
+                                            <option value="Helvetica">Helvetica (Sans-serif)</option>
+                                            <option value="Times-Roman">Times Roman (Serif)</option>
+                                            <option value="Courier">Courier (Monospace)</option>
+                                        </optgroup>
+                                        <optgroup label="Google Fonts - Children's Stories">
+                                            <option value="Comic Neue">Comic Neue (Playful)</option>
+                                            <option value="Quicksand">Quicksand (Rounded & Friendly)</option>
+                                            <option value="Nunito">Nunito (Friendly Sans-serif)</option>
+                                        </optgroup>
+                                        <optgroup label="Google Fonts - Modern">
+                                            <option value="Roboto">Roboto (Modern Sans-serif)</option>
+                                            <option value="Open Sans">Open Sans (Clean Sans-serif)</option>
+                                            <option value="Lato">Lato (Elegant Sans-serif)</option>
+                                            <option value="Montserrat">Montserrat (Geometric Sans-serif)</option>
+                                        </optgroup>
+                                        <optgroup label="Google Fonts - Serif">
+                                            <option value="Merriweather">Merriweather (Classic Serif)</option>
+                                            <option value="Playfair Display">Playfair Display (Elegant Serif)</option>
+                                        </optgroup>
+                                    </select>
+                                </div>
 
-                            <div id="pdf-download-section" class="hidden">
-                                <p class="success-message">PDF generated successfully!</p>
-                                <a id="pdf-download-link" href="#" class="btn btn-primary" download>
-                                    Download PDF
-                                </a>
+                                <div class="form-group">
+                                    <label for="pdf-cover-font-size">Cover Font Size</label>
+                                    <select id="pdf-cover-font-size" name="pdf_cover_font_size">
+                                        <option value="same" selected>Same as Pages</option>
+                                        <option value="10">10pt</option>
+                                        <option value="12">12pt</option>
+                                        <option value="14">14pt</option>
+                                        <option value="16">16pt</option>
+                                        <option value="18">18pt</option>
+                                        <option value="20">20pt</option>
+                                        <option value="24">24pt</option>
+                                        <option value="26">26pt</option>
+                                        <option value="28">28pt</option>
+                                        <option value="30">30pt</option>
+                                        <option value="32">32pt</option>
+                                        <option value="34">34pt</option>
+                                        <option value="36">36pt</option>
+                                        <option value="38">38pt</option>
+                                        <option value="40">40pt</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="pdf-cover-font-color">Cover Font Color</label>
+                                    <select id="pdf-cover-font-color" name="pdf_cover_font_color">
+                                        <option value="same" selected>Same as Pages</option>
+                                        <option value="black">Black</option>
+                                        <option value="white">White</option>
+                                        <option value="dark-gray">Dark Gray</option>
+                                        <option value="navy">Navy Blue</option>
+                                        <option value="dark-green">Dark Green</option>
+                                        <option value="dark-red">Dark Red</option>
+                                    </select>
+                                </div>
+
+                                <!-- Text Placement for Cover (only for text-over-image mode) -->
+                                <div class="form-group pdf-text-over-image-option" style="display: none;">
+                                    <label for="pdf-cover-text-placement">Cover Text Placement</label>
+                                    <select id="pdf-cover-text-placement" name="pdf_cover_text_placement">
+                                        <option value="same" selected>Same as Pages</option>
+                                        <option value="top-left">Top Left</option>
+                                        <option value="top-right">Top Right</option>
+                                        <option value="bottom-left">Bottom Left</option>
+                                        <option value="bottom-right">Bottom Right</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="pdf-include-title">Include Cover Page</label>
+                                    <input type="checkbox" id="pdf-include-title" name="pdf_include_title" checked>
+                                </div>
                             </div>
+                        </div>
+
+                        <div class="pdf-actions">
+                            <button id="save-pdf-options-btn" class="btn btn-secondary">
+                                Save PDF Options
+                            </button>
+                            <button id="generate-pdf-btn" class="btn btn-primary">
+                                Generate PDF
+                            </button>
+                        </div>
+
+                        <div class="image-loading hidden" id="pdf-loading">
+                            <div class="spinner-small"></div>
+                            <span>Generating PDF...</span>
+                        </div>
+
+                        <div id="pdf-download-section" class="hidden">
+                            <p class="success-message">PDF generated successfully!</p>
+                            <a id="pdf-download-link" href="#" class="btn btn-primary" download>
+                                Download PDF
+                            </a>
                         </div>
                     </div>
                 </section>
