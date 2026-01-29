@@ -1314,9 +1314,9 @@ function displayProjects(projects) {
                 <button class="project-expand-btn" aria-expanded="false" aria-controls="${detailsId}" title="Show details">
                     <span class="expand-arrow">&#9654;</span>
                 </button>
+                <button class="btn btn-primary btn-small btn-load-project" onclick="event.stopPropagation(); loadProject('${project.id}')">Load</button>
                 <h4 class="project-title">${project.title || 'Untitled'}</h4>
                 <div class="project-actions-inline">
-                    <button class="btn btn-primary btn-small btn-load-project" onclick="event.stopPropagation(); loadProject('${project.id}')">Load</button>
                     <button class="btn-delete btn-small" onclick="event.stopPropagation(); deleteProject('${project.id}')">Delete</button>
                 </div>
             </div>
