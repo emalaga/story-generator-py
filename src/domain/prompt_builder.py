@@ -59,11 +59,14 @@ class PromptBuilder:
             f"for ages {metadata.age_group}."
         )
 
-        # Number of pages and words per page
+        # Number of pages and words per page - emphatic instruction
         words_per_page = metadata.words_per_page or 50
+        min_words = int(words_per_page * 0.8)
+        max_words = int(words_per_page * 1.2)
         prompt_parts.append(
-            f"The story should have exactly {metadata.num_pages} pages, "
-            f"with each page containing approximately {words_per_page} words."
+            f"IMPORTANT LENGTH REQUIREMENT: The story MUST have exactly {metadata.num_pages} pages. "
+            f"Each page MUST contain between {min_words} and {max_words} words (target: {words_per_page} words per page). "
+            f"This word count is CRITICAL - do NOT write shorter pages. Count the words to ensure compliance."
         )
 
         # Genre if specified
@@ -89,7 +92,8 @@ class PromptBuilder:
             "\n\nFormat the story with clear page breaks. "
             "For each page, write:\n"
             "Page X:\n[Story text for that page]\n\n"
-            "Make the story engaging, age-appropriate, and complete within the specified number of pages."
+            f"Make the story engaging, age-appropriate, and complete within the specified number of pages. "
+            f"REMINDER: Each page must have {words_per_page} words - write full, detailed paragraphs, not short sentences."
         )
 
         return " ".join(prompt_parts)

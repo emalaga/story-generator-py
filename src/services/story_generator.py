@@ -82,9 +82,22 @@ class StoryGeneratorService:
 
         # Step 2: Generate story text using AI
         # Use higher temperature for creative writing
+        # Calculate max_tokens to ensure enough room for the full story
+        # ~1.5 tokens per word + buffer for formatting (page headers, etc.)
+        words_per_page = metadata.words_per_page or 50
+        total_words_needed = metadata.num_pages * words_per_page
+        # Add 50% buffer for formatting and safety
+        max_tokens = int(total_words_needed * 1.5 * 1.5)
+        # Ensure minimum of 1000 tokens and cap at 8000
+        max_tokens = max(1000, min(max_tokens, 8000))
+
+        print(f"[STORY GENERATOR] Requesting {metadata.num_pages} pages x {words_per_page} words = {total_words_needed} words")
+        print(f"[STORY GENERATOR] Setting max_tokens to {max_tokens}")
+
         story_text = await self.ai_client.generate_text(
             prompt,
-            temperature=0.8
+            temperature=0.8,
+            max_tokens=max_tokens
         )
 
         # Debug: Show generated story text
@@ -106,15 +119,15 @@ class StoryGeneratorService:
         for i, page in enumerate(pages[:3]):
             print(f"[STORY GENERATOR] Page {page.page_number} preview: {page.text[:100]}...")
 
-        # Step 4 & 5: Extract characters and create profiles
-        characters = await self._extract_and_profile_characters(pages, story_text)
+        # Characters are now extracted on-demand via the Characters tab
+        # Return story without characters - they'll be added later when user requests
 
         # Create and return complete story
         return Story(
             id=str(uuid.uuid4()),
             metadata=metadata,
             pages=pages,
-            characters=characters
+            characters=[]
         )
 
     def _parse_story_pages(self, story_text: str) -> List[StoryPage]:
@@ -229,3 +242,22 @@ class StoryGeneratorService:
             pass
 
         return profiles
+
+    async def extract_characters_from_story(
+        self,
+        pages: List[StoryPage],
+        full_story_text: str
+    ) -> List[CharacterProfile]:
+        """
+        Public method to extract characters from an existing story on demand.
+
+        This is called from the Characters tab when user clicks "Identify Characters".
+
+        Args:
+            pages: Story pages to extract characters from
+            full_story_text: Full story text for context
+
+        Returns:
+            List of CharacterProfile objects with detailed information
+        """
+        return await self._extract_and_profile_characters(pages, full_story_text)

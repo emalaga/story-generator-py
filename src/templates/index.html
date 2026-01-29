@@ -195,12 +195,37 @@
                             <!-- Story title and info -->
                         </div>
 
-                        <p class="section-description">
-                            Edit character details to ensure visual consistency in your illustrations.
-                        </p>
+                        <div id="characters-identify-section" class="characters-identify-section">
+                            <button id="identify-characters-btn" class="btn btn-primary" onclick="identifyCharacters()">
+                                Identify Characters
+                            </button>
+                            <div id="identify-characters-loading" class="image-loading hidden">
+                                <div class="spinner-small"></div>
+                                <span>Analyzing story for characters...</span>
+                            </div>
+                            <p class="section-description">
+                                Click the button above to analyze your story and identify the characters.
+                            </p>
+                        </div>
 
-                        <div id="characters-list" class="characters-list">
-                            <!-- Characters populated dynamically -->
+                        <div id="characters-list-section" class="hidden">
+                            <div class="characters-actions">
+                                <button id="reidentify-characters-btn" class="btn btn-secondary" onclick="identifyCharacters()">
+                                    Re-identify Characters
+                                </button>
+                                <div id="reidentify-characters-loading" class="image-loading hidden">
+                                    <div class="spinner-small"></div>
+                                    <span>Re-analyzing story...</span>
+                                </div>
+                            </div>
+
+                            <p class="section-description">
+                                Edit character details to ensure visual consistency in your illustrations.
+                            </p>
+
+                            <div id="characters-list" class="characters-list">
+                                <!-- Characters populated dynamically -->
+                            </div>
                         </div>
                     </div>
                 </section>

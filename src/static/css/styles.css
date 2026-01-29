@@ -470,6 +470,42 @@ header h1 {
     border-left: 4px solid var(--secondary-color);
 }
 
+/* Identify Characters Section */
+.characters-identify-section {
+    text-align: center;
+    padding: 20px;
+    background-color: var(--bg-color);
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.characters-identify-section .section-description {
+    margin-top: 15px;
+    margin-bottom: 0;
+    color: var(--text-muted);
+}
+
+.characters-identify-section .btn {
+    min-width: 200px;
+}
+
+.characters-identify-section .image-loading {
+    margin-top: 15px;
+    justify-content: center;
+}
+
+/* Characters Actions (Re-identify button) */
+.characters-actions {
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.characters-actions .image-loading {
+    margin: 0;
+}
+
 /* ===== Story Actions ===== */
 .story-actions {
     display: flex;

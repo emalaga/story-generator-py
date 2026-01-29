@@ -162,6 +162,90 @@ def create_story():
         return jsonify({'error': f'Failed to generate story: {str(e)}'}), 500
 
 
+@story_bp.route('/extract-characters', methods=['POST'])
+def extract_characters():
+    """
+    POST /api/stories/extract-characters - Extract characters from story pages
+
+    Request body:
+    {
+        "pages": [
+            {"page_number": int, "text": str},
+            ...
+        ]
+    }
+
+    Returns:
+        200: Characters extracted successfully
+        400: Invalid request
+        500: Server error
+    """
+    try:
+        # Validate request
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+
+        try:
+            data = request.get_json()
+        except BadRequest:
+            return jsonify({'error': 'Invalid JSON'}), 400
+
+        # Validate required fields
+        if 'pages' not in data or not data['pages']:
+            return jsonify({'error': 'Missing required field: pages'}), 400
+
+        # Import StoryPage here to avoid circular imports
+        from src.models.story import StoryPage
+
+        # Convert page data to StoryPage objects
+        pages = []
+        for page_data in data['pages']:
+            page = StoryPage(
+                page_number=page_data.get('page_number', 0),
+                text=page_data.get('text', '')
+            )
+            pages.append(page)
+
+        # Combine all page texts for full story context
+        full_story_text = '\n\n'.join([f"Page {p.page_number}:\n{p.text}" for p in pages])
+
+        # Get story generator service
+        story_generator = current_app.config['SERVICES']['story_generator']
+
+        # Extract characters (async)
+        characters = run_async(story_generator.extract_characters_from_story(
+            pages,
+            full_story_text
+        ))
+
+        # Convert to JSON-serializable format
+        response = {
+            'characters': [
+                {
+                    'name': char.name,
+                    'species': char.species,
+                    'physical_description': char.physical_description,
+                    'clothing': char.clothing,
+                    'distinctive_features': char.distinctive_features,
+                    'personality_traits': char.personality_traits
+                }
+                for char in characters
+            ]
+        }
+
+        print(f"[STORY ROUTES] Extracted {len(characters)} characters on demand")
+
+        return jsonify(response), 200
+
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        current_app.logger.error(f"Error extracting characters: {e}\n{error_details}")
+        return jsonify({'error': f'Failed to extract characters: {str(e)}'}), 500
+
+
 @story_bp.route('/<story_id>', methods=['GET'])
 def get_story(story_id):
     """

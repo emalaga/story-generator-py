@@ -170,22 +170,38 @@ function updateImageGenerationTab() {
 function updateCharactersTab() {
     const noStoryDiv = document.getElementById('characters-no-story');
     const contentDiv = document.getElementById('characters-content');
+    const identifySection = document.getElementById('characters-identify-section');
+    const listSection = document.getElementById('characters-list-section');
 
-    if (!currentStory || !currentStory.characters || currentStory.characters.length === 0) {
+    // No story loaded at all
+    if (!currentStory || !currentStory.pages || currentStory.pages.length === 0) {
         noStoryDiv.classList.remove('hidden');
         contentDiv.classList.add('hidden');
         return;
     }
 
+    // Story exists
     noStoryDiv.classList.add('hidden');
     contentDiv.classList.remove('hidden');
 
     // Update story info bar
     const infoBar = document.getElementById('characters-story-info');
+    const charCount = currentStory.characters ? currentStory.characters.length : 0;
     infoBar.innerHTML = `
         <h3>${currentStory.metadata.title}</h3>
-        <p>${currentStory.characters.length} character${currentStory.characters.length !== 1 ? 's' : ''}</p>
+        <p>${charCount} character${charCount !== 1 ? 's' : ''} identified</p>
     `;
+
+    // If no characters yet, show the identify button
+    if (!currentStory.characters || currentStory.characters.length === 0) {
+        identifySection.classList.remove('hidden');
+        listSection.classList.add('hidden');
+        return;
+    }
+
+    // Characters exist, show the list
+    identifySection.classList.add('hidden');
+    listSection.classList.remove('hidden');
 
     // Display characters
     const charactersList = document.getElementById('characters-list');
@@ -220,6 +236,69 @@ function updateCharactersTab() {
         `;
         charactersList.appendChild(charDiv);
     });
+}
+
+// ===== Identify Characters Function =====
+async function identifyCharacters() {
+    if (!currentStory || !currentStory.pages || currentStory.pages.length === 0) {
+        showError('No story loaded. Please generate a story first.');
+        return;
+    }
+
+    // Handle both initial identify and re-identify buttons/loading states
+    const identifyBtn = document.getElementById('identify-characters-btn');
+    const identifyLoading = document.getElementById('identify-characters-loading');
+    const reidentifyBtn = document.getElementById('reidentify-characters-btn');
+    const reidentifyLoading = document.getElementById('reidentify-characters-loading');
+
+    // Show loading state for both (one will be hidden, but this handles both cases)
+    if (identifyBtn) identifyBtn.disabled = true;
+    if (identifyLoading) identifyLoading.classList.remove('hidden');
+    if (reidentifyBtn) reidentifyBtn.disabled = true;
+    if (reidentifyLoading) reidentifyLoading.classList.remove('hidden');
+
+    try {
+        const response = await fetch(`${API_BASE}/stories/extract-characters`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                pages: currentStory.pages.map(page => ({
+                    page_number: page.page_number,
+                    text: page.text
+                }))
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to extract characters');
+        }
+
+        const data = await response.json();
+
+        // Update currentStory with the extracted characters
+        currentStory.characters = data.characters;
+
+        // Refresh the characters tab display
+        updateCharactersTab();
+
+        // Also update the visual consistency tab if it depends on characters
+        updateVisualConsistencyTab();
+
+        console.log(`Identified ${data.characters.length} characters`);
+
+    } catch (error) {
+        console.error('Error identifying characters:', error);
+        showError(`Failed to identify characters: ${error.message}`);
+    } finally {
+        // Hide loading state
+        if (identifyBtn) identifyBtn.disabled = false;
+        if (identifyLoading) identifyLoading.classList.add('hidden');
+        if (reidentifyBtn) reidentifyBtn.disabled = false;
+        if (reidentifyLoading) reidentifyLoading.classList.add('hidden');
+    }
 }
 
 // ===== Session Status and Visual Context Management =====
