@@ -762,6 +762,10 @@ def generate_pdf(project_id):
                         # We need to position the text in the correct corner of the page
                         text_padding = 40  # Padding from edges
 
+                        # Allow text to use up to 80% of the page height
+                        # For bottom positions, the spacer should only take 20% max
+                        max_spacer_for_bottom = page_height * 0.20  # 20% for spacer, 80% for text
+
                         if text_placement == 'top-left':
                             # Add small top spacer, text will be left-aligned
                             page_elements.append(Spacer(1, text_padding))
@@ -785,21 +789,20 @@ def generate_pdf(project_id):
                             ]))
                             page_elements.append(table)
                         elif text_placement == 'bottom-left':
-                            # Add large spacer to push text to bottom
-                            # Calculate spacer height to position text at bottom
-                            spacer_height = page_height - 200  # Leave room for text at bottom
-                            page_elements.append(Spacer(1, spacer_height))
+                            # Add spacer to push text toward bottom
+                            # Use only 20% for spacer, leaving 80% for text
+                            page_elements.append(Spacer(1, max_spacer_for_bottom))
                             page_elements.append(text_overlay)
                         else:  # bottom-right
-                            # Add large spacer to push text to bottom, use right alignment
+                            # Add spacer to push text toward bottom, use right alignment
                             right_aligned_style = ParagraphStyle(
                                 'TextOverlayBottomRight',
                                 parent=text_overlay_style,
                                 alignment=TA_LEFT,
                             )
                             text_overlay_right = Paragraph(page.text, right_aligned_style)
-                            spacer_height = page_height - 200  # Leave room for text at bottom
-                            page_elements.append(Spacer(1, spacer_height))
+                            # Use only 20% for spacer, leaving 80% for text
+                            page_elements.append(Spacer(1, max_spacer_for_bottom))
                             # Use table to right-align
                             table = Table([['', text_overlay_right]], colWidths=[page_width/2, page_width/2])
                             table.setStyle(TableStyle([
