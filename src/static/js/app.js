@@ -250,6 +250,7 @@ async function identifyCharacters() {
     const identifyLoading = document.getElementById('identify-characters-loading');
     const reidentifyBtn = document.getElementById('reidentify-characters-btn');
     const reidentifyLoading = document.getElementById('reidentify-characters-loading');
+    const characterModelSelect = document.getElementById('character-model');
 
     // Show loading state for both (one will be hidden, but this handles both cases)
     if (identifyBtn) identifyBtn.disabled = true;
@@ -267,7 +268,8 @@ async function identifyCharacters() {
                 pages: currentStory.pages.map(page => ({
                     page_number: page.page_number,
                     text: page.text
-                }))
+                })),
+                text_model: characterModelSelect ? characterModelSelect.value : null
             })
         });
 
@@ -488,6 +490,8 @@ async function handleStoryGeneration(e) {
     e.preventDefault();
 
     const formData = new FormData(storyForm);
+    const textModelSelect = document.getElementById('text-model');
+
     const data = {
         title: formData.get('title'),
         language: formData.get('language'),
@@ -498,6 +502,7 @@ async function handleStoryGeneration(e) {
         words_per_page: parseInt(formData.get('words_per_page')) || 50,
         genre: formData.get('genre'),
         art_style: formData.get('art_style'),
+        text_model: textModelSelect ? textModelSelect.value : null,
     };
 
     // Add optional fields if provided
@@ -512,46 +517,69 @@ async function handleStoryGeneration(e) {
     hideError();
 
     try {
-        // Use AbortController with 5-minute timeout for long story generations
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes
-
-        const response = await fetch(`${API_BASE}/stories`, {
+        // Start async generation - returns immediately with task_id
+        const startResponse = await fetch(`${API_BASE}/stories/async`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(data),
-            signal: controller.signal,
         });
 
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Failed to generate story');
+        if (!startResponse.ok) {
+            const error = await startResponse.json();
+            throw new Error(error.error || 'Failed to start story generation');
         }
 
-        currentStory = await response.json();
+        const startData = await startResponse.json();
+        const taskId = startData.task_id;
+        console.log('Story generation started, task ID:', taskId);
 
-        // Debug logging
-        console.log('=== STORY GENERATED ===');
-        console.log('Story ID:', currentStory.id);
-        console.log('Characters:', currentStory.characters);
-        console.log('Number of characters:', (currentStory.characters || []).length);
+        // Poll for completion
+        const pollInterval = 2000; // 2 seconds
+        const maxPolls = 300; // 10 minutes max (300 * 2 seconds)
+        let pollCount = 0;
 
-        // Reset Visual Consistency tab for new story
-        resetVisualConsistencyTab();
+        while (pollCount < maxPolls) {
+            await new Promise(resolve => setTimeout(resolve, pollInterval));
+            pollCount++;
 
-        displayStory(currentStory);
-        hideLoading();
+            const statusResponse = await fetch(`${API_BASE}/stories/status/${taskId}`);
+            if (!statusResponse.ok) {
+                throw new Error('Failed to check generation status');
+            }
+
+            const statusData = await statusResponse.json();
+            console.log(`Poll ${pollCount}: status = ${statusData.status}`);
+
+            if (statusData.status === 'completed') {
+                currentStory = statusData.result;
+
+                // Debug logging
+                console.log('=== STORY GENERATED ===');
+                console.log('Story ID:', currentStory.id);
+                console.log('Project ID:', currentStory.project_id);
+                console.log('Characters:', currentStory.characters);
+                console.log('Number of characters:', (currentStory.characters || []).length);
+
+                // Reset Visual Consistency tab for new story
+                resetVisualConsistencyTab();
+
+                displayStory(currentStory);
+                hideLoading();
+                return;
+            } else if (statusData.status === 'error') {
+                throw new Error(statusData.error || 'Story generation failed');
+            }
+            // Continue polling if status is 'pending' or 'running'
+        }
+
+        // If we get here, we've exceeded max polls
+        throw new Error('Story generation timed out. Check the Projects tab - your story may have been saved.');
+
     } catch (error) {
         hideLoading();
-        if (error.name === 'AbortError') {
-            showError('Story generation timed out. Please try again with fewer pages or shorter word count.');
-        } else {
-            showError('Failed to generate story: ' + error.message);
-        }
+        showError('Failed to generate story: ' + error.message);
     }
 }
 

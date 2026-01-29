@@ -5,6 +5,9 @@ Handles endpoints for story generation and management.
 """
 
 import asyncio
+import threading
+import uuid
+from datetime import datetime
 from flask import Blueprint, request, jsonify, current_app
 from werkzeug.exceptions import BadRequest
 
@@ -12,6 +15,10 @@ from src.models.story import StoryMetadata
 
 # Create blueprint
 story_bp = Blueprint('stories', __name__)
+
+# In-memory storage for background generation tasks
+# Key: task_id, Value: dict with status, result, error, created_at
+_generation_tasks = {}
 
 
 def run_async(coroutine):
@@ -88,9 +95,30 @@ def create_story():
         # Get optional parameters
         theme = data.get('theme')
         custom_prompt = data.get('custom_prompt')
+        text_model = data.get('text_model')
 
-        # Get story generator service
+        # Get the default story generator service
         story_generator = current_app.config['SERVICES']['story_generator']
+
+        # If a specific text model is selected, create a custom story generator
+        if text_model:
+            from src.ai.ai_factory import AIClientFactory
+            from src.domain.character_extractor import CharacterExtractor
+            from src.domain.prompt_builder import PromptBuilder
+            from src.services.story_generator import StoryGeneratorService
+
+            print(f"[STORY ROUTES] Using custom text model: {text_model}")
+            try:
+                text_client = AIClientFactory.create_text_client_for_model(app_config, text_model)
+                prompt_builder = PromptBuilder(ai_client=text_client)
+                character_extractor = CharacterExtractor(text_client)
+                story_generator = StoryGeneratorService(
+                    ai_client=text_client,
+                    prompt_builder=prompt_builder,
+                    character_extractor=character_extractor
+                )
+            except ValueError as e:
+                print(f"[STORY ROUTES] Failed to create custom client: {e}, using default")
 
         # Generate story (async)
         story = run_async(story_generator.generate_story(
@@ -110,9 +138,25 @@ def create_story():
         for i, page in enumerate(story.pages[:3]):  # Show first 3 pages
             print(f"[STORY ROUTES] Page {page.page_number}: {page.text[:100]}...")
 
+        # Auto-save story as a project to disk
+        # This ensures recovery if the response doesn't reach the client
+        from src.models.project import Project, ProjectStatus
+        project_repo = current_app.config['REPOSITORIES']['project']
+
+        project = Project(
+            id=story.id,  # Use story ID as project ID for consistency
+            name=metadata.title,
+            story=story,
+            status=ProjectStatus.STORY_GENERATED,
+            character_profiles=list(story.characters) if story.characters else []
+        )
+        project_repo.save(project)
+        print(f"[STORY ROUTES] Auto-saved project to disk: ID={project.id}")
+
         # Convert to JSON-serializable dict
         response = {
             'id': story.id,
+            'project_id': project.id,  # Include project_id so client knows it's saved
             'metadata': {
                 'title': story.metadata.title,
                 'language': story.metadata.language,
@@ -162,6 +206,229 @@ def create_story():
         return jsonify({'error': f'Failed to generate story: {str(e)}'}), 500
 
 
+def _run_story_generation_in_background(task_id, app, data, app_config, defaults):
+    """
+    Background worker function for story generation.
+    Runs in a separate thread to avoid blocking the main request.
+    """
+    with app.app_context():
+        try:
+            _generation_tasks[task_id]['status'] = 'running'
+
+            # Build metadata
+            metadata = StoryMetadata(
+                title=data['title'],
+                language=data.get('language', defaults.language),
+                complexity=data.get('complexity', defaults.complexity),
+                vocabulary_diversity=data.get('vocabulary_diversity', defaults.vocabulary_diversity),
+                age_group=data.get('age_group', defaults.age_group),
+                num_pages=data.get('num_pages', defaults.num_pages),
+                genre=data.get('genre', defaults.genre),
+                art_style=data.get('art_style', defaults.art_style),
+                user_prompt=data.get('custom_prompt'),
+                words_per_page=data.get('words_per_page', 50)
+            )
+
+            theme = data.get('theme')
+            custom_prompt = data.get('custom_prompt')
+            text_model = data.get('text_model')
+
+            # Get the default story generator service
+            story_generator = app.config['SERVICES']['story_generator']
+
+            # If a specific text model is selected, create a custom story generator
+            if text_model:
+                from src.ai.ai_factory import AIClientFactory
+                from src.domain.character_extractor import CharacterExtractor
+                from src.domain.prompt_builder import PromptBuilder
+                from src.services.story_generator import StoryGeneratorService
+
+                print(f"[STORY ROUTES ASYNC] Using custom text model: {text_model}")
+                try:
+                    text_client = AIClientFactory.create_text_client_for_model(app_config, text_model)
+                    prompt_builder = PromptBuilder(ai_client=text_client)
+                    character_extractor = CharacterExtractor(text_client)
+                    story_generator = StoryGeneratorService(
+                        ai_client=text_client,
+                        prompt_builder=prompt_builder,
+                        character_extractor=character_extractor
+                    )
+                except ValueError as e:
+                    print(f"[STORY ROUTES ASYNC] Failed to create custom client: {e}, using default")
+
+            # Generate story
+            story = run_async(story_generator.generate_story(
+                metadata,
+                theme=theme,
+                custom_prompt=custom_prompt
+            ))
+
+            print(f"[STORY ROUTES ASYNC] Story generated: ID={story.id}")
+            print(f"[STORY ROUTES ASYNC] Pages: {len(story.pages)}")
+
+            # Auto-save story as a project
+            from src.models.project import Project, ProjectStatus
+            project_repo = app.config['REPOSITORIES']['project']
+
+            project = Project(
+                id=story.id,
+                name=metadata.title,
+                story=story,
+                status=ProjectStatus.STORY_GENERATED,
+                character_profiles=list(story.characters) if story.characters else []
+            )
+            project_repo.save(project)
+            print(f"[STORY ROUTES ASYNC] Auto-saved project: ID={project.id}")
+
+            # Build response
+            result = {
+                'id': story.id,
+                'project_id': project.id,
+                'metadata': {
+                    'title': story.metadata.title,
+                    'language': story.metadata.language,
+                    'complexity': story.metadata.complexity,
+                    'vocabulary_diversity': story.metadata.vocabulary_diversity,
+                    'age_group': story.metadata.age_group,
+                    'num_pages': story.metadata.num_pages,
+                    'words_per_page': story.metadata.words_per_page,
+                    'genre': story.metadata.genre,
+                    'art_style': story.metadata.art_style,
+                    'user_prompt': story.metadata.user_prompt
+                },
+                'pages': [
+                    {
+                        'page_number': page.page_number,
+                        'text': page.text,
+                        'image_url': page.image_url,
+                        'image_prompt': page.image_prompt
+                    }
+                    for page in story.pages
+                ],
+                'characters': [
+                    {
+                        'name': char.name,
+                        'species': char.species,
+                        'physical_description': char.physical_description,
+                        'clothing': char.clothing,
+                        'distinctive_features': char.distinctive_features,
+                        'personality_traits': char.personality_traits
+                    }
+                    for char in (story.characters or [])
+                ],
+                'vocabulary': story.vocabulary,
+                'created_at': story.created_at.isoformat(),
+                'updated_at': story.updated_at.isoformat()
+            }
+
+            _generation_tasks[task_id]['status'] = 'completed'
+            _generation_tasks[task_id]['result'] = result
+            _generation_tasks[task_id]['completed_at'] = datetime.now().isoformat()
+
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"[STORY ROUTES ASYNC] Error: {e}\n{error_details}")
+            _generation_tasks[task_id]['status'] = 'error'
+            _generation_tasks[task_id]['error'] = str(e)
+            _generation_tasks[task_id]['completed_at'] = datetime.now().isoformat()
+
+
+@story_bp.route('/async', methods=['POST'])
+def create_story_async():
+    """
+    POST /api/stories/async - Start story generation in background
+
+    Returns immediately with a task_id that can be polled for status.
+
+    Request body: Same as POST /api/stories
+
+    Returns:
+        202: Generation started, returns task_id
+        400: Invalid request
+    """
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+
+        try:
+            data = request.get_json()
+        except BadRequest:
+            return jsonify({'error': 'Invalid JSON'}), 400
+
+        if 'title' not in data:
+            return jsonify({'error': 'Missing required field: title'}), 400
+
+        # Generate task ID
+        task_id = str(uuid.uuid4())
+
+        # Get app config
+        app_config = current_app.config['APP_CONFIG']
+        defaults = app_config.defaults
+
+        # Store task info
+        _generation_tasks[task_id] = {
+            'status': 'pending',
+            'result': None,
+            'error': None,
+            'created_at': datetime.now().isoformat(),
+            'completed_at': None,
+            'title': data['title']
+        }
+
+        # Start background thread
+        # Need to pass app reference for context
+        app = current_app._get_current_object()
+        thread = threading.Thread(
+            target=_run_story_generation_in_background,
+            args=(task_id, app, data, app_config, defaults)
+        )
+        thread.daemon = True
+        thread.start()
+
+        print(f"[STORY ROUTES] Started async generation task: {task_id}")
+
+        return jsonify({
+            'task_id': task_id,
+            'status': 'pending',
+            'message': 'Story generation started'
+        }), 202
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to start generation: {str(e)}'}), 500
+
+
+@story_bp.route('/status/<task_id>', methods=['GET'])
+def get_generation_status(task_id):
+    """
+    GET /api/stories/status/<task_id> - Check story generation status
+
+    Returns:
+        200: Status info (pending, running, completed, error)
+        404: Task not found
+    """
+    if task_id not in _generation_tasks:
+        return jsonify({'error': 'Task not found'}), 404
+
+    task = _generation_tasks[task_id]
+
+    response = {
+        'task_id': task_id,
+        'status': task['status'],
+        'created_at': task['created_at'],
+        'completed_at': task['completed_at']
+    }
+
+    if task['status'] == 'completed':
+        response['result'] = task['result']
+        # Clean up old tasks (keep for 5 minutes after completion)
+        # In production, you'd want a proper cleanup mechanism
+    elif task['status'] == 'error':
+        response['error'] = task['error']
+
+    return jsonify(response), 200
+
+
 @story_bp.route('/extract-characters', methods=['POST'])
 def extract_characters():
     """
@@ -172,7 +439,8 @@ def extract_characters():
         "pages": [
             {"page_number": int, "text": str},
             ...
-        ]
+        ],
+        "text_model": str (optional) - Model to use in format "provider:model"
     }
 
     Returns:
@@ -209,8 +477,32 @@ def extract_characters():
         # Combine all page texts for full story context
         full_story_text = '\n\n'.join([f"Page {p.page_number}:\n{p.text}" for p in pages])
 
-        # Get story generator service
+        # Get optional text_model parameter
+        text_model = data.get('text_model')
+
+        # Get the default story generator service
         story_generator = current_app.config['SERVICES']['story_generator']
+
+        # If a specific text model is selected, create a custom story generator
+        if text_model:
+            from src.ai.ai_factory import AIClientFactory
+            from src.domain.character_extractor import CharacterExtractor
+            from src.domain.prompt_builder import PromptBuilder
+            from src.services.story_generator import StoryGeneratorService
+
+            app_config = current_app.config['APP_CONFIG']
+            print(f"[STORY ROUTES] Using custom text model for character extraction: {text_model}")
+            try:
+                text_client = AIClientFactory.create_text_client_for_model(app_config, text_model)
+                prompt_builder = PromptBuilder(ai_client=text_client)
+                character_extractor = CharacterExtractor(text_client)
+                story_generator = StoryGeneratorService(
+                    ai_client=text_client,
+                    prompt_builder=prompt_builder,
+                    character_extractor=character_extractor
+                )
+            except ValueError as e:
+                print(f"[STORY ROUTES] Failed to create custom client: {e}, using default")
 
         # Extract characters (async)
         characters = run_async(story_generator.extract_characters_from_story(

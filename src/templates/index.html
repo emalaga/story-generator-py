@@ -127,8 +127,15 @@
 
                     <!-- RIGHT PANEL: Story Display -->
                     <section class="right-panel">
-                        <!-- Generate Story Button at top -->
+                        <!-- Model Selection and Generate Button at top -->
                         <div class="top-actions">
+                            <div class="model-selection">
+                                <label for="text-model">Text Model:</label>
+                                <select id="text-model" name="text_model">
+                                    <option value="ollama:granite4:small-h" selected>ollama:granite4:small-h</option>
+                                    <option value="openai:gpt-4">openai:gpt-4</option>
+                                </select>
+                            </div>
                             <button type="submit" form="story-form" class="btn btn-primary btn-large" id="generate-btn-top">
                                 Generate Story
                             </button>
@@ -196,9 +203,18 @@
                         </div>
 
                         <div id="characters-identify-section" class="characters-identify-section">
-                            <button id="identify-characters-btn" class="btn btn-primary" onclick="identifyCharacters()">
-                                Identify Characters
-                            </button>
+                            <div class="characters-top-actions">
+                                <div class="model-selection">
+                                    <label for="character-model">Text Model:</label>
+                                    <select id="character-model" name="character_model">
+                                        <option value="ollama:granite4:small-h" selected>ollama:granite4:small-h</option>
+                                        <option value="openai:gpt-4">openai:gpt-4</option>
+                                    </select>
+                                </div>
+                                <button id="identify-characters-btn" class="btn btn-primary" onclick="identifyCharacters()">
+                                    Identify Characters
+                                </button>
+                            </div>
                             <div id="identify-characters-loading" class="image-loading hidden">
                                 <div class="spinner-small"></div>
                                 <span>Analyzing story for characters...</span>

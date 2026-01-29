@@ -253,11 +253,35 @@ header h1 {
 /* ===== Top Actions (Generate Button) ===== */
 .top-actions {
     margin-bottom: 20px;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
 }
 
 .top-actions .btn {
     min-width: 200px;
+}
+
+.model-selection {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.model-selection label {
+    font-weight: 500;
+    color: var(--text-color);
+    white-space: nowrap;
+}
+
+.model-selection select {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 14px;
+    min-width: 180px;
 }
 
 /* ===== Loading Spinner ===== */
@@ -492,6 +516,14 @@ header h1 {
 .characters-identify-section .image-loading {
     margin-top: 15px;
     justify-content: center;
+}
+
+.characters-top-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
 }
 
 /* Characters Actions (Re-identify button) */
