@@ -20,6 +20,9 @@ story_bp = Blueprint('stories', __name__)
 # Key: task_id, Value: dict with status, result, error, created_at
 _generation_tasks = {}
 
+# In-memory storage for background character extraction tasks
+_character_extraction_tasks = {}
+
 
 def run_async(coroutine):
     """
@@ -536,6 +539,202 @@ def extract_characters():
         error_details = traceback.format_exc()
         current_app.logger.error(f"Error extracting characters: {e}\n{error_details}")
         return jsonify({'error': f'Failed to extract characters: {str(e)}'}), 500
+
+
+def _run_character_extraction_in_background(task_id, app, data, app_config):
+    """
+    Background worker function for character extraction.
+    Runs in a separate thread to avoid blocking the main request.
+    """
+    with app.app_context():
+        try:
+            _character_extraction_tasks[task_id]['status'] = 'running'
+
+            # Import StoryPage here to avoid circular imports
+            from src.models.story import StoryPage
+
+            # Convert page data to StoryPage objects
+            pages = []
+            for page_data in data['pages']:
+                page = StoryPage(
+                    page_number=page_data.get('page_number', 0),
+                    text=page_data.get('text', '')
+                )
+                pages.append(page)
+
+            # Combine all page texts for full story context
+            full_story_text = '\n\n'.join([f"Page {p.page_number}:\n{p.text}" for p in pages])
+
+            text_model = data.get('text_model')
+            project_id = data.get('project_id')
+
+            # Get the default story generator service
+            story_generator = app.config['SERVICES']['story_generator']
+
+            # If a specific text model is selected, create a custom story generator
+            if text_model:
+                from src.ai.ai_factory import AIClientFactory
+                from src.domain.character_extractor import CharacterExtractor
+                from src.domain.prompt_builder import PromptBuilder
+                from src.services.story_generator import StoryGeneratorService
+
+                print(f"[STORY ROUTES ASYNC] Using custom text model for character extraction: {text_model}")
+                try:
+                    text_client = AIClientFactory.create_text_client_for_model(app_config, text_model)
+                    prompt_builder = PromptBuilder(ai_client=text_client)
+                    character_extractor = CharacterExtractor(text_client)
+                    story_generator = StoryGeneratorService(
+                        ai_client=text_client,
+                        prompt_builder=prompt_builder,
+                        character_extractor=character_extractor
+                    )
+                except ValueError as e:
+                    print(f"[STORY ROUTES ASYNC] Failed to create custom client: {e}, using default")
+
+            # Extract characters
+            characters = run_async(story_generator.extract_characters_from_story(
+                pages,
+                full_story_text
+            ))
+
+            print(f"[STORY ROUTES ASYNC] Extracted {len(characters)} characters")
+
+            # Save characters to project if project_id is provided
+            if project_id:
+                try:
+                    project_repo = app.config['REPOSITORIES']['project']
+                    project = project_repo.get(project_id)
+                    if project:
+                        # Update story characters
+                        project.story.characters = characters
+                        project.character_profiles = list(characters)
+                        project.updated_at = datetime.now()
+                        project_repo.update(project_id, project)
+                        print(f"[STORY ROUTES ASYNC] Saved characters to project: {project_id}")
+                except Exception as e:
+                    print(f"[STORY ROUTES ASYNC] Failed to save characters to project: {e}")
+
+            # Build response
+            result = {
+                'characters': [
+                    {
+                        'name': char.name,
+                        'species': char.species,
+                        'physical_description': char.physical_description,
+                        'clothing': char.clothing,
+                        'distinctive_features': char.distinctive_features,
+                        'personality_traits': char.personality_traits
+                    }
+                    for char in characters
+                ]
+            }
+
+            _character_extraction_tasks[task_id]['status'] = 'completed'
+            _character_extraction_tasks[task_id]['result'] = result
+            _character_extraction_tasks[task_id]['completed_at'] = datetime.now().isoformat()
+
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"[STORY ROUTES ASYNC] Character extraction error: {e}\n{error_details}")
+            _character_extraction_tasks[task_id]['status'] = 'error'
+            _character_extraction_tasks[task_id]['error'] = str(e)
+            _character_extraction_tasks[task_id]['completed_at'] = datetime.now().isoformat()
+
+
+@story_bp.route('/extract-characters/async', methods=['POST'])
+def extract_characters_async():
+    """
+    POST /api/stories/extract-characters/async - Start character extraction in background
+
+    Returns immediately with a task_id that can be polled for status.
+
+    Request body:
+    {
+        "pages": [...],
+        "text_model": str (optional),
+        "project_id": str (optional) - If provided, saves characters to the project
+    }
+
+    Returns:
+        202: Extraction started, returns task_id
+        400: Invalid request
+    """
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+
+        try:
+            data = request.get_json()
+        except BadRequest:
+            return jsonify({'error': 'Invalid JSON'}), 400
+
+        if 'pages' not in data or not data['pages']:
+            return jsonify({'error': 'Missing required field: pages'}), 400
+
+        # Generate task ID
+        task_id = str(uuid.uuid4())
+
+        # Get app config
+        app_config = current_app.config['APP_CONFIG']
+
+        # Store task info
+        _character_extraction_tasks[task_id] = {
+            'status': 'pending',
+            'result': None,
+            'error': None,
+            'created_at': datetime.now().isoformat(),
+            'completed_at': None
+        }
+
+        # Start background thread
+        app = current_app._get_current_object()
+        thread = threading.Thread(
+            target=_run_character_extraction_in_background,
+            args=(task_id, app, data, app_config)
+        )
+        thread.daemon = True
+        thread.start()
+
+        print(f"[STORY ROUTES] Started async character extraction task: {task_id}")
+
+        return jsonify({
+            'task_id': task_id,
+            'status': 'pending',
+            'message': 'Character extraction started'
+        }), 202
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to start character extraction: {str(e)}'}), 500
+
+
+@story_bp.route('/extract-characters/status/<task_id>', methods=['GET'])
+def get_character_extraction_status(task_id):
+    """
+    GET /api/stories/extract-characters/status/<task_id> - Check character extraction status
+
+    Returns:
+        200: Status info (pending, running, completed, error)
+        404: Task not found
+    """
+    if task_id not in _character_extraction_tasks:
+        return jsonify({'error': 'Task not found'}), 404
+
+    task = _character_extraction_tasks[task_id]
+
+    response = {
+        'task_id': task_id,
+        'status': task['status'],
+        'created_at': task['created_at'],
+        'completed_at': task['completed_at']
+    }
+
+    if task['status'] == 'completed':
+        response['result'] = task['result']
+    elif task['status'] == 'error':
+        response['error'] = task['error']
+
+    return jsonify(response), 200
 
 
 @story_bp.route('/<story_id>', methods=['GET'])

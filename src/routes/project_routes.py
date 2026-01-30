@@ -407,6 +407,80 @@ def delete_project(project_id):
         return jsonify({'error': 'Internal server error'}), 500
 
 
+@project_bp.route('/<project_id>/rename', methods=['PUT'])
+def rename_project(project_id):
+    """
+    PUT /api/projects/:id/rename - Rename a project
+
+    Request body:
+    {
+        "name": str (required)
+    }
+
+    Returns:
+        200: Project renamed successfully
+        400: Invalid request
+        404: Project not found
+        500: Server error
+    """
+    try:
+        # Validate request
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+
+        try:
+            data = request.get_json()
+        except BadRequest:
+            return jsonify({'error': 'Invalid JSON'}), 400
+
+        # Validate required fields
+        if 'name' not in data or not data['name'].strip():
+            return jsonify({'error': 'Missing required field: name'}), 400
+
+        new_name = data['name'].strip()
+
+        # Get project repository
+        project_repo = current_app.config['REPOSITORIES']['project']
+
+        # Get existing project
+        project = project_repo.get(project_id)
+        if project is None:
+            return jsonify({'error': 'Project not found'}), 404
+
+        # Update the project name
+        project.name = new_name
+        project.updated_at = datetime.now()
+
+        # Also update the story title to match
+        project.story.metadata = StoryMetadata(
+            title=new_name,
+            language=project.story.metadata.language,
+            complexity=project.story.metadata.complexity,
+            vocabulary_diversity=project.story.metadata.vocabulary_diversity,
+            age_group=project.story.metadata.age_group,
+            num_pages=project.story.metadata.num_pages,
+            genre=project.story.metadata.genre,
+            art_style=project.story.metadata.art_style,
+            user_prompt=project.story.metadata.user_prompt,
+            words_per_page=project.story.metadata.words_per_page
+        )
+
+        # Save the updated project
+        project_repo.update(project_id, project)
+
+        return jsonify({
+            'id': project_id,
+            'name': new_name,
+            'message': 'Project renamed successfully'
+        }), 200
+
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 404
+    except Exception as e:
+        current_app.logger.error(f"Error renaming project: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
 @project_bp.route('/<project_id>/pdf', methods=['POST'])
 def generate_pdf(project_id):
     """

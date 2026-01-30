@@ -259,7 +259,8 @@ async function identifyCharacters() {
     if (reidentifyLoading) reidentifyLoading.classList.remove('hidden');
 
     try {
-        const response = await fetch(`${API_BASE}/stories/extract-characters`, {
+        // Start async character extraction
+        const startResponse = await fetch(`${API_BASE}/stories/extract-characters/async`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -269,27 +270,56 @@ async function identifyCharacters() {
                     page_number: page.page_number,
                     text: page.text
                 })),
-                text_model: characterModelSelect ? characterModelSelect.value : null
+                text_model: characterModelSelect ? characterModelSelect.value : null,
+                project_id: currentStory.id || currentStory.project_id
             })
         });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to extract characters');
+        if (!startResponse.ok) {
+            const errorData = await startResponse.json();
+            throw new Error(errorData.error || 'Failed to start character extraction');
         }
 
-        const data = await response.json();
+        const startData = await startResponse.json();
+        const taskId = startData.task_id;
+        console.log(`Character extraction started, task_id: ${taskId}`);
 
-        // Update currentStory with the extracted characters
-        currentStory.characters = data.characters;
+        // Poll for completion
+        const pollInterval = 2000; // 2 seconds
+        const maxPolls = 150; // 5 minutes max (150 * 2 seconds)
+        let pollCount = 0;
 
-        // Refresh the characters tab display
-        updateCharactersTab();
+        while (pollCount < maxPolls) {
+            await new Promise(resolve => setTimeout(resolve, pollInterval));
+            pollCount++;
 
-        // Also update the visual consistency tab if it depends on characters
-        updateVisualConsistencyTab();
+            const statusResponse = await fetch(`${API_BASE}/stories/extract-characters/status/${taskId}`);
+            if (!statusResponse.ok) {
+                throw new Error('Failed to check extraction status');
+            }
 
-        console.log(`Identified ${data.characters.length} characters`);
+            const statusData = await statusResponse.json();
+            console.log(`Character extraction status: ${statusData.status} (poll ${pollCount})`);
+
+            if (statusData.status === 'completed') {
+                // Update currentStory with the extracted characters
+                currentStory.characters = statusData.result.characters;
+
+                // Refresh the characters tab display
+                updateCharactersTab();
+
+                // Also update the visual consistency tab if it depends on characters
+                updateVisualConsistencyTab();
+
+                console.log(`Identified ${statusData.result.characters.length} characters`);
+                return;
+            } else if (statusData.status === 'error') {
+                throw new Error(statusData.error || 'Character extraction failed');
+            }
+            // Continue polling if status is 'pending' or 'running'
+        }
+
+        throw new Error('Character extraction timed out after 5 minutes');
 
     } catch (error) {
         console.error('Error identifying characters:', error);
@@ -1450,6 +1480,7 @@ function displayProjects(projects) {
                 <button class="btn btn-primary btn-small btn-load-project" onclick="event.stopPropagation(); loadProject('${project.id}')">Load</button>
                 <h4 class="project-title">${project.title || 'Untitled'}</h4>
                 <div class="project-actions-inline">
+                    <button class="btn-rename btn-small" onclick="event.stopPropagation(); renameProject('${project.id}', '${(project.title || 'Untitled').replace(/'/g, "\\'")}')">Rename</button>
                     <button class="btn-delete btn-small" onclick="event.stopPropagation(); deleteProject('${project.id}')">Delete</button>
                 </div>
             </div>
@@ -1551,6 +1582,46 @@ async function deleteProject(projectId) {
         await loadProjects();
     } catch (error) {
         showError('Failed to delete project: ' + error.message);
+    }
+}
+
+// ===== Rename Project =====
+async function renameProject(projectId, currentName) {
+    const newName = prompt('Enter new project name:', currentName);
+
+    if (newName === null) {
+        // User cancelled
+        return;
+    }
+
+    if (!newName.trim()) {
+        showError('Project name cannot be empty');
+        return;
+    }
+
+    if (newName.trim() === currentName) {
+        // Name unchanged
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/projects/${projectId}/rename`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name: newName.trim() }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to rename project');
+        }
+
+        // Refresh projects list
+        await loadProjects();
+    } catch (error) {
+        showError('Failed to rename project: ' + error.message);
     }
 }
 
