@@ -509,9 +509,49 @@ def generate_pdf(project_id):
         from reportlab.lib.units import inch
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
-        from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Image, PageBreak, Table, TableStyle
+        from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Image, PageBreak, Table, TableStyle, Flowable
         from reportlab.lib import colors
         from src.utils.font_manager import get_font_manager
+
+        # Custom Flowable for text with rounded rectangle background
+        class TextWithBackground(Flowable):
+            """A Flowable that wraps a Paragraph with a rounded rectangle background."""
+
+            def __init__(self, paragraph, bg_color, radius=15, padding=20, max_width=None):
+                Flowable.__init__(self)
+                self.paragraph = paragraph
+                self.bg_color = bg_color
+                self.radius = radius
+                self.padding = padding
+                self.max_width = max_width
+
+            def wrap(self, availWidth, availHeight):
+                # Use max_width if set, otherwise use available width minus padding
+                text_width = self.max_width if self.max_width else availWidth - (self.padding * 2)
+                w, h = self.paragraph.wrap(text_width, availHeight)
+                # Add padding to dimensions
+                self.text_width = w
+                self.text_height = h
+                self.width = w + (self.padding * 2)
+                self.height = h + (self.padding * 2)
+                return self.width, self.height
+
+            def draw(self):
+                canvas = self.canv
+                # Draw rounded rectangle background
+                canvas.saveState()
+                canvas.setFillColor(self.bg_color)
+                # Draw rounded rectangle
+                canvas.roundRect(
+                    0, 0,
+                    self.width, self.height,
+                    self.radius,
+                    fill=1, stroke=0
+                )
+                canvas.restoreState()
+
+                # Draw the paragraph on top, offset by padding
+                self.paragraph.drawOn(canvas, self.padding, self.padding)
 
         # Get project repository
         project_repo = current_app.config['REPOSITORIES']['project']
@@ -546,6 +586,18 @@ def generate_pdf(project_id):
         cover_font_color_str = data.get('cover_font_color', font_color_str)
         cover_text_placement = data.get('cover_text_placement', text_placement)
 
+        # Get text background options (for text-over-image mode)
+        text_bg_enabled = data.get('text_bg_enabled', False)
+        text_bg_color_str = data.get('text_bg_color', 'white')
+        text_bg_opacity = float(data.get('text_bg_opacity', 0.7))
+        text_bg_radius = int(data.get('text_bg_radius', 15))
+        text_bg_padding = int(data.get('text_bg_padding', 20))
+
+        # Get cover text background options (defaults to page options)
+        cover_text_bg_enabled = data.get('cover_text_bg_enabled', text_bg_enabled)
+        cover_text_bg_color_str = data.get('cover_text_bg_color', text_bg_color_str)
+        cover_text_bg_opacity = float(data.get('cover_text_bg_opacity', text_bg_opacity))
+
         # Map font colors
         font_color_map = {
             'black': colors.black,
@@ -557,6 +609,22 @@ def generate_pdf(project_id):
         }
         font_color = font_color_map.get(font_color_str, colors.black)
         cover_font_color = font_color_map.get(cover_font_color_str, colors.black)
+
+        # Map background colors (with opacity support)
+        bg_color_map = {
+            'white': (1, 1, 1),
+            'black': (0, 0, 0),
+            'light-gray': (0.9, 0.9, 0.9),
+            'cream': (1, 0.98, 0.94),
+            'light-blue': (0.88, 0.93, 1),
+            'light-yellow': (1, 1, 0.88),
+            'light-green': (0.88, 1, 0.88),
+            'light-pink': (1, 0.92, 0.95)
+        }
+        text_bg_rgb = bg_color_map.get(text_bg_color_str, (1, 1, 1))
+        text_bg_color = colors.Color(text_bg_rgb[0], text_bg_rgb[1], text_bg_rgb[2], alpha=text_bg_opacity)
+        cover_text_bg_rgb = bg_color_map.get(cover_text_bg_color_str, (1, 1, 1))
+        cover_text_bg_color = colors.Color(cover_text_bg_rgb[0], cover_text_bg_rgb[1], cover_text_bg_rgb[2], alpha=cover_text_bg_opacity)
 
         # Determine page size
         page_size_map = {
@@ -814,17 +882,29 @@ def generate_pdf(project_id):
                 title_para = Paragraph(story.metadata.title, title_overlay_style)
                 text_padding = 40
 
+                # Wrap title with background if enabled
+                if cover_text_bg_enabled:
+                    title_element = TextWithBackground(
+                        title_para,
+                        cover_text_bg_color,
+                        radius=text_bg_radius,
+                        padding=text_bg_padding,
+                        max_width=page_width - 80  # Leave margins
+                    )
+                else:
+                    title_element = title_para
+
                 # Position title based on cover_text_placement
-                if cover_text_placement in ['top-left', 'top-right']:
+                if cover_text_placement in ['top-left', 'top-center', 'top-right']:
                     # Title at top
                     story_content.append(Spacer(1, text_padding))
-                    story_content.append(title_para)
-                else:  # bottom-left, bottom-right
+                    story_content.append(title_element)
+                else:  # bottom-left, bottom-center, bottom-right
                     # Title at bottom - push title down 75% of page height
                     # (title is short, so we want it near bottom, not leaving room for long text)
                     bottom_spacer = page_height * 0.75
                     story_content.append(Spacer(1, bottom_spacer))
-                    story_content.append(title_para)
+                    story_content.append(title_element)
 
                 story_content.append(PageBreak())
             else:
@@ -898,58 +978,187 @@ def generate_pdf(project_id):
                         # Create text paragraph with overlay style
                         text_overlay = Paragraph(page.text, text_overlay_style)
 
+                        # Wrap text with background if enabled
+                        if text_bg_enabled:
+                            text_element = TextWithBackground(
+                                text_overlay,
+                                text_bg_color,
+                                radius=text_bg_radius,
+                                padding=text_bg_padding,
+                                max_width=page_width - 80  # Leave margins
+                            )
+                        else:
+                            text_element = text_overlay
+
                         # Position text using spacers based on text_placement
                         # We need to position the text in the correct corner of the page
-                        text_padding = 40  # Padding from edges
+                        edge_margin = 40  # Margin from page edges
+                        top_spacer_val = edge_margin  # Top margin for top positions
 
                         # Allow text to use up to 80% of the page height
                         # For bottom positions, the spacer should only take 20% max
                         max_spacer_for_bottom = page_height * 0.20  # 20% for spacer, 80% for text
 
+                        # Define widths for different placements
+                        narrow_width = (page_width / 2) - edge_margin  # For left/right corners
+                        wide_width = page_width - (edge_margin * 2)  # For center placements
+
                         if text_placement == 'top-left':
-                            # Add small top spacer, text will be left-aligned
-                            page_elements.append(Spacer(1, text_padding))
-                            page_elements.append(text_overlay)
+                            # Narrow column on the left with margin
+                            left_style = ParagraphStyle(
+                                'TextOverlayLeft',
+                                parent=text_overlay_style,
+                                alignment=TA_LEFT,
+                            )
+                            text_para = Paragraph(page.text, left_style)
+                            if text_bg_enabled:
+                                text_el = TextWithBackground(
+                                    text_para, text_bg_color,
+                                    radius=text_bg_radius, padding=text_bg_padding,
+                                    max_width=narrow_width
+                                )
+                            else:
+                                text_el = text_para
+                            page_elements.append(Spacer(1, top_spacer_val))
+                            # Use table to control width and left margin
+                            table = Table([[text_el, '']], colWidths=[page_width/2, page_width/2])
+                            table.setStyle(TableStyle([
+                                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                                ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                                ('LEFTPADDING', (0, 0), (0, 0), edge_margin),
+                                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                            ]))
+                            page_elements.append(table)
+
+                        elif text_placement == 'top-center':
+                            # Wide text centered at top
+                            center_style = ParagraphStyle(
+                                'TextOverlayCenter',
+                                parent=text_overlay_style,
+                                alignment=TA_CENTER,
+                            )
+                            text_para = Paragraph(page.text, center_style)
+                            if text_bg_enabled:
+                                text_el = TextWithBackground(
+                                    text_para, text_bg_color,
+                                    radius=text_bg_radius, padding=text_bg_padding,
+                                    max_width=wide_width
+                                )
+                            else:
+                                text_el = text_para
+                            page_elements.append(Spacer(1, top_spacer_val))
+                            # Use table to center with margins
+                            table = Table([[text_el]], colWidths=[page_width])
+                            table.setStyle(TableStyle([
+                                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                                ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+                                ('LEFTPADDING', (0, 0), (0, 0), edge_margin),
+                                ('RIGHTPADDING', (0, 0), (0, 0), edge_margin),
+                            ]))
+                            page_elements.append(table)
+
                         elif text_placement == 'top-right':
-                            # Add small top spacer, use right-aligned style
-                            right_aligned_style = ParagraphStyle(
+                            # Narrow column on the right with margin
+                            right_style = ParagraphStyle(
                                 'TextOverlayRight',
                                 parent=text_overlay_style,
-                                alignment=TA_LEFT,  # Will use table for right positioning
+                                alignment=TA_LEFT,
                             )
-                            text_overlay_right = Paragraph(page.text, right_aligned_style)
-                            page_elements.append(Spacer(1, text_padding))
-                            # Use table to right-align
-                            table = Table([['', text_overlay_right]], colWidths=[page_width/2, page_width/2])
+                            text_para = Paragraph(page.text, right_style)
+                            if text_bg_enabled:
+                                text_el = TextWithBackground(
+                                    text_para, text_bg_color,
+                                    radius=text_bg_radius, padding=text_bg_padding,
+                                    max_width=narrow_width
+                                )
+                            else:
+                                text_el = text_para
+                            page_elements.append(Spacer(1, top_spacer_val))
+                            # Use table to right-align with margin
+                            table = Table([['', text_el]], colWidths=[page_width/2, page_width/2])
                             table.setStyle(TableStyle([
                                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                                 ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
                                 ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                                ('RIGHTPADDING', (1, 0), (1, 0), edge_margin),
+                            ]))
+                            page_elements.append(table)
+
+                        elif text_placement == 'bottom-left':
+                            # Narrow column on the left at bottom
+                            left_style = ParagraphStyle(
+                                'TextOverlayBottomLeft',
+                                parent=text_overlay_style,
+                                alignment=TA_LEFT,
+                            )
+                            text_para = Paragraph(page.text, left_style)
+                            if text_bg_enabled:
+                                text_el = TextWithBackground(
+                                    text_para, text_bg_color,
+                                    radius=text_bg_radius, padding=text_bg_padding,
+                                    max_width=narrow_width
+                                )
+                            else:
+                                text_el = text_para
+                            page_elements.append(Spacer(1, max_spacer_for_bottom))
+                            table = Table([[text_el, '']], colWidths=[page_width/2, page_width/2])
+                            table.setStyle(TableStyle([
+                                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                                ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                                ('LEFTPADDING', (0, 0), (0, 0), edge_margin),
                                 ('RIGHTPADDING', (0, 0), (-1, -1), 0),
                             ]))
                             page_elements.append(table)
-                        elif text_placement == 'bottom-left':
-                            # Add spacer to push text toward bottom
-                            # Use only 20% for spacer, leaving 80% for text
+
+                        elif text_placement == 'bottom-center':
+                            # Wide text centered at bottom
+                            center_style = ParagraphStyle(
+                                'TextOverlayBottomCenter',
+                                parent=text_overlay_style,
+                                alignment=TA_CENTER,
+                            )
+                            text_para = Paragraph(page.text, center_style)
+                            if text_bg_enabled:
+                                text_el = TextWithBackground(
+                                    text_para, text_bg_color,
+                                    radius=text_bg_radius, padding=text_bg_padding,
+                                    max_width=wide_width
+                                )
+                            else:
+                                text_el = text_para
                             page_elements.append(Spacer(1, max_spacer_for_bottom))
-                            page_elements.append(text_overlay)
+                            table = Table([[text_el]], colWidths=[page_width])
+                            table.setStyle(TableStyle([
+                                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                                ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+                                ('LEFTPADDING', (0, 0), (0, 0), edge_margin),
+                                ('RIGHTPADDING', (0, 0), (0, 0), edge_margin),
+                            ]))
+                            page_elements.append(table)
+
                         else:  # bottom-right
-                            # Add spacer to push text toward bottom, use right alignment
-                            right_aligned_style = ParagraphStyle(
+                            # Narrow column on the right at bottom
+                            right_style = ParagraphStyle(
                                 'TextOverlayBottomRight',
                                 parent=text_overlay_style,
                                 alignment=TA_LEFT,
                             )
-                            text_overlay_right = Paragraph(page.text, right_aligned_style)
-                            # Use only 20% for spacer, leaving 80% for text
+                            text_para = Paragraph(page.text, right_style)
+                            if text_bg_enabled:
+                                text_el = TextWithBackground(
+                                    text_para, text_bg_color,
+                                    radius=text_bg_radius, padding=text_bg_padding,
+                                    max_width=narrow_width
+                                )
+                            else:
+                                text_el = text_para
                             page_elements.append(Spacer(1, max_spacer_for_bottom))
-                            # Use table to right-align
-                            table = Table([['', text_overlay_right]], colWidths=[page_width/2, page_width/2])
+                            table = Table([['', text_el]], colWidths=[page_width/2, page_width/2])
                             table.setStyle(TableStyle([
                                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                                 ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
                                 ('LEFTPADDING', (0, 0), (-1, -1), 0),
-                                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                                ('RIGHTPADDING', (1, 0), (1, 0), edge_margin),
                             ]))
                             page_elements.append(table)
 

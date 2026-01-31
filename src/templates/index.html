@@ -577,9 +577,45 @@
                                     <label for="pdf-text-placement">Text Placement</label>
                                     <select id="pdf-text-placement" name="pdf_text_placement">
                                         <option value="top-left" selected>Top Left</option>
+                                        <option value="top-center">Top Center</option>
                                         <option value="top-right">Top Right</option>
                                         <option value="bottom-left">Bottom Left</option>
+                                        <option value="bottom-center">Bottom Center</option>
                                         <option value="bottom-right">Bottom Right</option>
+                                    </select>
+                                </div>
+
+                                <!-- Text Background Options (only for text-over-image mode) -->
+                                <div class="form-group pdf-text-over-image-option" style="display: none;">
+                                    <label for="pdf-text-bg-enabled">
+                                        <input type="checkbox" id="pdf-text-bg-enabled" name="pdf_text_bg_enabled">
+                                        Enable Text Background
+                                    </label>
+                                </div>
+
+                                <div class="form-group pdf-text-over-image-option pdf-text-bg-option" style="display: none;">
+                                    <label for="pdf-text-bg-color">Background Color</label>
+                                    <select id="pdf-text-bg-color" name="pdf_text_bg_color">
+                                        <option value="white" selected>White</option>
+                                        <option value="black">Black</option>
+                                        <option value="light-gray">Light Gray</option>
+                                        <option value="cream">Cream</option>
+                                        <option value="light-blue">Light Blue</option>
+                                        <option value="light-yellow">Light Yellow</option>
+                                        <option value="light-green">Light Green</option>
+                                        <option value="light-pink">Light Pink</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group pdf-text-over-image-option pdf-text-bg-option" style="display: none;">
+                                    <label for="pdf-text-bg-opacity">Background Opacity</label>
+                                    <select id="pdf-text-bg-opacity" name="pdf_text_bg_opacity">
+                                        <option value="0.5">50%</option>
+                                        <option value="0.6">60%</option>
+                                        <option value="0.7" selected>70%</option>
+                                        <option value="0.8">80%</option>
+                                        <option value="0.9">90%</option>
+                                        <option value="1.0">100%</option>
                                     </select>
                                 </div>
 
@@ -676,9 +712,47 @@
                                     <select id="pdf-cover-text-placement" name="pdf_cover_text_placement">
                                         <option value="same" selected>Same as Pages</option>
                                         <option value="top-left">Top Left</option>
+                                        <option value="top-center">Top Center</option>
                                         <option value="top-right">Top Right</option>
                                         <option value="bottom-left">Bottom Left</option>
+                                        <option value="bottom-center">Bottom Center</option>
                                         <option value="bottom-right">Bottom Right</option>
+                                    </select>
+                                </div>
+
+                                <!-- Cover Text Background Options (only for text-over-image mode) -->
+                                <div class="form-group pdf-text-over-image-option" style="display: none;">
+                                    <label for="pdf-cover-text-bg-enabled">
+                                        <input type="checkbox" id="pdf-cover-text-bg-enabled" name="pdf_cover_text_bg_enabled">
+                                        Enable Cover Text Background
+                                    </label>
+                                </div>
+
+                                <div class="form-group pdf-text-over-image-option pdf-cover-text-bg-option" style="display: none;">
+                                    <label for="pdf-cover-text-bg-color">Cover Background Color</label>
+                                    <select id="pdf-cover-text-bg-color" name="pdf_cover_text_bg_color">
+                                        <option value="same" selected>Same as Pages</option>
+                                        <option value="white">White</option>
+                                        <option value="black">Black</option>
+                                        <option value="light-gray">Light Gray</option>
+                                        <option value="cream">Cream</option>
+                                        <option value="light-blue">Light Blue</option>
+                                        <option value="light-yellow">Light Yellow</option>
+                                        <option value="light-green">Light Green</option>
+                                        <option value="light-pink">Light Pink</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group pdf-text-over-image-option pdf-cover-text-bg-option" style="display: none;">
+                                    <label for="pdf-cover-text-bg-opacity">Cover Background Opacity</label>
+                                    <select id="pdf-cover-text-bg-opacity" name="pdf_cover_text_bg_opacity">
+                                        <option value="same" selected>Same as Pages</option>
+                                        <option value="0.5">50%</option>
+                                        <option value="0.6">60%</option>
+                                        <option value="0.7">70%</option>
+                                        <option value="0.8">80%</option>
+                                        <option value="0.9">90%</option>
+                                        <option value="1.0">100%</option>
                                     </select>
                                 </div>
 

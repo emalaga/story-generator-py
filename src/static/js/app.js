@@ -2581,6 +2581,56 @@ function setupPDFEventListeners() {
         // Initialize visibility based on current mode
         togglePDFMode();
     }
+
+    // Setup text background checkbox toggle for pages
+    const textBgCheckbox = document.getElementById('pdf-text-bg-enabled');
+    if (textBgCheckbox) {
+        textBgCheckbox.addEventListener('change', toggleTextBgOptions);
+        // Initialize visibility
+        toggleTextBgOptions();
+    }
+
+    // Setup text background checkbox toggle for cover
+    const coverTextBgCheckbox = document.getElementById('pdf-cover-text-bg-enabled');
+    if (coverTextBgCheckbox) {
+        coverTextBgCheckbox.addEventListener('change', toggleCoverTextBgOptions);
+        // Initialize visibility
+        toggleCoverTextBgOptions();
+    }
+}
+
+function toggleTextBgOptions() {
+    const textBgEnabled = document.getElementById('pdf-text-bg-enabled').checked;
+    const textBgOptions = document.querySelectorAll('.pdf-text-bg-option');
+
+    textBgOptions.forEach(option => {
+        if (textBgEnabled) {
+            option.style.display = '';
+            const select = option.querySelector('select');
+            if (select) select.disabled = false;
+        } else {
+            option.style.display = 'none';
+            const select = option.querySelector('select');
+            if (select) select.disabled = true;
+        }
+    });
+}
+
+function toggleCoverTextBgOptions() {
+    const coverTextBgEnabled = document.getElementById('pdf-cover-text-bg-enabled').checked;
+    const coverTextBgOptions = document.querySelectorAll('.pdf-cover-text-bg-option');
+
+    coverTextBgOptions.forEach(option => {
+        if (coverTextBgEnabled) {
+            option.style.display = '';
+            const select = option.querySelector('select');
+            if (select) select.disabled = false;
+        } else {
+            option.style.display = 'none';
+            const select = option.querySelector('select');
+            if (select) select.disabled = true;
+        }
+    });
 }
 
 function togglePDFMode() {
@@ -2617,6 +2667,14 @@ function togglePDFMode() {
             if (select) select.disabled = true;
         });
     }
+
+    // Update text background options visibility based on checkbox state
+    if (typeof toggleTextBgOptions === 'function') {
+        toggleTextBgOptions();
+    }
+    if (typeof toggleCoverTextBgOptions === 'function') {
+        toggleCoverTextBgOptions();
+    }
 }
 
 function getPDFOptionsFromForm() {
@@ -2645,6 +2703,13 @@ function getPDFOptionsFromForm() {
         options.page_size = 'letter';
         options.image_placement = 'background';
         options.image_size = 'full';
+
+        // Text background options for pages
+        options.text_bg_enabled = document.getElementById('pdf-text-bg-enabled').checked;
+        if (options.text_bg_enabled) {
+            options.text_bg_color = document.getElementById('pdf-text-bg-color').value;
+            options.text_bg_opacity = parseFloat(document.getElementById('pdf-text-bg-opacity').value);
+        }
     }
 
     // Add cover page options
@@ -2657,6 +2722,20 @@ function getPDFOptionsFromForm() {
     options.cover_font_size = coverFontSizeValue === 'same' ? options.font_size : parseInt(coverFontSizeValue);
     options.cover_font_color = coverFontColorValue === 'same' ? options.font_color : coverFontColorValue;
     options.cover_text_placement = coverTextPlacementValue === 'same' ? options.text_placement : coverTextPlacementValue;
+
+    // Cover text background options (only for text-over-image mode)
+    if (options.pdf_mode === 'text-over-image') {
+        const coverTextBgEnabled = document.getElementById('pdf-cover-text-bg-enabled');
+        if (coverTextBgEnabled) {
+            options.cover_text_bg_enabled = coverTextBgEnabled.checked;
+            if (options.cover_text_bg_enabled) {
+                const coverTextBgColor = document.getElementById('pdf-cover-text-bg-color').value;
+                const coverTextBgOpacity = document.getElementById('pdf-cover-text-bg-opacity').value;
+                options.cover_text_bg_color = coverTextBgColor === 'same' ? options.text_bg_color : coverTextBgColor;
+                options.cover_text_bg_opacity = coverTextBgOpacity === 'same' ? options.text_bg_opacity : parseFloat(coverTextBgOpacity);
+            }
+        }
+    }
 
     return options;
 }
