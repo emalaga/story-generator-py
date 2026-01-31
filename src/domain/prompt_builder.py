@@ -40,8 +40,8 @@ class PromptBuilder:
         """
         Build a prompt for AI story generation.
 
-        Creates a detailed prompt that specifies story parameters, formatting,
-        and content requirements for the AI to generate an appropriate story.
+        Creates a detailed prompt that specifies story parameters and asks for
+        a complete, continuous story with proper planning and structure.
 
         Args:
             metadata: Story metadata with language, complexity, age group, etc.
@@ -53,20 +53,16 @@ class PromptBuilder:
         """
         prompt_parts = []
 
-        # Calculate word requirements
+        # Calculate total word requirements
         words_per_page = metadata.words_per_page or 50
-        min_words = int(words_per_page * 0.9)
         total_words = metadata.num_pages * words_per_page
+        min_total_words = int(total_words * 0.9)
+        max_total_words = int(total_words * 1.1)
 
-        # Estimate sentences per page (average ~12-15 words per sentence)
-        sentences_per_page = max(8, words_per_page // 12)
-
-        # CRITICAL: Word count as PRIMARY instruction at the very beginning
+        # Story planning and structure requirements
         prompt_parts.append(
-            f"MANDATORY WORD COUNT: Write a story with EXACTLY {metadata.num_pages} pages. "
-            f"Each page MUST have AT LEAST {min_words} words (target: {words_per_page} words). "
-            f"This means each page needs approximately {sentences_per_page}-{sentences_per_page + 3} full sentences. "
-            f"Total story length: approximately {total_words} words."
+            f"Write a complete children's story of approximately {total_words} words "
+            f"(minimum {min_total_words}, maximum {max_total_words} words)."
         )
 
         # Story type and requirements
@@ -81,7 +77,7 @@ class PromptBuilder:
 
         # Theme if provided
         if theme:
-            prompt_parts.append(f"Theme: {theme}.")
+            prompt_parts.append(f"Theme/Moral: {theme}.")
 
         # Custom prompt if provided
         if custom_prompt:
@@ -93,17 +89,37 @@ class PromptBuilder:
             f"the {metadata.age_group} age group."
         )
 
-        # Formatting instructions with word count reminder
+        # Story structure and planning requirements
         prompt_parts.append(
-            f"\n\nFORMATTING RULES:\n"
-            f"1. Write exactly {metadata.num_pages} pages\n"
-            f"2. Each page MUST have {min_words}-{words_per_page + 20} words (NOT 50 words - that is TOO SHORT)\n"
-            f"3. Use this format:\n"
-            f"Page 1:\n[Write {words_per_page} words of story here - multiple paragraphs, rich detail]\n\n"
-            f"Page 2:\n[Write {words_per_page} words of story here]\n\n"
-            f"...and so on.\n\n"
-            f"CRITICAL: Do NOT write short pages. Each page needs {sentences_per_page}+ sentences with descriptive details, "
-            f"dialogue, character emotions, and scene-setting. Expand the narrative - do not summarize."
+            f"\n\nSTORY STRUCTURE REQUIREMENTS:\n"
+            f"Before writing, plan the story with:\n"
+            f"1. THREE-ACT STRUCTURE:\n"
+            f"   - Act 1 (Setup): Introduce the main character, their world, and the problem/goal\n"
+            f"   - Act 2 (Confrontation): The character faces obstacles, learns, and grows\n"
+            f"   - Act 3 (Resolution): The climax and satisfying conclusion\n\n"
+            f"2. MAIN CHARACTER ARC:\n"
+            f"   - Give the protagonist a clear goal or desire\n"
+            f"   - Show how they change or learn something by the end\n"
+            f"   - Make them active, not passive\n\n"
+            f"3. KEY TURNING POINTS:\n"
+            f"   - An inciting incident that starts the adventure\n"
+            f"   - A midpoint where things get harder or change direction\n"
+            f"   - A climax with the biggest challenge or decision\n"
+        )
+
+        # Writing instructions
+        prompt_parts.append(
+            f"\n\nWRITING INSTRUCTIONS:\n"
+            f"- Write the story CONTINUOUSLY as flowing prose\n"
+            f"- DO NOT use page markers, chapter breaks, or \"Page X:\" formatting\n"
+            f"- Include vivid sensory details, dialogue, and character emotions\n"
+            f"- Show, don't tell - let actions and dialogue reveal character\n"
+            f"- Use paragraphs naturally to organize the narrative\n"
+            f"- Build tension and pacing appropriate for children\n"
+            f"- End with a satisfying, child-appropriate conclusion\n\n"
+            f"CRITICAL: Write the complete story in one continuous flow. "
+            f"Do NOT stop mid-story or leave the ending incomplete. "
+            f"The story must have a proper beginning, middle, and end."
         )
 
         return " ".join(prompt_parts)
