@@ -1679,6 +1679,9 @@ function updateVisualConsistencyTab() {
 
     // Setup character references
     setupCharacterReferences();
+
+    // Setup character reference file input handler
+    setupCharacterRefFileInput();
 }
 
 function setupArtBibleSection() {
@@ -1851,9 +1854,63 @@ function setupArtBibleSection() {
         }
     };
 
-    // Upload custom art bible (placeholder for now)
+    // Upload custom art bible
+    const artBibleFileInput = document.getElementById('art-bible-file-input');
+
     uploadBtn.onclick = () => {
-        alert('Image upload functionality coming soon! For now, please use the generated art bible.');
+        artBibleFileInput.click();
+    };
+
+    artBibleFileInput.onchange = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const loadingDiv = document.getElementById('art-bible-loading');
+        loadingDiv.classList.remove('hidden');
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('story_id', currentStory.id);
+            formData.append('art_style', currentStory.metadata.art_style || 'custom');
+
+            const response = await fetch(`${API_BASE}/visual-consistency/art-bible/upload`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Upload failed');
+            }
+
+            // Update current story with new art bible
+            if (!currentStory.art_bible) {
+                currentStory.art_bible = {};
+            }
+            currentStory.art_bible.local_image_path = result.local_image_path;
+            currentStory.art_bible.art_style = result.art_style;
+
+            // Show the preview
+            const previewDiv = document.getElementById('art-bible-preview');
+            previewDiv.classList.remove('hidden');
+            previewDiv.innerHTML = `
+                <img src="${getImageUrl(result.local_image_path, null)}" alt="Art Bible Reference">
+            `;
+
+            // Auto-save the project
+            await autoSaveProject();
+
+            console.log('Custom art bible uploaded successfully');
+        } catch (error) {
+            console.error('Failed to upload art bible:', error);
+            showError(`Failed to upload art bible image: ${error.message}`);
+        } finally {
+            loadingDiv.classList.add('hidden');
+            // Reset the file input
+            artBibleFileInput.value = '';
+        }
     };
 }
 
@@ -2132,8 +2189,91 @@ async function generateCharacterImage(charIndex) {
     }
 }
 
+// Track which character is being uploaded
+let currentUploadCharIndex = null;
+
 function uploadCharacterRef(charIndex) {
-    alert('Image upload functionality coming soon! For now, please use the generated character references.');
+    currentUploadCharIndex = charIndex;
+    const fileInput = document.getElementById('character-ref-file-input');
+    fileInput.click();
+}
+
+// Setup character reference file input handler
+function setupCharacterRefFileInput() {
+    const fileInput = document.getElementById('character-ref-file-input');
+    if (!fileInput) return;
+
+    fileInput.onchange = async (event) => {
+        const file = event.target.files[0];
+        if (!file || currentUploadCharIndex === null) return;
+
+        const charIndex = currentUploadCharIndex;
+        const character = currentStory.characters[charIndex];
+        const loadingDiv = document.getElementById(`char-loading-${charIndex}`);
+
+        if (loadingDiv) loadingDiv.classList.remove('hidden');
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('story_id', currentStory.id);
+            formData.append('character_name', character.name);
+
+            const response = await fetch(`${API_BASE}/visual-consistency/character-reference/upload`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Upload failed');
+            }
+
+            // Update current story with new character reference
+            if (!currentStory.character_references) {
+                currentStory.character_references = [];
+            }
+
+            const existingRefIndex = currentStory.character_references.findIndex(
+                ref => ref.character_name === character.name
+            );
+
+            if (existingRefIndex >= 0) {
+                currentStory.character_references[existingRefIndex].local_image_path = result.local_image_path;
+            } else {
+                currentStory.character_references.push({
+                    character_name: character.name,
+                    local_image_path: result.local_image_path,
+                    prompt: 'Custom uploaded image'
+                });
+            }
+
+            // Show the preview
+            const previewDiv = document.getElementById(`char-preview-${charIndex}`);
+            previewDiv.classList.remove('hidden');
+            previewDiv.innerHTML = `
+                <img src="${getImageUrl(result.local_image_path, null)}" alt="${character.name} Reference">
+                <div class="image-action-buttons">
+                    <button class="btn-small btn-delete-image" onclick="deleteCharacterImage(${charIndex})">Delete Image</button>
+                </div>
+                <p>Custom reference image for ${character.name} uploaded successfully!</p>
+            `;
+
+            // Auto-save the project
+            await autoSaveProject();
+
+            console.log(`Custom character reference for ${character.name} uploaded successfully`);
+        } catch (error) {
+            console.error('Failed to upload character reference:', error);
+            showError(`Failed to upload character reference image: ${error.message}`);
+        } finally {
+            if (loadingDiv) loadingDiv.classList.add('hidden');
+            // Reset the file input and tracking variable
+            fileInput.value = '';
+            currentUploadCharIndex = null;
+        }
+    };
 }
 
 // ===== Auto-save Project =====

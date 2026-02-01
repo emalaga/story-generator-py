@@ -486,6 +486,188 @@ def generate_character_reference_image():
         return jsonify({'error': f'Failed to generate image: {str(e)}'}), 500
 
 
+@visual_bp.route('/art-bible/upload', methods=['POST'])
+def upload_art_bible():
+    """
+    POST /api/visual-consistency/art-bible/upload
+
+    Upload a custom art bible reference image.
+
+    Request: multipart/form-data
+        - file: Image file (required)
+        - story_id: str (required)
+        - art_style: str (optional)
+
+    Returns:
+        200: Image uploaded successfully
+        400: Invalid request
+        500: Server error
+    """
+    try:
+        # Validate file
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+
+        # Validate story_id
+        story_id = request.form.get('story_id')
+        if not story_id:
+            return jsonify({'error': 'Missing required field: story_id'}), 400
+
+        art_style = request.form.get('art_style', 'custom')
+
+        # Validate file type
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+        file_ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+        if file_ext not in allowed_extensions:
+            return jsonify({'error': f'Invalid file type. Allowed: {", ".join(allowed_extensions)}'}), 400
+
+        # Get project repository to access image directories
+        project_repo = current_app.config['REPOSITORIES']['project']
+
+        # Get the project's images directory
+        project_images_dir = project_repo.get_project_images_dir(story_id)
+        save_dir = project_images_dir / 'art_bible'
+
+        # Generate filename with timestamp
+        filename = f'art_bible_custom_{int(time.time() * 1000)}.{file_ext}'
+        save_path = save_dir / filename
+
+        # Save the file
+        file.save(str(save_path))
+
+        # Build relative path
+        local_path = f'images/{story_id}/art_bible/{filename}'
+        current_app.logger.info(f"Custom art bible image uploaded to: {local_path}")
+
+        # Update the project file with the new image path
+        try:
+            project = project_repo.get(story_id)
+            if project and project.story:
+                if not project.story.art_bible:
+                    from src.models.art_bible import ArtBible
+                    project.story.art_bible = ArtBible(prompt='Custom uploaded image', art_style=art_style)
+                project.story.art_bible.local_image_path = local_path
+                project.story.art_bible.art_style = art_style
+                project_repo.save(project)
+                current_app.logger.info(f"Project updated with custom art bible image path")
+        except Exception as e:
+            current_app.logger.warning(f"Failed to update project with art bible: {e}")
+
+        return jsonify({
+            'local_image_path': local_path,
+            'art_style': art_style,
+            'message': 'Art bible image uploaded successfully'
+        }), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error uploading art bible image: {e}", exc_info=True)
+        return jsonify({'error': f'Failed to upload image: {str(e)}'}), 500
+
+
+@visual_bp.route('/character-reference/upload', methods=['POST'])
+def upload_character_reference():
+    """
+    POST /api/visual-consistency/character-reference/upload
+
+    Upload a custom character reference image.
+
+    Request: multipart/form-data
+        - file: Image file (required)
+        - story_id: str (required)
+        - character_name: str (required)
+
+    Returns:
+        200: Image uploaded successfully
+        400: Invalid request
+        500: Server error
+    """
+    try:
+        # Validate file
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+
+        # Validate required fields
+        story_id = request.form.get('story_id')
+        if not story_id:
+            return jsonify({'error': 'Missing required field: story_id'}), 400
+
+        character_name = request.form.get('character_name')
+        if not character_name:
+            return jsonify({'error': 'Missing required field: character_name'}), 400
+
+        # Validate file type
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+        file_ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+        if file_ext not in allowed_extensions:
+            return jsonify({'error': f'Invalid file type. Allowed: {", ".join(allowed_extensions)}'}), 400
+
+        # Get project repository to access image directories
+        project_repo = current_app.config['REPOSITORIES']['project']
+
+        # Get the project's images directory
+        project_images_dir = project_repo.get_project_images_dir(story_id)
+        save_dir = project_images_dir / 'characters'
+
+        # Sanitize character name for filename
+        safe_char_name = character_name.replace(' ', '_').replace('/', '_').replace('\\', '_')
+        filename = f'character_{safe_char_name}_custom_{int(time.time() * 1000)}.{file_ext}'
+        save_path = save_dir / filename
+
+        # Save the file
+        file.save(str(save_path))
+
+        # Build relative path
+        local_path = f'images/{story_id}/characters/{filename}'
+        current_app.logger.info(f"Custom character reference image uploaded to: {local_path}")
+
+        # Update the project file with the new image path
+        try:
+            project = project_repo.get(story_id)
+            if project and project.story:
+                # Find or create the character reference
+                if not project.story.character_references:
+                    project.story.character_references = []
+
+                existing_ref = next(
+                    (ref for ref in project.story.character_references if ref.character_name == character_name),
+                    None
+                )
+                if existing_ref:
+                    existing_ref.local_image_path = local_path
+                    existing_ref.prompt = 'Custom uploaded image'
+                else:
+                    from src.models.art_bible import CharacterReference
+                    new_ref = CharacterReference(
+                        character_name=character_name,
+                        prompt='Custom uploaded image',
+                        local_image_path=local_path
+                    )
+                    project.story.character_references.append(new_ref)
+
+                project_repo.save(project)
+                current_app.logger.info(f"Project updated with custom character reference image path")
+        except Exception as e:
+            current_app.logger.warning(f"Failed to update project with character reference: {e}")
+
+        return jsonify({
+            'local_image_path': local_path,
+            'character_name': character_name,
+            'message': 'Character reference image uploaded successfully'
+        }), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error uploading character reference image: {e}", exc_info=True)
+        return jsonify({'error': f'Failed to upload image: {str(e)}'}), 500
+
+
 @visual_bp.route('/session/start', methods=['POST'])
 def start_session():
     """
