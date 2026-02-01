@@ -11,7 +11,7 @@ This service coordinates the complete story generation process, including:
 
 import re
 import uuid
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from src.ai.base_client import BaseAIClient
 from src.domain.character_extractor import CharacterExtractor
@@ -99,6 +99,17 @@ class StoryGeneratorService:
 
 YOUR TASK: Write a complete children's story of approximately {total_words_needed} words.
 
+***** MANDATORY LANGUAGE REQUIREMENT *****
+YOU MUST WRITE THE ENTIRE STORY IN {metadata.language.upper()}.
+- ALL narrative text must be in {metadata.language}
+- ALL dialogue must be in {metadata.language}
+- ALL descriptions must be in {metadata.language}
+- Do NOT mix languages. Do NOT write in English if the language is not English.
+- If the language is Spanish, write EVERYTHING in Spanish.
+- If the language is French, write EVERYTHING in French.
+- This is a strict requirement with NO exceptions.
+******************************************
+
 STORY STRUCTURE:
 - Plan a clear three-act structure before writing
 - Create a protagonist with a goal and an arc (they should change or learn something)
@@ -106,14 +117,13 @@ STORY STRUCTURE:
 - Build appropriate tension and pacing for young readers
 
 WRITING STYLE:
-- Write in {metadata.language}
 - Use {metadata.vocabulary_diversity} vocabulary for ages {metadata.age_group}
 - Include vivid descriptions, dialogue, and character emotions
 - Show character feelings through actions and reactions
 - Write continuously as flowing prose - NO page markers or chapter breaks
 
 CRITICAL REQUIREMENTS:
-- Write the COMPLETE story from beginning to end
+- Write the COMPLETE story from beginning to end IN {metadata.language.upper()} ONLY
 - Do NOT stop mid-story or leave it incomplete
 - Do NOT include "Page 1:", "Chapter 1:", or similar markers
 - The story MUST have a satisfying conclusion
@@ -171,6 +181,7 @@ CRITICAL REQUIREMENTS:
         Prioritizes not breaking sentences over exact word counts.
         Each page will end at a sentence boundary (., !, ?) and the
         word count may vary slightly between pages to achieve this.
+        Preserves paragraph breaks within pages.
 
         Args:
             story_text: Continuous story text from AI
@@ -191,46 +202,55 @@ CRITICAL REQUIREMENTS:
             print("[SPLIT PAGES] WARNING: Story text is empty after cleaning")
             return pages
 
-        # Split into sentences using regex that handles ., !, ?
-        # Keep the punctuation with the sentence
+        # Split into paragraphs first (preserve paragraph structure)
+        # Paragraphs are separated by double newlines or multiple newlines
+        paragraphs = re.split(r'\n\s*\n', clean_text)
+        paragraphs = [p.strip() for p in paragraphs if p.strip()]
+
+        # Now split each paragraph into sentences, keeping track of paragraph boundaries
+        # Each element is a tuple: (sentence_text, is_paragraph_end)
+        sentence_units = []
         sentence_pattern = r'([^.!?]*[.!?]+)'
-        sentences = re.findall(sentence_pattern, clean_text)
 
-        # If no sentences found (missing punctuation), fall back to splitting by newlines or paragraphs
-        if not sentences:
-            print("[SPLIT PAGES] No sentence endings found, falling back to paragraph split")
-            sentences = [s.strip() for s in clean_text.split('\n\n') if s.strip()]
-            if not sentences:
-                sentences = [s.strip() for s in clean_text.split('\n') if s.strip()]
-            if not sentences:
-                # Last resort: treat whole text as one "sentence"
-                sentences = [clean_text]
+        for para in paragraphs:
+            # Split paragraph into sentences
+            para_sentences = re.findall(sentence_pattern, para)
 
-        # Clean up sentences
-        sentences = [s.strip() for s in sentences if s.strip()]
+            if not para_sentences:
+                # No sentence endings found in this paragraph, treat whole paragraph as one unit
+                para_sentences = [para]
 
-        total_words = sum(len(s.split()) for s in sentences)
-        print(f"[SPLIT PAGES] Total words: {total_words}, sentences: {len(sentences)}, target pages: {num_pages}")
+            # Clean up sentences in this paragraph
+            para_sentences = [s.strip() for s in para_sentences if s.strip()]
+
+            # Add sentences, marking the last one as paragraph end
+            for i, sentence in enumerate(para_sentences):
+                is_para_end = (i == len(para_sentences) - 1)
+                sentence_units.append((sentence, is_para_end))
+
+        if not sentence_units:
+            print("[SPLIT PAGES] WARNING: No sentences found after parsing")
+            return pages
+
+        total_words = sum(len(s[0].split()) for s in sentence_units)
+        print(f"[SPLIT PAGES] Total words: {total_words}, sentences: {len(sentence_units)}, paragraphs: {len(paragraphs)}, target pages: {num_pages}")
 
         # Calculate ideal words per page based on actual content
         ideal_words_per_page = max(1, total_words // num_pages)
         print(f"[SPLIT PAGES] Ideal words per page: {ideal_words_per_page}")
 
-        current_page_sentences = []
+        current_page_units = []  # List of (sentence, is_para_end) tuples
         current_word_count = 0
         page_number = 1
 
-        for sentence in sentences:
+        for idx, (sentence, is_para_end) in enumerate(sentence_units):
             sentence_words = len(sentence.split())
-            current_page_sentences.append(sentence)
+            current_page_units.append((sentence, is_para_end))
             current_word_count += sentence_words
 
             # Check if we should start a new page
-            # We start a new page when:
-            # 1. We've reached or exceeded the ideal word count, AND
-            # 2. We haven't created all pages yet (save content for remaining pages)
             pages_remaining = num_pages - page_number
-            sentences_remaining = len(sentences) - sentences.index(sentence) - 1
+            sentences_remaining = len(sentence_units) - idx - 1
 
             should_break = False
 
@@ -243,30 +263,30 @@ CRITICAL REQUIREMENTS:
                     should_break = True
 
             if should_break:
-                # Create page with accumulated sentences
-                page_text = ' '.join(current_page_sentences)
+                # Create page with accumulated sentences, preserving paragraph breaks
+                page_text = self._join_sentences_with_paragraphs(current_page_units)
                 pages.append(StoryPage(
                     page_number=page_number,
-                    text=page_text.strip()
+                    text=page_text
                 ))
                 print(f"[SPLIT PAGES] Page {page_number}: {current_word_count} words")
 
                 # Reset for next page
                 page_number += 1
-                current_page_sentences = []
+                current_page_units = []
                 current_word_count = 0
 
                 # Recalculate ideal words for remaining pages
-                remaining_words = sum(len(s.split()) for s in sentences[sentences.index(sentence)+1:])
+                remaining_words = sum(len(s[0].split()) for s in sentence_units[idx+1:])
                 if pages_remaining > 0:
                     ideal_words_per_page = max(1, remaining_words // pages_remaining)
 
         # Don't forget the last page with remaining content
-        if current_page_sentences:
-            page_text = ' '.join(current_page_sentences)
+        if current_page_units:
+            page_text = self._join_sentences_with_paragraphs(current_page_units)
             pages.append(StoryPage(
                 page_number=page_number,
-                text=page_text.strip()
+                text=page_text
             ))
             print(f"[SPLIT PAGES] Page {page_number}: {current_word_count} words (final page)")
 
@@ -278,6 +298,40 @@ CRITICAL REQUIREMENTS:
             print(f"[SPLIT PAGES] Page {page.page_number}: {word_count} words")
 
         return pages
+
+    def _join_sentences_with_paragraphs(
+        self,
+        sentence_units: List[Tuple[str, bool]]
+    ) -> str:
+        """
+        Join sentences back together, preserving paragraph breaks.
+
+        Args:
+            sentence_units: List of (sentence_text, is_paragraph_end) tuples
+
+        Returns:
+            Joined text with paragraph breaks preserved
+        """
+        if not sentence_units:
+            return ""
+
+        result_parts = []
+        current_paragraph = []
+
+        for sentence, is_para_end in sentence_units:
+            current_paragraph.append(sentence)
+
+            if is_para_end:
+                # End of paragraph - join sentences with spaces and add to result
+                result_parts.append(' '.join(current_paragraph))
+                current_paragraph = []
+
+        # Handle any remaining sentences (shouldn't happen if data is well-formed)
+        if current_paragraph:
+            result_parts.append(' '.join(current_paragraph))
+
+        # Join paragraphs with double newlines
+        return '\n\n'.join(result_parts).strip()
 
     async def _extract_and_profile_characters(
         self,

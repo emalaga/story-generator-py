@@ -65,10 +65,17 @@ class PromptBuilder:
             f"(minimum {min_total_words}, maximum {max_total_words} words)."
         )
 
+        # MANDATORY language requirement - very prominent
+        prompt_parts.append(
+            f"\n\n***** MANDATORY: WRITE ENTIRELY IN {metadata.language.upper()} *****\n"
+            f"The ENTIRE story must be written in {metadata.language}. "
+            f"This includes ALL narrative, ALL dialogue, and ALL descriptions. "
+            f"Do NOT use any other language. Do NOT mix languages."
+        )
+
         # Story type and requirements
         prompt_parts.append(
-            f"\n\nWrite a {metadata.complexity} children's story in {metadata.language} "
-            f"for ages {metadata.age_group}."
+            f"\n\nWrite a {metadata.complexity} children's story for ages {metadata.age_group}."
         )
 
         # Genre if specified
@@ -119,7 +126,8 @@ class PromptBuilder:
             f"- End with a satisfying, child-appropriate conclusion\n\n"
             f"CRITICAL: Write the complete story in one continuous flow. "
             f"Do NOT stop mid-story or leave the ending incomplete. "
-            f"The story must have a proper beginning, middle, and end."
+            f"The story must have a proper beginning, middle, and end.\n\n"
+            f"REMINDER: The entire story MUST be in {metadata.language}. No exceptions."
         )
 
         return " ".join(prompt_parts)

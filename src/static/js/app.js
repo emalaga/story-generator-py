@@ -625,17 +625,6 @@ function displayStory(story) {
     noStoryPlaceholder.classList.add('hidden');
     storyDisplaySection.classList.remove('hidden');
 
-    // Display metadata
-    const metadataDiv = document.getElementById('story-metadata');
-    metadataDiv.innerHTML = `
-        <h3>${story.metadata.title}</h3>
-        <p><strong>Language:</strong> ${story.metadata.language}</p>
-        <p><strong>Age Group:</strong> ${story.metadata.age_group}</p>
-        <p><strong>Genre:</strong> ${story.metadata.genre || 'N/A'}</p>
-        <p><strong>Pages:</strong> ${story.metadata.num_pages}</p>
-        <p><strong>Art Style:</strong> ${story.metadata.art_style || 'N/A'}</p>
-    `;
-
     // Display pages (text only, editable) with drag-and-drop support
     const pagesDiv = document.getElementById('story-pages');
     pagesDiv.innerHTML = '<h3>Story Pages <span class="drag-hint">(drag to reorder)</span></h3>';
