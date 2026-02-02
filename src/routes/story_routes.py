@@ -197,6 +197,9 @@ def create_story():
                 for char in (story.characters or [])
             ],
             'vocabulary': story.vocabulary,
+            'text_model': story.text_model,
+            'text_generated_at': story.text_generated_at.isoformat() if story.text_generated_at else None,
+            'text_edited_at': story.text_edited_at.isoformat() if story.text_edited_at else None,
             'created_at': story.created_at.isoformat(),
             'updated_at': story.updated_at.isoformat()
         }
@@ -328,6 +331,9 @@ def _run_story_generation_in_background(task_id, app, data, app_config, defaults
                     for char in (story.characters or [])
                 ],
                 'vocabulary': story.vocabulary,
+                'text_model': story.text_model,
+                'text_generated_at': story.text_generated_at.isoformat() if story.text_generated_at else None,
+                'text_edited_at': story.text_edited_at.isoformat() if story.text_edited_at else None,
                 'created_at': story.created_at.isoformat(),
                 'updated_at': story.updated_at.isoformat()
             }

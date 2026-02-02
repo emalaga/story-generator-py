@@ -24,6 +24,7 @@ const errorDiv = document.getElementById('error-message');
 const storyDisplaySection = document.getElementById('story-display-section');
 const noStoryPlaceholder = document.getElementById('no-story-placeholder');
 const saveProjectBtn = document.getElementById('save-project-btn');
+const saveProjectAsBtn = document.getElementById('save-project-as-btn');
 const newStoryBtn = document.getElementById('new-story-btn');
 const loadProjectsBtn = document.getElementById('load-projects-btn');
 
@@ -529,6 +530,7 @@ function populateSelect(elementId, options, defaultValue) {
 function setupEventListeners() {
     storyForm.addEventListener('submit', handleStoryGeneration);
     saveProjectBtn.addEventListener('click', handleSaveProject);
+    saveProjectAsBtn.addEventListener('click', handleSaveProjectAs);
     newStoryBtn.addEventListener('click', handleNewStory);
     loadProjectsBtn.addEventListener('click', loadProjects);
 }
@@ -1521,6 +1523,67 @@ async function handleSaveProject() {
         console.log('Save successful, currentProjectId set to:', currentProjectId);
 
         alert('Project saved successfully!');
+        await loadProjects();
+    } catch (error) {
+        showError('Failed to save project: ' + error.message);
+    }
+}
+
+// ===== Handle Save Project As (Duplicate with new name) =====
+async function handleSaveProjectAs() {
+    if (!currentStory) {
+        showError('No story to save');
+        return;
+    }
+
+    // Prompt for new project name
+    const currentTitle = currentStory.metadata.title || 'Untitled Story';
+    const newTitle = prompt('Enter a new name for this project:', `${currentTitle} (Copy)`);
+
+    if (!newTitle || newTitle.trim() === '') {
+        // User cancelled or entered empty name
+        return;
+    }
+
+    // Generate a new project ID for the duplicate
+    const newProjectId = crypto.randomUUID();
+
+    // Create a deep copy of the current story with the new title
+    const duplicatedStory = JSON.parse(JSON.stringify(currentStory));
+    duplicatedStory.id = newProjectId;
+    duplicatedStory.metadata.title = newTitle.trim();
+
+    const projectData = {
+        id: newProjectId,
+        name: newTitle.trim(),
+        story: duplicatedStory,
+        status: 'completed',
+        character_profiles: duplicatedStory.characters || [],
+        image_prompts: []
+    };
+
+    try {
+        const response = await fetch(`${API_BASE}/projects`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(projectData),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to save project');
+        }
+
+        // Update current state to point to the new project
+        currentStory = duplicatedStory;
+        currentProjectId = newProjectId;
+
+        // Update the displayed title
+        displayStory(currentStory);
+
+        alert(`Project saved as "${newTitle.trim()}"!`);
         await loadProjects();
     } catch (error) {
         showError('Failed to save project: ' + error.message);
