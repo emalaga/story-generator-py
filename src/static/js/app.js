@@ -57,6 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupEventListeners();
     setupTabs();
     setupSettingsTab();
+    syncImageModelDropdowns(); // Initialize all image model dropdowns from settings
 
     // Restore state from URL
     const urlState = getURLState();
@@ -763,7 +764,7 @@ function displayStory(story) {
     story.pages.forEach((page, index) => {
         const pageDiv = document.createElement('div');
         pageDiv.className = 'story-page';
-        pageDiv.draggable = true;
+        pageDiv.draggable = false; // Only draggable when using the handle
         pageDiv.dataset.pageIndex = index;
         const wordCount = countWords(page.text);
         pageDiv.innerHTML = `
@@ -780,6 +781,12 @@ function displayStory(story) {
                 </div>
             </div>
         `;
+
+        // Enable dragging only when using the handle
+        const dragHandle = pageDiv.querySelector('.drag-handle');
+        dragHandle.addEventListener('mousedown', () => {
+            pageDiv.draggable = true;
+        });
 
         // Drag events
         pageDiv.addEventListener('dragstart', handleDragStart);
@@ -814,24 +821,54 @@ function savePageText(pageIndex) {
         return;
     }
 
-    // Update the page text in memory
+    // Update only this page's text in memory
     page.text = newText;
 
     // Update text_edited_at timestamp
     currentStory.text_edited_at = new Date().toISOString();
 
-    // Update the word count display
+    // Update the word count display for this page only
     const wordCount = countWords(newText);
     const wordCountDiv = document.getElementById(`page-${pageIndex}-word-count`);
     if (wordCountDiv) {
         wordCountDiv.textContent = `${wordCount} word${wordCount !== 1 ? 's' : ''}`;
     }
 
-    // Refresh the metadata display
-    displayStory(currentStory);
+    // Update the text metadata display without re-rendering pages
+    updateTextMetadataDisplay();
 
-    // Show success feedback
-    alert('Page text saved! Switch to the Image Generation tab to create images.');
+    // Show brief success feedback on the save button
+    const saveBtn = document.querySelector(`#page-${pageIndex}-text`).parentElement.querySelector('.btn-text-save');
+    if (saveBtn) {
+        const originalText = saveBtn.textContent;
+        saveBtn.textContent = 'Saved!';
+        saveBtn.classList.add('saved');
+        setTimeout(() => {
+            saveBtn.textContent = originalText;
+            saveBtn.classList.remove('saved');
+        }, 2000);
+    }
+}
+
+// ===== Update Text Metadata Display =====
+function updateTextMetadataDisplay() {
+    if (!currentStory) return;
+
+    const metadataContainer = document.querySelector('.text-metadata');
+    if (metadataContainer && currentStory.text_edited_at) {
+        // Update edited timestamp if it exists
+        const editedSpan = metadataContainer.querySelector('.metadata-item:last-child');
+        if (editedSpan && editedSpan.innerHTML.includes('Edited:')) {
+            editedSpan.innerHTML = `<strong>Edited:</strong> ${formatMetadataTimestamp(currentStory.text_edited_at)}`;
+        } else if (!metadataContainer.innerHTML.includes('Edited:')) {
+            // Add edited timestamp if not present
+            metadataContainer.innerHTML += `
+                <span class="metadata-item">
+                    <strong>Edited:</strong> ${formatMetadataTimestamp(currentStory.text_edited_at)}
+                </span>
+            `;
+        }
+    }
 }
 
 // ===== Add New Page =====
@@ -937,6 +974,7 @@ function handleDragStart(e) {
 
 function handleDragEnd(e) {
     e.currentTarget.classList.remove('dragging');
+    e.currentTarget.draggable = false; // Reset draggable so textarea selection works
     // Remove drag-over class from all pages
     document.querySelectorAll('.story-page').forEach(page => {
         page.classList.remove('drag-over');
@@ -1108,7 +1146,8 @@ async function generatePageImage(pageNumber) {
     const promptTextarea = document.getElementById(`page-${pageNumber}-prompt`);
     const customPrompt = promptTextarea ? promptTextarea.value.trim() : '';
 
-    // Get size and detail from global dropdowns
+    // Get model, size and detail from global dropdowns
+    const imageModel = document.getElementById('page-image-model').value;
     const size = document.getElementById('page-image-size').value;
     const detail = document.getElementById('page-image-detail').value;
 
@@ -1118,7 +1157,6 @@ async function generatePageImage(pageNumber) {
 
     try {
         console.log(`[generatePageImage] Starting for page ${pageNumber}`);
-        const settings = loadSettings();
         const requestData = {
             scene_description: page.text,
             character_profiles: currentStory.characters || [],
@@ -1129,7 +1167,7 @@ async function generatePageImage(pageNumber) {
             character_references: currentStory.character_references || null,
             size: size,
             quality: detail,
-            image_model: settings.imageModel
+            image_model: imageModel
         };
 
         // If user has edited the prompt, use it directly
@@ -1166,7 +1204,7 @@ async function generatePageImage(pageNumber) {
 
         // Update the page with the local image path and metadata (image is already saved by backend)
         page.local_image_path = result.local_image_path;
-        page.image_model = settings.imageModel;
+        page.image_model = imageModel;
         page.image_generated_at = new Date().toISOString();
         page.image_resolution = size;
         console.log(`[generatePageImage] page.local_image_path and metadata updated`);
@@ -1339,7 +1377,8 @@ async function generateCoverPageImage() {
         return;
     }
 
-    // Get size and detail from global dropdowns
+    // Get model, size and detail from global dropdowns
+    const imageModel = document.getElementById('page-image-model').value;
     const size = document.getElementById('page-image-size').value;
     const detail = document.getElementById('page-image-detail').value;
 
@@ -1348,7 +1387,6 @@ async function generateCoverPageImage() {
     loadingDiv.classList.remove('hidden');
 
     try {
-        const settings = loadSettings();
         const requestData = {
             scene_description: 'Book cover',
             character_profiles: currentStory.characters || [],
@@ -1361,7 +1399,7 @@ async function generateCoverPageImage() {
             size: size,
             quality: detail,
             is_cover: true,
-            image_model: settings.imageModel
+            image_model: imageModel
         };
 
         const response = await fetch(`${API_BASE}/images/stories/${currentStory.id}/cover`, {
@@ -1390,7 +1428,7 @@ async function generateCoverPageImage() {
         }
         currentStory.cover_page.local_image_path = result.local_image_path;
         currentStory.cover_page.image_prompt = promptTextarea.value;
-        currentStory.cover_page.image_model = settings.imageModel;
+        currentStory.cover_page.image_model = imageModel;
         currentStory.cover_page.image_generated_at = new Date().toISOString();
         currentStory.cover_page.image_resolution = size;
 
@@ -2065,7 +2103,8 @@ function setupArtBibleSection() {
             return;
         }
 
-        // Get size and detail from dropdowns
+        // Get model, size and detail from dropdowns
+        const imageModel = document.getElementById('art-bible-model').value;
         const size = document.getElementById('art-bible-size').value;
         const detail = document.getElementById('art-bible-detail').value;
 
@@ -2073,7 +2112,6 @@ function setupArtBibleSection() {
         loadingDiv.classList.remove('hidden');
 
         try {
-            const settings = loadSettings();
             const response = await fetch(`${API_BASE}/visual-consistency/art-bible/generate-image`, {
                 method: 'POST',
                 headers: {
@@ -2086,7 +2124,7 @@ function setupArtBibleSection() {
                     story_title: currentStory.metadata.title || '',
                     size: size,
                     quality: detail,
-                    image_model: settings.imageModel
+                    image_model: imageModel
                 }),
             });
 
@@ -2103,7 +2141,7 @@ function setupArtBibleSection() {
             }
             currentStory.art_bible.local_image_path = result.local_image_path;
             currentStory.art_bible.prompt = prompt;
-            currentStory.art_bible.image_model = settings.imageModel;
+            currentStory.art_bible.image_model = imageModel;
             currentStory.art_bible.image_generated_at = new Date().toISOString();
             currentStory.art_bible.image_resolution = size;
 
@@ -2115,7 +2153,7 @@ function setupArtBibleSection() {
             // Build metadata display
             const metadataHtml = `
                 <div class="image-metadata">
-                    <span class="metadata-item"><strong>Model:</strong> ${settings.imageModel}</span>
+                    <span class="metadata-item"><strong>Model:</strong> ${imageModel}</span>
                     <span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(currentStory.art_bible.image_generated_at)}</span>
                     <span class="metadata-item"><strong>Resolution:</strong> ${size}</span>
                 </div>
@@ -2249,9 +2287,15 @@ function setupCharacterReferences() {
                 <button id="save-char-prompt-${index}" class="btn-small btn-save-prompt hidden" onclick="saveCharacterPrompt(${index})">Save Prompt</button>
                 <div class="image-options-row" style="margin-top: 10px;">
                     <div class="form-group-inline">
+                        <label for="char-model-${index}">Model:</label>
+                        <select id="char-model-${index}" class="char-model-select">
+                            <option value="gpt-image-1">GPT Image 1</option>
+                            <option value="gpt-image-1-mini">GPT Image 1 Mini</option>
+                        </select>
+                    </div>
+                    <div class="form-group-inline">
                         <label for="char-size-${index}">Size:</label>
                         <select id="char-size-${index}">
-                            <option value="512x512">512x512 (Square Small)</option>
                             <option value="1024x1024">1024x1024 (Square)</option>
                             <option value="1536x1024" selected>1536x1024 (Landscape)</option>
                             <option value="1024x1536">1024x1536 (Portrait)</option>
@@ -2305,6 +2349,9 @@ function setupCharacterReferences() {
             });
         }
     });
+
+    // Sync character model dropdowns to current settings
+    syncImageModelDropdowns();
 }
 
 // Save character prompt manually
@@ -2412,7 +2459,8 @@ async function generateCharacterImage(charIndex) {
         return;
     }
 
-    // Get size and detail from dropdowns
+    // Get model, size and detail from dropdowns
+    const imageModel = document.getElementById(`char-model-${charIndex}`).value;
     const size = document.getElementById(`char-size-${charIndex}`).value;
     const detail = document.getElementById(`char-detail-${charIndex}`).value;
 
@@ -2421,7 +2469,6 @@ async function generateCharacterImage(charIndex) {
 
     try {
         // Prepare request body - conversation session maintains art bible context
-        const settings = loadSettings();
         const requestBody = {
             prompt: prompt,
             character_name: character.name,
@@ -2429,7 +2476,7 @@ async function generateCharacterImage(charIndex) {
             include_turnaround: true,
             size: size,
             quality: detail,
-            image_model: settings.imageModel
+            image_model: imageModel
         };
 
         const response = await fetch(`${API_BASE}/visual-consistency/character-reference/generate-image`, {
@@ -2458,7 +2505,7 @@ async function generateCharacterImage(charIndex) {
         );
 
         const imageMetadata = {
-            image_model: settings.imageModel,
+            image_model: imageModel,
             image_generated_at: new Date().toISOString(),
             image_resolution: size
         };
@@ -3447,6 +3494,29 @@ function updateSettingsTab() {
     updateCurrentConfigDisplay();
 }
 
+// Sync all image model dropdowns to the current settings value
+function syncImageModelDropdowns() {
+    const settings = loadSettings();
+    const imageModel = settings.imageModel;
+
+    // Art Bible model dropdown
+    const artBibleModel = document.getElementById('art-bible-model');
+    if (artBibleModel) {
+        artBibleModel.value = imageModel;
+    }
+
+    // Page image model dropdown
+    const pageImageModel = document.getElementById('page-image-model');
+    if (pageImageModel) {
+        pageImageModel.value = imageModel;
+    }
+
+    // Character reference model dropdowns (dynamically created)
+    document.querySelectorAll('.char-model-select').forEach(select => {
+        select.value = imageModel;
+    });
+}
+
 // Update the current configuration display
 async function updateCurrentConfigDisplay() {
     try {
@@ -3494,6 +3564,9 @@ function setupSettingsTab() {
             };
 
             if (saveSettings(settings)) {
+                // Sync all image model dropdowns to the new settings
+                syncImageModelDropdowns();
+
                 if (statusSpan) {
                     statusSpan.textContent = 'Settings saved!';
                     statusSpan.className = 'save-status success';

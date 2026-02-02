@@ -491,6 +491,10 @@ header h1 {
     background-color: var(--primary-hover);
 }
 
+.btn-text-save.saved {
+    background-color: #28a745;
+}
+
 /* ===== Characters ===== */
 .story-characters {
     margin-bottom: 25px;
