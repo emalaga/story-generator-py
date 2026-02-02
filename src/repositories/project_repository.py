@@ -37,10 +37,12 @@ class ProjectRepository:
         self.storage_dir = Path(storage_dir)
         self.projects_dir = self.storage_dir / "projects"
         self.images_dir = self.storage_dir / "images"
+        self.pdfs_dir = self.storage_dir / "pdfs"
 
         # Create directories if they don't exist
         self.projects_dir.mkdir(parents=True, exist_ok=True)
         self.images_dir.mkdir(parents=True, exist_ok=True)
+        self.pdfs_dir.mkdir(parents=True, exist_ok=True)
 
     def get_project_images_dir(self, project_id: str) -> Path:
         """
@@ -62,6 +64,21 @@ class ProjectRepository:
         (project_images_dir / "pages").mkdir(exist_ok=True)
 
         return project_images_dir
+
+    def get_project_pdfs_dir(self, project_id: str) -> Path:
+        """
+        Get the PDFs directory for a specific project.
+        Creates the directory if it doesn't exist.
+
+        Args:
+            project_id: The project ID
+
+        Returns:
+            Path to the project's PDFs directory
+        """
+        project_pdfs_dir = self.pdfs_dir / project_id
+        project_pdfs_dir.mkdir(parents=True, exist_ok=True)
+        return project_pdfs_dir
 
     def save(self, project: Project) -> str:
         """

@@ -22,63 +22,90 @@
         "text": "Había una vez, en una pequeña sala, un juego de ajedrez. Un día uno de los peones, llamado Pepe, decidió abandonar el tablero. Al principio, todo era emocionante. Pepe se maravillaba de la suave alfombra, el piano electrico y los sillones que rotaban. Todo parecía tan grande y diferente.",
         "image_url": null,
         "image_prompt": "CRITICAL: Generate the next illustration for this children's book. You MUST strictly follow the watercolor children's book illustration visual style defined in the art bible image we established earlier in this conversation. Match the exact same colors, line weight, shading technique, and overall aesthetic. Include Pepe in this scene, drawing them EXACTLY as shown in the character reference image we created earlier. The character's appearance, proportions, colors, and clothing must be identical. Scene: The dramatic moment is when Pepe, the pawn, decides to leave the chessboard, stepping onto the vast, soft carpet for the first time, with the electric piano and rotating armchairs looming large in the background. The chessboard is made of wood and is a grid of 8 by 8 squares. Maintain perfect visual consistency with all previous illustrations in this story. Professional, vibrant, child-friendly children's book illustration.",
-        "local_image_path": "images/46e08268-13d2-4f25-9502-f4c1fede57c0/pages/page_1_1769630989589.png"
+        "local_image_path": "images/46e08268-13d2-4f25-9502-f4c1fede57c0/pages/page_1_1769630989589.png",
+        "image_model": null,
+        "image_generated_at": null,
+        "image_resolution": null
       },
       {
         "page_number": 2,
         "text": "Pero pronto, Pepe comenzó a sentirse pequeño en la gran casa. Miró a su alrededor y dijo: \"Estoy perdido\". Se sentía solo y asustado.",
         "image_url": null,
         "image_prompt": "CRITICAL: Generate the next illustration for this children's book. You MUST strictly follow the watercolor children's book illustration visual style defined in the art bible image we established earlier in this conversation. Match the exact same colors, line weight, shading technique, and overall aesthetic. Include Pepe in this scene, drawing them EXACTLY as shown in the character reference image we created earlier. The character's appearance, proportions, colors, and clothing must be identical. Scene: The most dramatic moment is when Pepe, the pawn, stands alone in long dark hallway looking worry because he is lost. Pepe looks small in this image, about 1/8 of the size of the image,  to emphasize the scale of the hallway. Maintain perfect visual consistency with all previous illustrations in this story. Professional, vibrant, child-friendly children's book illustration.",
-        "local_image_path": "images/46e08268-13d2-4f25-9502-f4c1fede57c0/pages/page_2_1769631520476.png"
+        "local_image_path": "images/46e08268-13d2-4f25-9502-f4c1fede57c0/pages/page_2_1769631520476.png",
+        "image_model": null,
+        "image_generated_at": null,
+        "image_resolution": null
       },
       {
         "page_number": 3,
         "text": "Justo cuando Pepe se sentía más desesperado, un peluche de dorado pelaje llamado Small Ga se acercó a él. Small Ga era un golden retriever. \"Hola, pequeño peón, ¿Cómo estás?\" preguntó Small Ga. \"Estoy perdido\", respondió Pepe, \"no sé cómo volver a mi hogar\".",
         "image_url": null,
         "image_prompt": "CRITICAL: Generate the next illustration for this children's book. You MUST strictly follow the watercolor children's book illustration visual style defined in the art bible image we established earlier in this conversation. Match the exact same colors, line weight, shading technique, and overall aesthetic. Include Pepe and Small Ga in this scene, drawing each character EXACTLY as shown in their character reference images we created earlier. Each character's appearance, proportions, colors, and clothing must be identical. Scene: The most dramatic moment is when Small Ga, the Golden Retriever plush toy, approaches Pepe, the desperate pawn, extending a comforting paw towards him. They are in the hallway and you can see behind them a kid's bedroom. The floor is carpet. Maintain perfect visual consistency with all previous illustrations in this story. Professional, vibrant, child-friendly children's book illustration.",
-        "local_image_path": "images/46e08268-13d2-4f25-9502-f4c1fede57c0/pages/page_3_1769631819730.png"
+        "local_image_path": "images/46e08268-13d2-4f25-9502-f4c1fede57c0/pages/page_3_1769631819730.png",
+        "image_model": null,
+        "image_generated_at": null,
+        "image_resolution": null
       },
       {
         "page_number": 4,
         "text": "Small Ga, decidió ayudar a Pepe. \"No te preocupes, Pepe. Estoy aquí para ayudarte a encontrar tu camino de regreso\", dijo Small Ga. Comenzaron a explorar la casa juntos, pasando por la cocina, el comedor y el pasillo.",
         "image_url": null,
         "image_prompt": "CRITICAL: Generate the next illustration for this children's book. You MUST strictly follow the watercolor children's book illustration visual style defined in the art bible image we established earlier in this conversation. Match the exact same colors, line weight, shading technique, and overall aesthetic. Include Pepe and Small Ga in this scene, drawing each character EXACTLY as shown in their character reference images we created earlier. Each character's appearance, proportions, colors, and clothing must be identical. Scene: The moment Small Ga, the Golden Retriever plush toy, is walking confident ahead of Pepe. They are in the Kitchen. Maintain perfect visual consistency with all previous illustrations in this story. Professional, vibrant, child-friendly children's book illustration.",
-        "local_image_path": "images/46e08268-13d2-4f25-9502-f4c1fede57c0/pages/page_4_1769631963403.png"
+        "local_image_path": "images/46e08268-13d2-4f25-9502-f4c1fede57c0/pages/page_4_1769631963403.png",
+        "image_model": null,
+        "image_generated_at": null,
+        "image_resolution": null
       },
       {
         "page_number": 5,
         "text": "Pepe se sentía mejor con la compañía de Small Ga. Pero a medida que pasaba el tiempo, comenzó a cansarse. \"Estoy cansado\", le dijo a Small Ga. Small Ga asintió comprensivamente, \"Debemos descansar un poco\".",
         "image_url": null,
         "image_prompt": "CRITICAL: Generate the next illustration for this children's book. You MUST strictly follow the watercolor children's book illustration visual style defined in the art bible image we established earlier in this conversation. Match the exact same colors, line weight, shading technique, and overall aesthetic. Include Pepe and Small Ga in this scene, drawing each character EXACTLY as shown in their character reference images we created earlier. Each character's appearance, proportions, colors, and clothing must be identical. Scene: The moment when Pepe, the pawn chess piece, leans against Small Ga, the Golden Retriever plush toy, expressing his exhaustion with a weary look. They are in a kid bedroom. Maintain perfect visual consistency with all previous illustrations in this story. Professional, vibrant, child-friendly children's book illustration.",
-        "local_image_path": "images/46e08268-13d2-4f25-9502-f4c1fede57c0/pages/page_5_1769632448871.png"
+        "local_image_path": "images/46e08268-13d2-4f25-9502-f4c1fede57c0/pages/page_5_1769632448871.png",
+        "image_model": null,
+        "image_generated_at": null,
+        "image_resolution": null
       },
       {
         "page_number": 6,
         "text": "Así que descansaron en un green bean bag en el dormitorio de uno de los niños de la casa. Pepe miró a su alrededor y se dio cuenta de lo hermosa que era la casa. Parecía más amigable ahora. Small Ga le aseguró a Pepe que encontrarían el camino a casa.",
         "image_url": null,
         "image_prompt": "CRITICAL: Generate the next illustration for this children's book. You MUST strictly follow the watercolor children's book illustration visual style defined in the art bible image we established earlier in this conversation. Match the exact same colors, line weight, shading technique, and overall aesthetic. Include Pepe in this scene, drawing them EXACTLY as shown in the character reference image we created earlier. The character's appearance, proportions, colors, and clothing must be identical. Scene: Pepe sitting next to Small Ga in the kids bed looks at the wall and see posters of Super Pawn, a video game about Chess pieces, and smiles. Small Ga is looking at Pepe and also smiles. Maintain perfect visual consistency with all previous illustrations in this story. Professional, vibrant, child-friendly children's book illustration.",
-        "local_image_path": "images/46e08268-13d2-4f25-9502-f4c1fede57c0/pages/page_6_1769633142191.png"
+        "local_image_path": "images/46e08268-13d2-4f25-9502-f4c1fede57c0/pages/page_6_1769633142191.png",
+        "image_model": null,
+        "image_generated_at": null,
+        "image_resolution": null
       },
       {
         "page_number": 7,
         "text": "Después de descansar, continuaron su búsqueda. Pronto, Pepe se dio cuenta de que la casa no era tan grande y aterradora como parecía al principio. Había aprendido que cada habitación tenía su propio encanto y carácter.",
         "image_url": null,
         "image_prompt": "CRITICAL: Generate the next illustration for this children's book. You MUST strictly follow the watercolor children's book illustration visual style defined in the art bible image we established earlier in this conversation. Match the exact same colors, line weight, shading technique, and overall aesthetic. Include Pepe in this scene, drawing them EXACTLY as shown in the character reference image we created earlier. The character's appearance, proportions, colors, and clothing must be identical. Scene: Pepe, standing tall and confident, surveys the house around him, his once fearful expression replaced by a look of awe and appreciation for the house, he is leaving the kids room leading the way and Small Ga is behind him. Maintain perfect visual consistency with all previous illustrations in this story. Professional, vibrant, child-friendly children's book illustration.",
-        "local_image_path": "images/46e08268-13d2-4f25-9502-f4c1fede57c0/pages/page_7_1769639064875.png"
+        "local_image_path": "images/46e08268-13d2-4f25-9502-f4c1fede57c0/pages/page_7_1769639064875.png",
+        "image_model": null,
+        "image_generated_at": null,
+        "image_resolution": null
       },
       {
         "page_number": 8,
         "text": "Finalmente, después de mucho buscar, encontraron el camino de regreso a la sala. Pepe no podía creer lo aliviado que se sentía. Vio el tablero de ajedrez a lo lejos y corrió hacia él.",
         "image_url": null,
         "image_prompt": "CRITICAL: Generate the next illustration for this children's book. You MUST strictly follow the watercolor children's book illustration visual style defined in the art bible image we established earlier in this conversation. Match the exact same colors, line weight, shading technique, and overall aesthetic. Include Pepe in this scene, drawing them EXACTLY as shown in the character reference image we created earlier. The character's appearance, proportions, colors, and clothing must be identical. Scene: The dramatic moment is when Pepe, the pawn chess piece, spots the chessboard in the distance in the floor of the living room where you can also see a large window and starts running towards it, relief washing over him. In this scene we don't see Pepe's face or Small Ga, only their backs as they look at the chess board. Maintain perfect visual consistency with all previous illustrations in this story. Professional, vibrant, child-friendly children's book illustration.",
-        "local_image_path": "images/46e08268-13d2-4f25-9502-f4c1fede57c0/pages/page_8_1769639160518.png"
+        "local_image_path": "images/46e08268-13d2-4f25-9502-f4c1fede57c0/pages/page_8_1769639160518.png",
+        "image_model": null,
+        "image_generated_at": null,
+        "image_resolution": null
       },
       {
         "page_number": 9,
         "text": "Al llegar al tablero de ajedrez, Pepe se sintió feliz. \"¡Estoy en casa!\" exclamó alegremente. Agradeció a Small Ga por su ayuda y prometió nunca abandonar de nuevo su hogar.",
         "image_url": null,
         "image_prompt": "CRITICAL: Generate the next illustration for this children's book. You MUST strictly follow the watercolor children's book illustration visual style defined in the art bible image we established earlier in this conversation. Match the exact same colors, line weight, shading technique, and overall aesthetic. Include Pepe in this scene, drawing them EXACTLY as shown in the character reference image we created earlier. The character's appearance, proportions, colors, and clothing must be identical. Scene: The moment Pepe, the pawn, joyfully jumps into the chess board in the ground of the living room with other pawns pieces that look like him, very happy, Small Ga smiling far back in the distance. Pepe is small in this image. Pepe's size is the same as one of the squares in the chess board. Maintain perfect visual consistency with all previous illustrations in this story. Professional, vibrant, child-friendly children's book illustration.",
-        "local_image_path": "images/46e08268-13d2-4f25-9502-f4c1fede57c0/pages/page_9_1769637745500.png"
+        "local_image_path": "images/46e08268-13d2-4f25-9502-f4c1fede57c0/pages/page_9_1769637745500.png",
+        "image_model": null,
+        "image_generated_at": null,
+        "image_resolution": null
       }
     ],
     "vocabulary": [],
@@ -108,7 +135,10 @@
       "style_notes": null,
       "color_palette": null,
       "lighting_style": null,
-      "brush_technique": null
+      "brush_technique": null,
+      "image_model": null,
+      "image_generated_at": null,
+      "image_resolution": null
     },
     "character_references": [
       {
@@ -119,7 +149,10 @@
         "species": "Pawn (chess piece)",
         "physical_description": "Pepe is a small, round, and glossy black chess pawn. He stands about 1.5 inches tall, with a smooth, curved body that tapers to a point at the top. His base is slightly wider than his top, giving him stability. His body is shiny and reflects light.",
         "clothing": null,
-        "distinctive_features": null
+        "distinctive_features": null,
+        "image_model": null,
+        "image_generated_at": null,
+        "image_resolution": null
       },
       {
         "character_name": "Small Ga",
@@ -129,13 +162,19 @@
         "species": "Golden Retriever Plush Toy",
         "physical_description": "Small Ga is a medium-sized plush toy, about the size of a chess board. He has a soft, fluffy golden fur that shines under the light. His eyes are round and black, full of kindness and wisdom. His ears are floppy and his tail is long and wavy. His snout is short and his nose is a small black triangle. His body is slightly chubby, giving him a cuddly appearance.",
         "clothing": null,
-        "distinctive_features": null
+        "distinctive_features": null,
+        "image_model": null,
+        "image_generated_at": null,
+        "image_resolution": null
       }
     ],
     "cover_page": {
       "image_prompt": "CRITICAL: Generate a cover illustration for this children's book. You MUST strictly follow the watercolor children's book illustration visual style defined in the art bible image we established earlier in this conversation. Match the exact same colors, line weight, shading technique, and overall aesthetic. Include Pepe and Small Ga in this scene, drawing each character EXACTLY as shown in their character reference images we created earlier. Create a watercolor children's book illustration style children's book cover illustration. The cover features Pepe, the small, glossy white pawn, caught in the middle of an adventure. He's standing on the on a chessboard in a super hero pose. Behind him, a plush golden retriever toy, Small Ga, is smiling at him. The lighting is dramatic, emphasizing the size of their journey and the bravery of our tiny hero. This should look like a professional book cover - bold, dynamic composition with rich colors and dramatic lighting. Movie-poster quality. Child-friendly but exciting. No text, title, or credits - just the illustration.",
       "image_url": null,
-      "local_image_path": "images/46e08268-13d2-4f25-9502-f4c1fede57c0/pages/cover_1769638941267.png"
+      "local_image_path": "images/46e08268-13d2-4f25-9502-f4c1fede57c0/pages/cover_1769638941267.png",
+      "image_model": null,
+      "image_generated_at": null,
+      "image_resolution": null
     },
     "pdf_options": {
       "font": "Helvetica",
@@ -147,8 +186,12 @@
       "include_title_page": true,
       "show_page_numbers": true
     },
-    "created_at": "2026-01-30T18:09:38.826837",
-    "updated_at": "2026-01-30T18:09:38.826841"
+    "image_session_id": null,
+    "text_model": null,
+    "text_generated_at": null,
+    "text_edited_at": null,
+    "created_at": "2026-02-02T13:45:44.253163",
+    "updated_at": "2026-02-02T13:45:44.253166"
   },
   "character_profiles": [
     {
@@ -169,6 +212,6 @@
     }
   ],
   "image_prompts": [],
-  "created_at": "2026-01-30T18:09:38.826847",
-  "updated_at": "2026-01-30T18:09:38.826848"
+  "created_at": "2026-02-02T13:45:44.253171",
+  "updated_at": "2026-02-02T13:45:44.253172"
 }

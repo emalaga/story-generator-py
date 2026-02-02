@@ -1403,6 +1403,135 @@ footer {
     text-decoration: none;
 }
 
+/* ===== Existing PDFs Section ===== */
+.existing-pdfs-section {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.existing-pdfs-section h3 {
+    margin-bottom: 15px;
+    color: var(--text-color);
+}
+
+.existing-pdfs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.no-pdfs-message {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.pdf-item {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.pdf-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    cursor: pointer;
+    background: var(--card-bg);
+}
+
+.pdf-item-header:hover {
+    background: var(--bg-color);
+}
+
+.pdf-item-info {
+    flex: 1;
+}
+
+.pdf-item-title {
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 4px;
+}
+
+.pdf-item-date {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.pdf-item-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.pdf-item-actions .btn-small {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
+.pdf-expand-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+}
+
+.pdf-expand-btn.expanded {
+    transform: rotate(90deg);
+}
+
+.pdf-item-metadata {
+    padding: 16px;
+    background: var(--bg-color);
+    border-top: 1px solid var(--border-color);
+    display: none;
+}
+
+.pdf-item-metadata.expanded {
+    display: block;
+}
+
+.pdf-metadata-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.pdf-metadata-item {
+    font-size: 0.9rem;
+}
+
+.pdf-metadata-item strong {
+    color: var(--text-color);
+}
+
+.pdf-metadata-item span {
+    color: var(--text-muted);
+}
+
+.btn-open-pdf {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-open-pdf:hover {
+    background-color: var(--primary-dark);
+}
+
+.btn-delete-pdf {
+    background-color: var(--error-color);
+    color: white;
+}
+
+.btn-delete-pdf:hover {
+    background-color: #dc2626;
+}
+
 /* ===== Delete Image Button ===== */
 .btn-delete-image {
     background-color: var(--error-color);

@@ -1344,13 +1344,56 @@ def generate_pdf(project_id):
         # Reset buffer position
         pdf_buffer.seek(0)
 
-        # Save PDF to project's directory
-        pdf_filename = f"{story.metadata.title.replace(' ', '_')[:30]}_story.pdf"
-        pdf_dir = project_repo.get_project_images_dir(project_id)
+        # Save PDF to project's pdfs directory with timestamp
+        timestamp = datetime.now()
+        timestamp_str = timestamp.strftime('%Y%m%d_%H%M%S')
+        safe_title = story.metadata.title.replace(' ', '_')[:30]
+        pdf_filename = f"{safe_title}_{timestamp_str}.pdf"
+        pdf_dir = project_repo.get_project_pdfs_dir(project_id)
         pdf_path = pdf_dir / pdf_filename
 
         with open(pdf_path, 'wb') as f:
             f.write(pdf_buffer.getvalue())
+
+        # Save PDF metadata
+        metadata_filename = f"{safe_title}_{timestamp_str}.json"
+        metadata_path = pdf_dir / metadata_filename
+        pdf_metadata = {
+            'filename': pdf_filename,
+            'title': story.metadata.title,
+            'generated_at': timestamp.isoformat(),
+            'options': {
+                'pdf_mode': pdf_mode,
+                'font': requested_font,
+                'font_size': font_size,
+                'font_color': font_color_str,
+                'layout': layout,
+                'page_size': page_size_str,
+                'image_placement': image_placement,
+                'image_size': image_size_str,
+                'text_placement': text_placement,
+                'include_title_page': include_title_page,
+                'show_page_numbers': show_page_numbers,
+                'cover_font': cover_font_requested,
+                'cover_font_size': data.get('cover_font_size', font_size),
+                'cover_font_color': data.get('cover_font_color', font_color_str),
+                'title_font': data.get('title_font', requested_font),
+                'title_font_size': data.get('title_font_size', 24),
+                'title_font_color': data.get('title_font_color', font_color_str),
+                'author_font': data.get('author_font', requested_font),
+                'author_font_size': data.get('author_font_size', 16),
+                'author_font_color': data.get('author_font_color', font_color_str),
+                'author_name': data.get('author_name', ''),
+                'text_background_enabled': data.get('text_background_enabled', False),
+                'text_background_color': data.get('text_background_color', '#ffffff'),
+                'text_background_opacity': data.get('text_background_opacity', 0.7)
+            },
+            'page_count': len(story.pages)
+        }
+
+        with open(metadata_path, 'w', encoding='utf-8') as f:
+            import json
+            json.dump(pdf_metadata, f, indent=2, ensure_ascii=False)
 
         # Return the URL to download the PDF
         pdf_url = f"/api/projects/{project_id}/pdf/download/{pdf_filename}"
@@ -1358,7 +1401,8 @@ def generate_pdf(project_id):
         return jsonify({
             'success': True,
             'pdf_url': pdf_url,
-            'filename': pdf_filename
+            'filename': pdf_filename,
+            'metadata': pdf_metadata
         }), 200
 
     except ImportError:
@@ -1382,8 +1426,8 @@ def download_pdf(project_id, filename):
         # Get project repository
         project_repo = current_app.config['REPOSITORIES']['project']
 
-        # Get the PDF path
-        pdf_dir = project_repo.get_project_images_dir(project_id)
+        # Get the PDF path from pdfs directory
+        pdf_dir = project_repo.get_project_pdfs_dir(project_id)
         pdf_path = pdf_dir / filename
 
         # Security check: ensure the path doesn't escape the project directory
@@ -1397,10 +1441,112 @@ def download_pdf(project_id, filename):
         return send_file(
             pdf_path,
             mimetype='application/pdf',
-            as_attachment=True,
+            as_attachment=False,  # Display in browser instead of downloading
             download_name=filename
         )
 
     except Exception as e:
         current_app.logger.error(f"Error downloading PDF: {e}")
         return jsonify({'error': f'Failed to download PDF: {str(e)}'}), 500
+
+
+@project_bp.route('/<project_id>/pdfs', methods=['GET'])
+def list_pdfs(project_id):
+    """
+    GET /api/projects/:id/pdfs - List all PDFs for a project
+
+    Returns:
+        200: List of PDFs with metadata
+        404: Project not found
+        500: Server error
+    """
+    try:
+        import json
+
+        # Get project repository
+        project_repo = current_app.config['REPOSITORIES']['project']
+
+        # Check project exists
+        project = project_repo.get(project_id)
+        if project is None:
+            return jsonify({'error': 'Project not found'}), 404
+
+        # Get the PDFs directory
+        pdf_dir = project_repo.get_project_pdfs_dir(project_id)
+
+        # Find all PDF files and their metadata
+        pdfs = []
+        for pdf_file in pdf_dir.glob('*.pdf'):
+            pdf_info = {
+                'filename': pdf_file.name,
+                'url': f"/api/projects/{project_id}/pdf/download/{pdf_file.name}",
+                'size_bytes': pdf_file.stat().st_size,
+                'metadata': None
+            }
+
+            # Try to load corresponding metadata file
+            metadata_file = pdf_dir / pdf_file.name.replace('.pdf', '.json')
+            if metadata_file.exists():
+                try:
+                    with open(metadata_file, 'r', encoding='utf-8') as f:
+                        pdf_info['metadata'] = json.load(f)
+                except (json.JSONDecodeError, IOError):
+                    pass
+
+            pdfs.append(pdf_info)
+
+        # Sort by generated_at (newest first) if metadata available
+        pdfs.sort(
+            key=lambda x: x.get('metadata', {}).get('generated_at', ''),
+            reverse=True
+        )
+
+        return jsonify({'pdfs': pdfs}), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error listing PDFs: {e}")
+        return jsonify({'error': f'Failed to list PDFs: {str(e)}'}), 500
+
+
+@project_bp.route('/<project_id>/pdf/<filename>', methods=['DELETE'])
+def delete_pdf(project_id, filename):
+    """
+    DELETE /api/projects/:id/pdf/:filename - Delete a PDF
+
+    Returns:
+        200: PDF deleted successfully
+        404: PDF not found
+        500: Server error
+    """
+    try:
+        # Get project repository
+        project_repo = current_app.config['REPOSITORIES']['project']
+
+        # Get the PDF path
+        pdf_dir = project_repo.get_project_pdfs_dir(project_id)
+        pdf_path = pdf_dir / filename
+
+        # Security check: ensure the path doesn't escape the project directory
+        resolved_path = pdf_path.resolve()
+        if not str(resolved_path).startswith(str(pdf_dir.resolve())):
+            return jsonify({'error': 'Invalid path'}), 403
+
+        if not pdf_path.exists():
+            return jsonify({'error': 'PDF not found'}), 404
+
+        # Delete the PDF file
+        pdf_path.unlink()
+
+        # Also delete the metadata file if it exists
+        metadata_path = pdf_dir / filename.replace('.pdf', '.json')
+        if metadata_path.exists():
+            metadata_path.unlink()
+
+        return jsonify({
+            'success': True,
+            'message': f'PDF {filename} deleted successfully'
+        }), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error deleting PDF: {e}")
+        return jsonify({'error': f'Failed to delete PDF: {str(e)}'}), 500

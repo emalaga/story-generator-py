@@ -3016,6 +3016,9 @@ function updatePDFTab() {
 
     // Setup event listeners for PDF buttons
     setupPDFEventListeners();
+
+    // Load existing PDFs for this project
+    loadExistingPDFs();
 }
 
 function setupPDFEventListeners() {
@@ -3258,11 +3261,130 @@ async function generatePDF() {
         currentStory.pdf_options = pdfOptions;
         await autoSaveProject();
 
+        // Reload the existing PDFs list
+        await loadExistingPDFs();
+
         console.log('PDF generated:', result.pdf_url);
     } catch (error) {
         showError(`Failed to generate PDF: ${error.message}`);
     } finally {
         loadingDiv.classList.add('hidden');
+    }
+}
+
+// ===== Existing PDFs Functions =====
+async function loadExistingPDFs() {
+    const pdfsList = document.getElementById('existing-pdfs-list');
+    if (!pdfsList) return;
+
+    const projectId = currentProjectId || currentStory?.id;
+    if (!projectId) {
+        pdfsList.innerHTML = '<p class="no-pdfs-message">No PDFs generated yet for this project.</p>';
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/projects/${projectId}/pdfs`);
+        if (!response.ok) {
+            throw new Error('Failed to load PDFs');
+        }
+
+        const data = await response.json();
+        const pdfs = data.pdfs || [];
+
+        if (pdfs.length === 0) {
+            pdfsList.innerHTML = '<p class="no-pdfs-message">No PDFs generated yet for this project.</p>';
+            return;
+        }
+
+        pdfsList.innerHTML = pdfs.map((pdf, index) => {
+            const metadata = pdf.metadata || {};
+            const options = metadata.options || {};
+            const generatedAt = metadata.generated_at
+                ? new Date(metadata.generated_at).toLocaleString()
+                : 'Unknown';
+            const title = metadata.title || pdf.filename;
+
+            return `
+                <div class="pdf-item" data-filename="${pdf.filename}">
+                    <div class="pdf-item-header" onclick="togglePDFMetadata(${index})">
+                        <button class="pdf-expand-btn" id="pdf-expand-${index}">&#9654;</button>
+                        <div class="pdf-item-info">
+                            <div class="pdf-item-title">${title}</div>
+                            <div class="pdf-item-date">Generated: ${generatedAt}</div>
+                        </div>
+                        <div class="pdf-item-actions">
+                            <button class="btn btn-small btn-open-pdf" onclick="event.stopPropagation(); openPDF('${pdf.url}')">Open</button>
+                            <button class="btn btn-small btn-delete-pdf" onclick="event.stopPropagation(); deletePDF('${pdf.filename}')">Delete</button>
+                        </div>
+                    </div>
+                    <div class="pdf-item-metadata" id="pdf-metadata-${index}">
+                        <div class="pdf-metadata-grid">
+                            <div class="pdf-metadata-item"><strong>Mode:</strong> <span>${options.pdf_mode || 'N/A'}</span></div>
+                            <div class="pdf-metadata-item"><strong>Font:</strong> <span>${options.font || 'N/A'}</span></div>
+                            <div class="pdf-metadata-item"><strong>Font Size:</strong> <span>${options.font_size || 'N/A'}pt</span></div>
+                            <div class="pdf-metadata-item"><strong>Font Color:</strong> <span>${options.font_color || 'N/A'}</span></div>
+                            <div class="pdf-metadata-item"><strong>Layout:</strong> <span>${options.layout || 'N/A'}</span></div>
+                            <div class="pdf-metadata-item"><strong>Page Size:</strong> <span>${options.page_size || 'N/A'}</span></div>
+                            <div class="pdf-metadata-item"><strong>Image Placement:</strong> <span>${options.image_placement || 'N/A'}</span></div>
+                            <div class="pdf-metadata-item"><strong>Image Size:</strong> <span>${options.image_size || 'N/A'}</span></div>
+                            <div class="pdf-metadata-item"><strong>Page Numbers:</strong> <span>${options.show_page_numbers ? 'Yes' : 'No'}</span></div>
+                            <div class="pdf-metadata-item"><strong>Title Page:</strong> <span>${options.include_title_page ? 'Yes' : 'No'}</span></div>
+                            ${options.pdf_mode === 'text-over-image' ? `
+                                <div class="pdf-metadata-item"><strong>Text Placement:</strong> <span>${options.text_placement || 'N/A'}</span></div>
+                                <div class="pdf-metadata-item"><strong>Text Background:</strong> <span>${options.text_background_enabled ? 'Yes' : 'No'}</span></div>
+                            ` : ''}
+                            <div class="pdf-metadata-item"><strong>Pages:</strong> <span>${metadata.page_count || 'N/A'}</span></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Failed to load existing PDFs:', error);
+        pdfsList.innerHTML = '<p class="no-pdfs-message">Failed to load PDFs.</p>';
+    }
+}
+
+function togglePDFMetadata(index) {
+    const expandBtn = document.getElementById(`pdf-expand-${index}`);
+    const metadataDiv = document.getElementById(`pdf-metadata-${index}`);
+
+    if (expandBtn && metadataDiv) {
+        expandBtn.classList.toggle('expanded');
+        metadataDiv.classList.toggle('expanded');
+    }
+}
+
+function openPDF(url) {
+    window.open(url, '_blank');
+}
+
+async function deletePDF(filename) {
+    if (!confirm(`Are you sure you want to delete this PDF?\n\n${filename}`)) {
+        return;
+    }
+
+    const projectId = currentProjectId || currentStory?.id;
+    if (!projectId) {
+        showError('No project loaded');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/projects/${projectId}/pdf/${filename}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to delete PDF');
+        }
+
+        // Reload the PDFs list
+        await loadExistingPDFs();
+    } catch (error) {
+        showError(`Failed to delete PDF: ${error.message}`);
     }
 }
 
