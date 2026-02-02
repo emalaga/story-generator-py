@@ -4,6 +4,28 @@ let currentProjectId = null;  // Track project ID separately to avoid duplicates
 let currentConfig = null;
 let currentTab = 'projects';
 
+// ===== URL State Management =====
+function updateURL(projectId, tab) {
+    const params = new URLSearchParams();
+    if (projectId) {
+        params.set('project', projectId);
+    }
+    if (tab && tab !== 'projects') {
+        params.set('tab', tab);
+    }
+    const queryString = params.toString();
+    const newUrl = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname;
+    window.history.pushState({ projectId, tab }, '', newUrl);
+}
+
+function getURLState() {
+    const params = new URLSearchParams(window.location.search);
+    return {
+        projectId: params.get('project'),
+        tab: params.get('tab')
+    };
+}
+
 // ===== API Base URL =====
 const API_BASE = '/api';
 
@@ -35,6 +57,48 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupEventListeners();
     setupTabs();
     setupSettingsTab();
+
+    // Restore state from URL
+    const urlState = getURLState();
+    if (urlState.projectId) {
+        // Load the project from URL
+        await loadProject(urlState.projectId);
+        // Switch to the specified tab or default to text-generation
+        if (urlState.tab) {
+            switchTab(urlState.tab);
+        }
+    } else if (urlState.tab) {
+        // No project but tab specified
+        switchTab(urlState.tab);
+    }
+});
+
+// ===== Handle Browser Back/Forward =====
+window.addEventListener('popstate', async (event) => {
+    if (event.state) {
+        const { projectId, tab } = event.state;
+        if (projectId && projectId !== currentProjectId) {
+            await loadProject(projectId, false); // false = don't update URL
+        } else if (!projectId && currentProjectId) {
+            // Navigated back to no project
+            handleNewStory(false); // false = don't update URL
+        }
+        if (tab) {
+            switchTab(tab, false); // false = don't update URL
+        }
+    } else {
+        // No state, likely navigated back to initial page
+        const urlState = getURLState();
+        if (urlState.projectId) {
+            await loadProject(urlState.projectId, false);
+        }
+        if (urlState.tab) {
+            switchTab(urlState.tab, false);
+        } else if (!urlState.projectId) {
+            handleNewStory(false);
+            switchTab('projects', false);
+        }
+    }
 });
 
 // ===== Setup Tabs =====
@@ -48,7 +112,7 @@ function setupTabs() {
     });
 }
 
-function switchTab(tabName) {
+function switchTab(tabName, shouldUpdateUrl = true) {
     // Update buttons
     document.querySelectorAll('.tab-button').forEach(btn => {
         btn.classList.remove('active');
@@ -64,6 +128,11 @@ function switchTab(tabName) {
     document.getElementById(`${tabName}-tab`).classList.add('active');
 
     currentTab = tabName;
+
+    // Update URL to reflect current tab
+    if (shouldUpdateUrl) {
+        updateURL(currentProjectId, tabName);
+    }
 
     // Update tabs based on which one is selected
     if (tabName === 'characters') {
@@ -608,6 +677,9 @@ async function handleStoryGeneration(e) {
                 // Store the project ID for subsequent saves
                 // Use project_id from response, or fall back to story.id
                 currentProjectId = currentStory.project_id || currentStory.id;
+
+                // Update URL with the new project ID
+                updateURL(currentProjectId, currentTab);
 
                 // Debug logging
                 console.log('=== STORY GENERATED ===');
@@ -1580,6 +1652,9 @@ async function handleSaveProjectAs() {
         currentStory = duplicatedStory;
         currentProjectId = newProjectId;
 
+        // Update URL to reflect the new project
+        updateURL(currentProjectId, currentTab);
+
         // Update the displayed title
         displayStory(currentStory);
 
@@ -1591,14 +1666,14 @@ async function handleSaveProjectAs() {
 }
 
 // ===== Handle New Story =====
-function handleNewStory() {
+function handleNewStory(shouldUpdateUrl = true) {
     currentStory = null;
     currentProjectId = null;  // Clear project ID for new story
     storyDisplaySection.classList.add('hidden');
     noStoryPlaceholder.classList.remove('hidden');
     storyForm.reset();
     populateFormFields();
-    switchTab('text-generation');
+    switchTab('text-generation', shouldUpdateUrl);
 }
 
 // ===== Load Projects =====
@@ -1695,7 +1770,7 @@ function populateFormWithProject(story) {
 }
 
 // ===== Load Project =====
-async function loadProject(projectId) {
+async function loadProject(projectId, shouldUpdateUrl = true) {
     try {
         const response = await fetch(`${API_BASE}/projects/${projectId}`);
         if (!response.ok) throw new Error('Failed to load project');
@@ -1718,7 +1793,7 @@ async function loadProject(projectId) {
         populateFormWithProject(currentStory);
 
         displayStory(currentStory);
-        switchTab('text-generation');
+        switchTab('text-generation', shouldUpdateUrl);
 
         console.log('=== LOAD PROJECT DEBUG ===');
         console.log('Requested project ID:', projectId);
