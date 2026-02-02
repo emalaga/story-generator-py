@@ -188,6 +188,23 @@ header h1 {
     font-size: 1.5rem;
 }
 
+/* Section Header with Title and Button */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.section-header h2 {
+    margin-bottom: 0;
+}
+
+.section-header .btn-small {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
 /* ===== Placeholder Cards ===== */
 .placeholder-card {
     text-align: center;
@@ -323,15 +340,24 @@ header h1 {
 /* ===== Top Actions (Generate Button) ===== */
 .top-actions {
     margin-bottom: 20px;
+}
+
+.top-actions-row {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 20px;
+    justify-content: space-between;
+    gap: 16px;
     flex-wrap: wrap;
 }
 
-.top-actions .btn {
-    min-width: 200px;
+.action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.action-buttons .btn {
+    white-space: nowrap;
 }
 
 .model-selection {
