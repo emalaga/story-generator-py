@@ -2251,6 +2251,7 @@ function setupCharacterReferences() {
                     <div class="form-group-inline">
                         <label for="char-size-${index}">Size:</label>
                         <select id="char-size-${index}">
+                            <option value="512x512">512x512 (Square Small)</option>
                             <option value="1024x1024">1024x1024 (Square)</option>
                             <option value="1536x1024" selected>1536x1024 (Landscape)</option>
                             <option value="1024x1536">1024x1536 (Portrait)</option>
