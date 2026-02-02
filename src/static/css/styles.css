@@ -76,6 +76,76 @@ header h1 {
     border-bottom-color: var(--primary-color);
 }
 
+.tab-button.tab-icon {
+    padding: 12px 16px;
+    font-size: 1.2em;
+}
+
+/* ===== Settings Tab ===== */
+.settings-form {
+    max-width: 600px;
+}
+
+.settings-form .form-group {
+    margin-bottom: 24px;
+}
+
+.settings-form label {
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.settings-form select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: white;
+    font-size: 1em;
+}
+
+.settings-form select optgroup {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.settings-form .field-hint {
+    margin-top: 6px;
+    font-size: 0.85em;
+    color: var(--muted-text);
+}
+
+.settings-info {
+    background-color: var(--bg-light);
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.settings-info h4 {
+    margin-bottom: 12px;
+    color: var(--text-color);
+}
+
+.settings-info p {
+    margin: 6px 0;
+    font-size: 0.9em;
+}
+
+.save-status {
+    margin-left: 12px;
+    font-size: 0.9em;
+}
+
+.save-status.success {
+    color: var(--success-color);
+}
+
+.save-status.error {
+    color: var(--error-color);
+}
+
 .tab-content {
     display: none;
 }
@@ -1606,5 +1676,53 @@ select[disabled] {
 @media (max-width: 1024px) {
     .cover-page-content .image-page-content {
         grid-template-columns: 1fr;
+    }
+}
+
+/* ===== Metadata Styles ===== */
+.text-metadata {
+    background-color: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+}
+
+.image-metadata {
+    background-color: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.15);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.metadata-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-color);
+}
+
+.metadata-item strong {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .text-metadata,
+    .image-metadata {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
     }
 }

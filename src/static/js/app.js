@@ -1,5 +1,6 @@
 // ===== Global State =====
 let currentStory = null;
+let currentProjectId = null;  // Track project ID separately to avoid duplicates on save
 let currentConfig = null;
 let currentTab = 'projects';
 
@@ -32,6 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadProjects();
     setupEventListeners();
     setupTabs();
+    setupSettingsTab();
 });
 
 // ===== Setup Tabs =====
@@ -71,6 +73,8 @@ function switchTab(tabName) {
         updateImageGenerationTab();
     } else if (tabName === 'pdf-export') {
         updatePDFTab();
+    } else if (tabName === 'settings') {
+        updateSettingsTab();
     }
 }
 
@@ -113,6 +117,19 @@ function updateImageGenerationTab() {
     currentStory.pages.forEach(page => {
         const pageCard = document.createElement('div');
         pageCard.className = 'image-page-card';
+
+        // Build image metadata display
+        let imageMetadataHtml = '';
+        if (page.local_image_path || page.image_url) {
+            imageMetadataHtml = `
+                <div class="image-metadata">
+                    ${page.image_model ? `<span class="metadata-item"><strong>Model:</strong> ${page.image_model}</span>` : ''}
+                    ${page.image_generated_at ? `<span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(page.image_generated_at)}</span>` : ''}
+                    ${page.image_resolution ? `<span class="metadata-item"><strong>Resolution:</strong> ${page.image_resolution}</span>` : ''}
+                </div>
+            `;
+        }
+
         pageCard.innerHTML = `
             <h4>Page ${page.page_number}</h4>
             <div class="image-page-content">
@@ -120,6 +137,7 @@ function updateImageGenerationTab() {
                     <div id="page-${page.page_number}-image-preview">
                         ${(page.local_image_path || page.image_url)
                             ? `<img src="${getImageUrl(page.local_image_path, page.image_url)}" alt="Page ${page.page_number} illustration">
+                               ${imageMetadataHtml}
                                <div class="image-action-buttons">
                                    <button class="btn-small btn-delete-image" onclick="deletePageImage(${page.page_number})">Delete Image</button>
                                </div>`
@@ -520,7 +538,7 @@ async function handleStoryGeneration(e) {
     e.preventDefault();
 
     const formData = new FormData(storyForm);
-    const textModelSelect = document.getElementById('text-model');
+    const settings = loadSettings();
 
     const data = {
         title: formData.get('title'),
@@ -532,7 +550,7 @@ async function handleStoryGeneration(e) {
         words_per_page: parseInt(formData.get('words_per_page')) || 50,
         genre: formData.get('genre'),
         art_style: formData.get('art_style'),
-        text_model: textModelSelect ? textModelSelect.value : null,
+        text_model: settings.textModel,
     };
 
     // Add optional fields if provided
@@ -585,10 +603,14 @@ async function handleStoryGeneration(e) {
             if (statusData.status === 'completed') {
                 currentStory = statusData.result;
 
+                // Store the project ID for subsequent saves
+                // Use project_id from response, or fall back to story.id
+                currentProjectId = currentStory.project_id || currentStory.id;
+
                 // Debug logging
                 console.log('=== STORY GENERATED ===');
                 console.log('Story ID:', currentStory.id);
-                console.log('Project ID:', currentStory.project_id);
+                console.log('Project ID:', currentProjectId);
                 console.log('Characters:', currentStory.characters);
                 console.log('Number of characters:', (currentStory.characters || []).length);
 
@@ -619,6 +641,13 @@ function countWords(text) {
     return text.trim().split(/\s+/).length;
 }
 
+// ===== Format Metadata Timestamp =====
+function formatMetadataTimestamp(isoString) {
+    if (!isoString) return 'N/A';
+    const date = new Date(isoString);
+    return date.toLocaleString();
+}
+
 // ===== Display Story (Text Only) =====
 function displayStory(story) {
     // Hide placeholder, show story
@@ -627,7 +656,28 @@ function displayStory(story) {
 
     // Display pages (text only, editable) with drag-and-drop support
     const pagesDiv = document.getElementById('story-pages');
-    pagesDiv.innerHTML = '<h3>Story Pages <span class="drag-hint">(drag to reorder)</span></h3>';
+
+    // Build text metadata header
+    let metadataHtml = '';
+    if (story.text_model || story.text_generated_at) {
+        metadataHtml = `
+            <div class="text-metadata">
+                <span class="metadata-item">
+                    <strong>Model:</strong> ${story.text_model || 'Unknown'}
+                </span>
+                <span class="metadata-item">
+                    <strong>Generated:</strong> ${formatMetadataTimestamp(story.text_generated_at)}
+                </span>
+                ${story.text_edited_at ? `
+                <span class="metadata-item">
+                    <strong>Last Edited:</strong> ${formatMetadataTimestamp(story.text_edited_at)}
+                </span>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    pagesDiv.innerHTML = metadataHtml + '<h3>Story Pages <span class="drag-hint">(drag to reorder)</span></h3>';
 
     // Check if pages exist
     if (!story.pages || story.pages.length === 0) {
@@ -693,12 +743,18 @@ function savePageText(pageIndex) {
     // Update the page text in memory
     page.text = newText;
 
+    // Update text_edited_at timestamp
+    currentStory.text_edited_at = new Date().toISOString();
+
     // Update the word count display
     const wordCount = countWords(newText);
     const wordCountDiv = document.getElementById(`page-${pageIndex}-word-count`);
     if (wordCountDiv) {
         wordCountDiv.textContent = `${wordCount} word${wordCount !== 1 ? 's' : ''}`;
     }
+
+    // Refresh the metadata display
+    displayStory(currentStory);
 
     // Show success feedback
     alert('Page text saved! Switch to the Image Generation tab to create images.');
@@ -988,6 +1044,7 @@ async function generatePageImage(pageNumber) {
 
     try {
         console.log(`[generatePageImage] Starting for page ${pageNumber}`);
+        const settings = loadSettings();
         const requestData = {
             scene_description: page.text,
             character_profiles: currentStory.characters || [],
@@ -997,7 +1054,8 @@ async function generatePageImage(pageNumber) {
             art_bible: currentStory.art_bible || null,
             character_references: currentStory.character_references || null,
             size: size,
-            quality: detail
+            quality: detail,
+            image_model: settings.imageModel
         };
 
         // If user has edited the prompt, use it directly
@@ -1032,9 +1090,12 @@ async function generatePageImage(pageNumber) {
             console.log(`[generatePageImage] Session ID updated: ${result.session_id}`);
         }
 
-        // Update the page with the local image path (image is already saved by backend)
+        // Update the page with the local image path and metadata (image is already saved by backend)
         page.local_image_path = result.local_image_path;
-        console.log(`[generatePageImage] page.local_image_path updated`);
+        page.image_model = settings.imageModel;
+        page.image_generated_at = new Date().toISOString();
+        page.image_resolution = size;
+        console.log(`[generatePageImage] page.local_image_path and metadata updated`);
 
         // Also save the prompt that was used
         const promptTextareaForSave = document.getElementById(`page-${pageNumber}-prompt`);
@@ -1042,12 +1103,22 @@ async function generatePageImage(pageNumber) {
             page.image_prompt = promptTextareaForSave.value;
         }
 
+        // Build metadata display
+        const metadataHtml = `
+            <div class="image-metadata">
+                <span class="metadata-item"><strong>Model:</strong> ${page.image_model}</span>
+                <span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(page.image_generated_at)}</span>
+                <span class="metadata-item"><strong>Resolution:</strong> ${page.image_resolution}</span>
+            </div>
+        `;
+
         // Update the display using the local path
         const previewSection = document.getElementById(`page-${pageNumber}-image-preview`);
         console.log(`[generatePageImage] previewSection found: ${!!previewSection}`);
         if (previewSection) {
             previewSection.innerHTML = `
                 <img src="${getImageUrl(result.local_image_path, null)}" alt="Page ${pageNumber} illustration" onerror="console.error('Image failed to load for page ${pageNumber}')">
+                ${metadataHtml}
                 <div class="image-action-buttons">
                     <button class="btn-small btn-delete-image" onclick="deletePageImage(${pageNumber})">Delete Image</button>
                 </div>
@@ -1203,6 +1274,7 @@ async function generateCoverPageImage() {
     loadingDiv.classList.remove('hidden');
 
     try {
+        const settings = loadSettings();
         const requestData = {
             scene_description: 'Book cover',
             character_profiles: currentStory.characters || [],
@@ -1214,7 +1286,8 @@ async function generateCoverPageImage() {
             custom_prompt: customPrompt,
             size: size,
             quality: detail,
-            is_cover: true
+            is_cover: true,
+            image_model: settings.imageModel
         };
 
         const response = await fetch(`${API_BASE}/images/stories/${currentStory.id}/cover`, {
@@ -1237,17 +1310,30 @@ async function generateCoverPageImage() {
             currentStory.image_session_id = result.session_id;
         }
 
-        // Update cover page with image path
+        // Update cover page with image path and metadata
         if (!currentStory.cover_page) {
             currentStory.cover_page = {};
         }
         currentStory.cover_page.local_image_path = result.local_image_path;
         currentStory.cover_page.image_prompt = promptTextarea.value;
+        currentStory.cover_page.image_model = settings.imageModel;
+        currentStory.cover_page.image_generated_at = new Date().toISOString();
+        currentStory.cover_page.image_resolution = size;
+
+        // Build metadata display
+        const metadataHtml = `
+            <div class="image-metadata">
+                <span class="metadata-item"><strong>Model:</strong> ${currentStory.cover_page.image_model}</span>
+                <span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(currentStory.cover_page.image_generated_at)}</span>
+                <span class="metadata-item"><strong>Resolution:</strong> ${currentStory.cover_page.image_resolution}</span>
+            </div>
+        `;
 
         // Update the display
         const previewSection = document.getElementById('cover-page-image-preview');
         previewSection.innerHTML = `
             <img src="${getImageUrl(result.local_image_path, null)}" alt="Cover illustration">
+            ${metadataHtml}
             <div class="image-action-buttons">
                 <button class="btn-small btn-delete-image" onclick="deleteCoverPageImage(true)">Delete Image</button>
             </div>
@@ -1349,8 +1435,22 @@ function updateCoverPageDisplay() {
 
     // Show image if available
     if (currentStory.cover_page.local_image_path || currentStory.cover_page.image_url) {
+        // Build metadata display
+        let metadataHtml = '';
+        const cp = currentStory.cover_page;
+        if (cp.image_model || cp.image_generated_at || cp.image_resolution) {
+            metadataHtml = `
+                <div class="image-metadata">
+                    ${cp.image_model ? `<span class="metadata-item"><strong>Model:</strong> ${cp.image_model}</span>` : ''}
+                    ${cp.image_generated_at ? `<span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(cp.image_generated_at)}</span>` : ''}
+                    ${cp.image_resolution ? `<span class="metadata-item"><strong>Resolution:</strong> ${cp.image_resolution}</span>` : ''}
+                </div>
+            `;
+        }
+
         previewSection.innerHTML = `
             <img src="${getImageUrl(currentStory.cover_page.local_image_path, currentStory.cover_page.image_url)}" alt="Cover illustration">
+            ${metadataHtml}
             <div class="image-action-buttons">
                 <button class="btn-small btn-delete-image" onclick="deleteCoverPageImage(true)">Delete Image</button>
             </div>
@@ -1384,8 +1484,17 @@ async function handleSaveProject() {
         return;
     }
 
+    // Use currentProjectId if available (loaded project), otherwise use story.id (new story)
+    const projectId = currentProjectId || currentStory.id;
+
+    // Debug logging to trace duplicate project issue
+    console.log('=== SAVE PROJECT DEBUG ===');
+    console.log('currentProjectId:', currentProjectId);
+    console.log('currentStory.id:', currentStory.id);
+    console.log('Using projectId:', projectId);
+
     const projectData = {
-        id: currentStory.id,
+        id: projectId,
         name: currentStory.metadata.title,
         story: currentStory,
         status: 'completed',
@@ -1407,6 +1516,10 @@ async function handleSaveProject() {
             throw new Error(error.error || 'Failed to save project');
         }
 
+        // Ensure currentProjectId is set for subsequent saves
+        currentProjectId = projectId;
+        console.log('Save successful, currentProjectId set to:', currentProjectId);
+
         alert('Project saved successfully!');
         await loadProjects();
     } catch (error) {
@@ -1417,6 +1530,7 @@ async function handleSaveProject() {
 // ===== Handle New Story =====
 function handleNewStory() {
     currentStory = null;
+    currentProjectId = null;  // Clear project ID for new story
     storyDisplaySection.classList.add('hidden');
     noStoryPlaceholder.classList.remove('hidden');
     storyForm.reset();
@@ -1526,6 +1640,10 @@ async function loadProject(projectId) {
         const project = await response.json();
         currentStory = project.story;
 
+        // Store the project ID separately to ensure we update the correct project on save
+        // This prevents creating duplicates if story.id differs from project.id
+        currentProjectId = project.id;
+
         // Don't reset visual consistency - we want to keep saved art_bible and character_references
         // Clear the image_session_id since the session is no longer valid
         // (sessions don't persist across server restarts)
@@ -1539,7 +1657,12 @@ async function loadProject(projectId) {
         displayStory(currentStory);
         switchTab('text-generation');
 
-        console.log('Project loaded:', projectId);
+        console.log('=== LOAD PROJECT DEBUG ===');
+        console.log('Requested project ID:', projectId);
+        console.log('Response project.id:', project.id);
+        console.log('Response project.story.id:', project.story.id);
+        console.log('currentProjectId set to:', currentProjectId);
+        console.log('currentStory.id:', currentStory.id);
         console.log('Art Bible:', currentStory.art_bible);
         console.log('Character References:', currentStory.character_references);
 
@@ -1703,8 +1826,22 @@ function setupArtBibleSection() {
         if (artBible.local_image_path || artBible.image_url) {
             const previewDiv = document.getElementById('art-bible-preview');
             previewDiv.classList.remove('hidden');
+
+            // Build metadata display
+            let metadataHtml = '';
+            if (artBible.image_model || artBible.image_generated_at || artBible.image_resolution) {
+                metadataHtml = `
+                    <div class="image-metadata">
+                        ${artBible.image_model ? `<span class="metadata-item"><strong>Model:</strong> ${artBible.image_model}</span>` : ''}
+                        ${artBible.image_generated_at ? `<span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(artBible.image_generated_at)}</span>` : ''}
+                        ${artBible.image_resolution ? `<span class="metadata-item"><strong>Resolution:</strong> ${artBible.image_resolution}</span>` : ''}
+                    </div>
+                `;
+            }
+
             previewDiv.innerHTML = `
                 <img src="${getImageUrl(artBible.local_image_path, artBible.image_url)}" alt="Art Bible Reference">
+                ${metadataHtml}
                 <div class="image-action-buttons">
                     <button class="btn-small btn-delete-image" onclick="deleteArtBibleImage()">Delete Image</button>
                 </div>
@@ -1798,6 +1935,7 @@ function setupArtBibleSection() {
         loadingDiv.classList.remove('hidden');
 
         try {
+            const settings = loadSettings();
             const response = await fetch(`${API_BASE}/visual-consistency/art-bible/generate-image`, {
                 method: 'POST',
                 headers: {
@@ -1809,7 +1947,8 @@ function setupArtBibleSection() {
                     story_id: currentStory.id,
                     story_title: currentStory.metadata.title || '',
                     size: size,
-                    quality: detail
+                    quality: detail,
+                    image_model: settings.imageModel
                 }),
             });
 
@@ -1820,23 +1959,36 @@ function setupArtBibleSection() {
 
             const result = await response.json();
 
-            // Update art bible with local image path (image is already saved by backend)
+            // Update art bible with local image path and metadata (image is already saved by backend)
             if (!currentStory.art_bible) {
                 currentStory.art_bible = {};
             }
             currentStory.art_bible.local_image_path = result.local_image_path;
             currentStory.art_bible.prompt = prompt;
+            currentStory.art_bible.image_model = settings.imageModel;
+            currentStory.art_bible.image_generated_at = new Date().toISOString();
+            currentStory.art_bible.image_resolution = size;
 
             // Store session ID for conversation continuity
             if (result.session_id) {
                 currentStory.image_session_id = result.session_id;
             }
 
+            // Build metadata display
+            const metadataHtml = `
+                <div class="image-metadata">
+                    <span class="metadata-item"><strong>Model:</strong> ${settings.imageModel}</span>
+                    <span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(currentStory.art_bible.image_generated_at)}</span>
+                    <span class="metadata-item"><strong>Resolution:</strong> ${size}</span>
+                </div>
+            `;
+
             // Display art bible image using the local path
             const previewDiv = document.getElementById('art-bible-preview');
             previewDiv.classList.remove('hidden');
             previewDiv.innerHTML = `
                 <img src="${getImageUrl(result.local_image_path, null)}" alt="Art Bible Reference">
+                ${metadataHtml}
                 <div class="image-action-buttons">
                     <button class="btn-small btn-delete-image" onclick="deleteArtBibleImage()">Delete Image</button>
                 </div>
@@ -1989,6 +2141,13 @@ function setupCharacterReferences() {
             <div id="char-preview-${index}" class="character-ref-preview ${existingRef && (existingRef.local_image_path || existingRef.image_url) ? '' : 'hidden'}">
                 ${existingRef && (existingRef.local_image_path || existingRef.image_url) ? `
                     <img src="${getImageUrl(existingRef.local_image_path, existingRef.image_url)}" alt="${character.name} Reference">
+                    ${(existingRef.image_model || existingRef.image_generated_at || existingRef.image_resolution) ? `
+                        <div class="image-metadata">
+                            ${existingRef.image_model ? `<span class="metadata-item"><strong>Model:</strong> ${existingRef.image_model}</span>` : ''}
+                            ${existingRef.image_generated_at ? `<span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(existingRef.image_generated_at)}</span>` : ''}
+                            ${existingRef.image_resolution ? `<span class="metadata-item"><strong>Resolution:</strong> ${existingRef.image_resolution}</span>` : ''}
+                        </div>
+                    ` : ''}
                     <div class="image-action-buttons">
                         <button class="btn-small btn-delete-image" onclick="deleteCharacterImage(${index})">Delete Image</button>
                     </div>
@@ -2123,13 +2282,15 @@ async function generateCharacterImage(charIndex) {
 
     try {
         // Prepare request body - conversation session maintains art bible context
+        const settings = loadSettings();
         const requestBody = {
             prompt: prompt,
             character_name: character.name,
             story_id: currentStory.id,
             include_turnaround: true,
             size: size,
-            quality: detail
+            quality: detail,
+            image_model: settings.imageModel
         };
 
         const response = await fetch(`${API_BASE}/visual-consistency/character-reference/generate-image`, {
@@ -2152,26 +2313,46 @@ async function generateCharacterImage(charIndex) {
             currentStory.image_session_id = result.session_id;
         }
 
-        // Update character reference with local image path (image is already saved by backend)
+        // Update character reference with local image path and metadata (image is already saved by backend)
         const existingIndex = currentStory.character_references.findIndex(
             ref => ref.character_name === character.name
         );
 
+        const imageMetadata = {
+            image_model: settings.imageModel,
+            image_generated_at: new Date().toISOString(),
+            image_resolution: size
+        };
+
         if (existingIndex >= 0) {
             currentStory.character_references[existingIndex].local_image_path = result.local_image_path;
+            currentStory.character_references[existingIndex].image_model = imageMetadata.image_model;
+            currentStory.character_references[existingIndex].image_generated_at = imageMetadata.image_generated_at;
+            currentStory.character_references[existingIndex].image_resolution = imageMetadata.image_resolution;
         } else {
             currentStory.character_references.push({
                 character_name: character.name,
                 prompt: prompt,
-                local_image_path: result.local_image_path
+                local_image_path: result.local_image_path,
+                ...imageMetadata
             });
         }
+
+        // Build metadata display
+        const metadataHtml = `
+            <div class="image-metadata">
+                <span class="metadata-item"><strong>Model:</strong> ${imageMetadata.image_model}</span>
+                <span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(imageMetadata.image_generated_at)}</span>
+                <span class="metadata-item"><strong>Resolution:</strong> ${imageMetadata.image_resolution}</span>
+            </div>
+        `;
 
         // Display character reference image using the local path
         const previewDiv = document.getElementById(`char-preview-${charIndex}`);
         previewDiv.classList.remove('hidden');
         previewDiv.innerHTML = `
             <img src="${getImageUrl(result.local_image_path, null)}" alt="${character.name} Reference">
+            ${metadataHtml}
             <div class="image-action-buttons">
                 <button class="btn-small btn-delete-image" onclick="deleteCharacterImage(${charIndex})">Delete Image</button>
             </div>
@@ -2280,8 +2461,17 @@ function setupCharacterRefFileInput() {
 async function autoSaveProject() {
     if (!currentStory) return;
 
+    // Use currentProjectId if available (loaded project), otherwise use story.id (new story)
+    const projectId = currentProjectId || currentStory.id;
+
+    // Debug logging
+    console.log('=== AUTO-SAVE DEBUG ===');
+    console.log('currentProjectId:', currentProjectId);
+    console.log('currentStory.id:', currentStory.id);
+    console.log('Using projectId:', projectId);
+
     const projectData = {
-        id: currentStory.id,
+        id: projectId,
         name: currentStory.metadata.title,
         story: currentStory,
         status: 'completed',
@@ -2302,7 +2492,7 @@ async function autoSaveProject() {
             const error = await response.json();
             console.warn('Auto-save warning:', error.error);
         } else {
-            console.log('Project auto-saved successfully');
+            console.log('Project auto-saved successfully with ID:', projectId);
         }
     } catch (error) {
         console.warn('Auto-save warning:', error.message);
@@ -2935,5 +3125,127 @@ async function generatePDF() {
         showError(`Failed to generate PDF: ${error.message}`);
     } finally {
         loadingDiv.classList.add('hidden');
+    }
+}
+
+// ===== Settings Tab =====
+const SETTINGS_KEY = 'story-generator-settings';
+
+// Default settings
+const defaultSettings = {
+    textModel: 'openai:gpt-4o',
+    imageModel: 'gpt-image-1'
+};
+
+// Load settings from localStorage
+function loadSettings() {
+    try {
+        const saved = localStorage.getItem(SETTINGS_KEY);
+        if (saved) {
+            return { ...defaultSettings, ...JSON.parse(saved) };
+        }
+    } catch (e) {
+        console.error('Failed to load settings:', e);
+    }
+    return defaultSettings;
+}
+
+// Save settings to localStorage
+function saveSettings(settings) {
+    try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+        return true;
+    } catch (e) {
+        console.error('Failed to save settings:', e);
+        return false;
+    }
+}
+
+// Get current settings (for use by other functions)
+function getCurrentSettings() {
+    return loadSettings();
+}
+
+// Update settings tab UI
+function updateSettingsTab() {
+    const settings = loadSettings();
+
+    // Set dropdown values
+    const textModelSelect = document.getElementById('text-model-select');
+    const imageModelSelect = document.getElementById('image-model-select');
+
+    if (textModelSelect) {
+        textModelSelect.value = settings.textModel;
+    }
+
+    if (imageModelSelect) {
+        imageModelSelect.value = settings.imageModel;
+    }
+
+    // Update current config display
+    updateCurrentConfigDisplay();
+}
+
+// Update the current configuration display
+async function updateCurrentConfigDisplay() {
+    try {
+        const response = await fetch(`${API_BASE}/config/ai-providers`);
+        const config = await response.json();
+
+        const textProviderSpan = document.getElementById('current-text-provider');
+        const imageProviderSpan = document.getElementById('current-image-provider');
+
+        if (textProviderSpan) {
+            let textInfo = config.text_provider || 'Unknown';
+            if (config.openai && config.text_provider === 'openai') {
+                textInfo += ` (${config.openai.text_model})`;
+            } else if (config.ollama && config.text_provider === 'ollama') {
+                textInfo += ` (${config.ollama.model})`;
+            }
+            textProviderSpan.textContent = textInfo;
+        }
+
+        if (imageProviderSpan) {
+            let imageInfo = config.image_provider || 'Unknown';
+            if (config.openai) {
+                imageInfo += ` (${config.openai.image_model})`;
+            }
+            imageProviderSpan.textContent = imageInfo;
+        }
+    } catch (e) {
+        console.error('Failed to load AI provider config:', e);
+    }
+}
+
+// Setup settings event handlers
+function setupSettingsTab() {
+    const saveBtn = document.getElementById('save-settings-btn');
+    const statusSpan = document.getElementById('settings-save-status');
+
+    if (saveBtn) {
+        saveBtn.onclick = () => {
+            const textModelSelect = document.getElementById('text-model-select');
+            const imageModelSelect = document.getElementById('image-model-select');
+
+            const settings = {
+                textModel: textModelSelect ? textModelSelect.value : defaultSettings.textModel,
+                imageModel: imageModelSelect ? imageModelSelect.value : defaultSettings.imageModel
+            };
+
+            if (saveSettings(settings)) {
+                if (statusSpan) {
+                    statusSpan.textContent = 'Settings saved!';
+                    statusSpan.className = 'save-status success';
+                    setTimeout(() => {
+                        statusSpan.textContent = '';
+                    }, 3000);
+                }
+            } else {
+                if (statusSpan) {
+                    statusSpan.textContent = 'Failed to save settings';
+                    statusSpan.className = 'save-status error';
+                }
+            }
+        };
     }
 }

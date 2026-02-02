@@ -130,6 +130,10 @@ def create_story():
             custom_prompt=custom_prompt
         ))
 
+        # Add text generation metadata
+        story.text_model = text_model or 'default'
+        story.text_generated_at = datetime.now()
+
         # Debug logging
         print(f"[STORY ROUTES] Story generated: ID={story.id}")
         print(f"[STORY ROUTES] Pages: {len(story.pages)}")
@@ -265,6 +269,10 @@ def _run_story_generation_in_background(task_id, app, data, app_config, defaults
                 theme=theme,
                 custom_prompt=custom_prompt
             ))
+
+            # Add text generation metadata
+            story.text_model = text_model or 'default'
+            story.text_generated_at = datetime.now()
 
             print(f"[STORY ROUTES ASYNC] Story generated: ID={story.id}")
             print(f"[STORY ROUTES ASYNC] Pages: {len(story.pages)}")

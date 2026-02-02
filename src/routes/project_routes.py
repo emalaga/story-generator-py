@@ -105,7 +105,10 @@ def create_project():
                 text=page_data.get('text', ''),
                 image_url=page_data.get('image_url'),
                 image_prompt=page_data.get('image_prompt'),
-                local_image_path=page_data.get('local_image_path')
+                local_image_path=page_data.get('local_image_path'),
+                image_model=page_data.get('image_model'),
+                image_generated_at=datetime.fromisoformat(page_data['image_generated_at']) if page_data.get('image_generated_at') else None,
+                image_resolution=page_data.get('image_resolution')
             )
             pages.append(page)
 
@@ -134,7 +137,10 @@ def create_project():
                 style_notes=art_bible_data.get('style_notes'),
                 color_palette=art_bible_data.get('color_palette'),
                 lighting_style=art_bible_data.get('lighting_style'),
-                brush_technique=art_bible_data.get('brush_technique')
+                brush_technique=art_bible_data.get('brush_technique'),
+                image_model=art_bible_data.get('image_model'),
+                image_generated_at=datetime.fromisoformat(art_bible_data['image_generated_at']) if art_bible_data.get('image_generated_at') else None,
+                image_resolution=art_bible_data.get('image_resolution')
             )
 
         # Parse character references if present
@@ -148,7 +154,10 @@ def create_project():
                 species=char_ref_data.get('species'),
                 physical_description=char_ref_data.get('physical_description'),
                 clothing=char_ref_data.get('clothing'),
-                distinctive_features=char_ref_data.get('distinctive_features')
+                distinctive_features=char_ref_data.get('distinctive_features'),
+                image_model=char_ref_data.get('image_model'),
+                image_generated_at=datetime.fromisoformat(char_ref_data['image_generated_at']) if char_ref_data.get('image_generated_at') else None,
+                image_resolution=char_ref_data.get('image_resolution')
             )
             character_references.append(char_ref)
 
@@ -174,7 +183,10 @@ def create_project():
             cover_page = CoverPage(
                 image_prompt=cover_page_data.get('image_prompt'),
                 image_url=cover_page_data.get('image_url'),
-                local_image_path=cover_page_data.get('local_image_path')
+                local_image_path=cover_page_data.get('local_image_path'),
+                image_model=cover_page_data.get('image_model'),
+                image_generated_at=datetime.fromisoformat(cover_page_data['image_generated_at']) if cover_page_data.get('image_generated_at') else None,
+                image_resolution=cover_page_data.get('image_resolution')
             )
 
         # Create Story object
@@ -188,7 +200,10 @@ def create_project():
             cover_page=cover_page,
             image_session_id=story_data.get('image_session_id'),
             pdf_options=pdf_options,
-            vocabulary=story_data.get('vocabulary', [])
+            vocabulary=story_data.get('vocabulary', []),
+            text_model=story_data.get('text_model'),
+            text_generated_at=datetime.fromisoformat(story_data['text_generated_at']) if story_data.get('text_generated_at') else None,
+            text_edited_at=datetime.fromisoformat(story_data['text_edited_at']) if story_data.get('text_edited_at') else None
         )
 
         # Parse character profiles (if different from story characters)
@@ -291,7 +306,10 @@ def get_project(project_id):
                         'text': page.text,
                         'image_url': page.image_url,
                         'image_prompt': page.image_prompt,
-                        'local_image_path': page.local_image_path
+                        'local_image_path': page.local_image_path,
+                        'image_model': page.image_model,
+                        'image_generated_at': page.image_generated_at.isoformat() if page.image_generated_at else None,
+                        'image_resolution': page.image_resolution
                     }
                     for page in project.story.pages
                 ],
@@ -314,7 +332,10 @@ def get_project(project_id):
                     'style_notes': project.story.art_bible.style_notes,
                     'color_palette': project.story.art_bible.color_palette,
                     'lighting_style': project.story.art_bible.lighting_style,
-                    'brush_technique': project.story.art_bible.brush_technique
+                    'brush_technique': project.story.art_bible.brush_technique,
+                    'image_model': project.story.art_bible.image_model,
+                    'image_generated_at': project.story.art_bible.image_generated_at.isoformat() if project.story.art_bible.image_generated_at else None,
+                    'image_resolution': project.story.art_bible.image_resolution
                 } if project.story.art_bible else None,
                 'character_references': [
                     {
@@ -325,14 +346,20 @@ def get_project(project_id):
                         'species': char_ref.species,
                         'physical_description': char_ref.physical_description,
                         'clothing': char_ref.clothing,
-                        'distinctive_features': char_ref.distinctive_features
+                        'distinctive_features': char_ref.distinctive_features,
+                        'image_model': char_ref.image_model,
+                        'image_generated_at': char_ref.image_generated_at.isoformat() if char_ref.image_generated_at else None,
+                        'image_resolution': char_ref.image_resolution
                     }
                     for char_ref in (project.story.character_references or [])
                 ],
                 'cover_page': {
                     'image_prompt': project.story.cover_page.image_prompt,
                     'image_url': project.story.cover_page.image_url,
-                    'local_image_path': project.story.cover_page.local_image_path
+                    'local_image_path': project.story.cover_page.local_image_path,
+                    'image_model': project.story.cover_page.image_model,
+                    'image_generated_at': project.story.cover_page.image_generated_at.isoformat() if project.story.cover_page.image_generated_at else None,
+                    'image_resolution': project.story.cover_page.image_resolution
                 } if project.story.cover_page else None,
                 'image_session_id': project.story.image_session_id,
                 'pdf_options': {
@@ -346,6 +373,9 @@ def get_project(project_id):
                     'show_page_numbers': project.story.pdf_options.show_page_numbers
                 } if project.story.pdf_options else None,
                 'vocabulary': project.story.vocabulary,
+                'text_model': project.story.text_model,
+                'text_generated_at': project.story.text_generated_at.isoformat() if project.story.text_generated_at else None,
+                'text_edited_at': project.story.text_edited_at.isoformat() if project.story.text_edited_at else None,
                 'created_at': project.story.created_at.isoformat(),
                 'updated_at': project.story.updated_at.isoformat()
             },

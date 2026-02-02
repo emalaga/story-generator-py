@@ -219,16 +219,56 @@ class ProjectRepository:
 
     def _serialize_story(self, story: Story) -> dict:
         """Serialize a Story to a dictionary."""
+        # Helper to serialize datetime fields
+        def serialize_datetime(dt):
+            return dt.isoformat() if isinstance(dt, datetime) else dt
+
+        # Serialize pages with proper datetime handling
+        pages = []
+        for page in story.pages:
+            page_dict = asdict(page)
+            if page_dict.get('image_generated_at'):
+                page_dict['image_generated_at'] = serialize_datetime(page_dict['image_generated_at'])
+            pages.append(page_dict)
+
+        # Serialize art_bible with proper datetime handling
+        art_bible_dict = None
+        if story.art_bible:
+            art_bible_dict = asdict(story.art_bible)
+            if art_bible_dict.get('image_generated_at'):
+                art_bible_dict['image_generated_at'] = serialize_datetime(art_bible_dict['image_generated_at'])
+
+        # Serialize character_references with proper datetime handling
+        character_refs = None
+        if story.character_references:
+            character_refs = []
+            for char_ref in story.character_references:
+                char_ref_dict = asdict(char_ref)
+                if char_ref_dict.get('image_generated_at'):
+                    char_ref_dict['image_generated_at'] = serialize_datetime(char_ref_dict['image_generated_at'])
+                character_refs.append(char_ref_dict)
+
+        # Serialize cover_page with proper datetime handling
+        cover_page_dict = None
+        if story.cover_page:
+            cover_page_dict = asdict(story.cover_page)
+            if cover_page_dict.get('image_generated_at'):
+                cover_page_dict['image_generated_at'] = serialize_datetime(cover_page_dict['image_generated_at'])
+
         return {
             'id': story.id,
             'metadata': asdict(story.metadata),
-            'pages': [asdict(page) for page in story.pages],
+            'pages': pages,
             'vocabulary': story.vocabulary,
             'characters': [asdict(char) for char in story.characters] if story.characters else None,
-            'art_bible': asdict(story.art_bible) if story.art_bible else None,
-            'character_references': [asdict(char_ref) for char_ref in story.character_references] if story.character_references else None,
-            'cover_page': asdict(story.cover_page) if story.cover_page else None,
+            'art_bible': art_bible_dict,
+            'character_references': character_refs,
+            'cover_page': cover_page_dict,
             'pdf_options': asdict(story.pdf_options) if story.pdf_options else None,
+            'image_session_id': story.image_session_id,
+            'text_model': story.text_model,
+            'text_generated_at': serialize_datetime(story.text_generated_at) if story.text_generated_at else None,
+            'text_edited_at': serialize_datetime(story.text_edited_at) if story.text_edited_at else None,
             'created_at': story.created_at.isoformat(),
             'updated_at': story.updated_at.isoformat()
         }
@@ -280,11 +320,23 @@ class ProjectRepository:
 
     def _deserialize_story(self, data: dict) -> Story:
         """Deserialize a Story from a dictionary."""
+        # Helper to parse datetime from ISO string
+        def parse_datetime(value):
+            if value is None:
+                return None
+            if isinstance(value, datetime):
+                return value
+            return datetime.fromisoformat(value)
+
         metadata = StoryMetadata(**data['metadata'])
 
-        pages = [
-            StoryPage(**page_data) for page_data in data['pages']
-        ]
+        # Deserialize pages with proper datetime handling
+        pages = []
+        for page_data in data['pages']:
+            page_data = dict(page_data)  # Make a copy to avoid modifying original
+            if 'image_generated_at' in page_data:
+                page_data['image_generated_at'] = parse_datetime(page_data['image_generated_at'])
+            pages.append(StoryPage(**page_data))
 
         characters = None
         if data.get('characters') is not None:
@@ -292,35 +344,50 @@ class ProjectRepository:
                 CharacterProfile(**char_data) for char_data in data['characters']
             ]
 
+        # Deserialize art_bible with proper datetime handling
         art_bible = None
         if data.get('art_bible') is not None:
-            art_bible = ArtBible(**data['art_bible'])
+            art_bible_data = dict(data['art_bible'])
+            if 'image_generated_at' in art_bible_data:
+                art_bible_data['image_generated_at'] = parse_datetime(art_bible_data['image_generated_at'])
+            art_bible = ArtBible(**art_bible_data)
 
+        # Deserialize character_references with proper datetime handling
         character_references = None
         if data.get('character_references') is not None:
-            character_references = [
-                CharacterReference(**char_ref_data)
-                for char_ref_data in data['character_references']
-            ]
+            character_references = []
+            for char_ref_data in data['character_references']:
+                char_ref_data = dict(char_ref_data)
+                if 'image_generated_at' in char_ref_data:
+                    char_ref_data['image_generated_at'] = parse_datetime(char_ref_data['image_generated_at'])
+                character_references.append(CharacterReference(**char_ref_data))
 
         pdf_options = None
         if data.get('pdf_options') is not None:
             pdf_options = PDFOptions(**data['pdf_options'])
 
+        # Deserialize cover_page with proper datetime handling
         cover_page = None
         if data.get('cover_page') is not None:
-            cover_page = CoverPage(**data['cover_page'])
+            cover_page_data = dict(data['cover_page'])
+            if 'image_generated_at' in cover_page_data:
+                cover_page_data['image_generated_at'] = parse_datetime(cover_page_data['image_generated_at'])
+            cover_page = CoverPage(**cover_page_data)
 
         return Story(
             id=data['id'],
             metadata=metadata,
             pages=pages,
-            vocabulary=data['vocabulary'],
+            vocabulary=data.get('vocabulary', []),
             characters=characters,
             art_bible=art_bible,
             character_references=character_references,
             cover_page=cover_page,
             pdf_options=pdf_options,
+            image_session_id=data.get('image_session_id'),
+            text_model=data.get('text_model'),
+            text_generated_at=parse_datetime(data.get('text_generated_at')),
+            text_edited_at=parse_datetime(data.get('text_edited_at')),
             created_at=datetime.fromisoformat(data['created_at']),
             updated_at=datetime.fromisoformat(data['updated_at'])
         )

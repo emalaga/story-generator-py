@@ -20,6 +20,7 @@
             <button class="tab-button" data-tab="visual-consistency">Visual Consistency</button>
             <button class="tab-button" data-tab="image-generation">Image Generation</button>
             <button class="tab-button" data-tab="pdf-export">PDF Export</button>
+            <button class="tab-button tab-icon" data-tab="settings" title="Settings">&#9881;</button>
         </div>
 
         <main>
@@ -779,6 +780,60 @@
                                 Download PDF
                             </a>
                         </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- SETTINGS TAB -->
+            <div id="settings-tab" class="tab-content">
+                <section class="card">
+                    <h2>Settings</h2>
+                    <p class="section-description">Configure AI models for text and image generation.</p>
+
+                    <div class="settings-form">
+                        <div class="form-group">
+                            <label for="text-model-select">Text Generation Model</label>
+                            <select id="text-model-select">
+                                <optgroup label="OpenAI">
+                                    <option value="openai:gpt-4o">GPT-4o (Recommended)</option>
+                                    <option value="openai:gpt-4o-mini">GPT-4o Mini (Faster)</option>
+                                    <option value="openai:gpt-4-turbo">GPT-4 Turbo</option>
+                                    <option value="openai:gpt-4">GPT-4</option>
+                                    <option value="openai:gpt-3.5-turbo">GPT-3.5 Turbo (Fastest)</option>
+                                </optgroup>
+                                <optgroup label="Ollama (Local)">
+                                    <option value="ollama:llama3.2">Llama 3.2</option>
+                                    <option value="ollama:llama3.1">Llama 3.1</option>
+                                    <option value="ollama:mistral">Mistral</option>
+                                    <option value="ollama:mixtral">Mixtral</option>
+                                    <option value="ollama:granite4:small-h">Granite 4 Small-H</option>
+                                    <option value="ollama:qwen2.5">Qwen 2.5</option>
+                                </optgroup>
+                            </select>
+                            <p class="field-hint">The AI model used to generate story text.</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="image-model-select">Image Generation Model</label>
+                            <select id="image-model-select">
+                                <option value="gpt-image-1">GPT Image 1</option>
+                                <option value="gpt-image-1-mini">GPT Image 1 Mini (Faster)</option>
+                            </select>
+                            <p class="field-hint">The AI model used to generate images.</p>
+                        </div>
+
+                        <div class="settings-info">
+                            <h4>Current Configuration</h4>
+                            <div id="settings-current-config">
+                                <p><strong>Text Provider:</strong> <span id="current-text-provider">Loading...</span></p>
+                                <p><strong>Image Provider:</strong> <span id="current-image-provider">Loading...</span></p>
+                            </div>
+                        </div>
+
+                        <button id="save-settings-btn" class="btn btn-primary">
+                            Save Settings
+                        </button>
+                        <span id="settings-save-status" class="save-status"></span>
                     </div>
                 </section>
             </div>

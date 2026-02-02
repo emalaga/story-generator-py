@@ -6,6 +6,7 @@ brush techniques that should be used consistently throughout the story.
 """
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Optional
 
 
@@ -42,6 +43,11 @@ class ArtBible:
     # Brush/texture description
     brush_technique: Optional[str] = None
 
+    # Image generation metadata
+    image_model: Optional[str] = None
+    image_generated_at: Optional[datetime] = None
+    image_resolution: Optional[str] = None
+
 
 @dataclass
 class CharacterReference:
@@ -75,3 +81,8 @@ class CharacterReference:
 
     # Distinctive features (from character profile)
     distinctive_features: Optional[str] = None
+
+    # Image generation metadata
+    image_model: Optional[str] = None
+    image_generated_at: Optional[datetime] = None
+    image_resolution: Optional[str] = None

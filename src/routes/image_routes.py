@@ -8,6 +8,7 @@ import asyncio
 import base64
 import time
 import httpx
+from datetime import datetime
 from pathlib import Path
 from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from werkzeug.exceptions import BadRequest
@@ -310,22 +311,26 @@ def generate_image_for_page(story_id, page_num):
         local_path = run_async(save_image_to_disk(image_url, story_id, 'page', filename))
         current_app.logger.info(f"  Page image saved to: {local_path}")
 
-        # Update the project file with the new image path
+        # Update the project file with the new image path and metadata
         try:
             project_repo = current_app.config['REPOSITORIES']['project']
             project = project_repo.get(story_id)
             if project and project.story and project.story.pages:
-                # Find the page and update its image path
+                # Find the page and update its image path and metadata
                 for page in project.story.pages:
                     if page.page_number == page_num:
                         page.local_image_path = local_path
                         # Also save the prompt if we have a custom one
                         if custom_prompt:
                             page.image_prompt = custom_prompt
+                        # Save image generation metadata
+                        page.image_model = data.get('image_model', 'gpt-image-1')
+                        page.image_generated_at = datetime.now()
+                        page.image_resolution = image_size
                         break
                 project.story.image_session_id = new_session_id
                 project_repo.save(project)
-                current_app.logger.info(f"  Project updated with page image path")
+                current_app.logger.info(f"  Project updated with page image path and metadata")
         except Exception as e:
             current_app.logger.warning(f"  Failed to update project with page image: {e}")
 
@@ -488,7 +493,7 @@ def generate_cover_image(story_id):
         local_path = run_async(save_image_to_disk(image_url, story_id, 'page', filename))
         current_app.logger.info(f"  Cover image saved to: {local_path}")
 
-        # Update the project file with the new cover image path
+        # Update the project file with the new cover image path and metadata
         try:
             from src.models.story import CoverPage
             project_repo = current_app.config['REPOSITORIES']['project']
@@ -499,9 +504,13 @@ def generate_cover_image(story_id):
                     project.story.cover_page = CoverPage()
                 project.story.cover_page.local_image_path = local_path
                 project.story.cover_page.image_prompt = custom_prompt
+                # Save image generation metadata
+                project.story.cover_page.image_model = data.get('image_model', 'gpt-image-1')
+                project.story.cover_page.image_generated_at = datetime.now()
+                project.story.cover_page.image_resolution = image_size
                 project.story.image_session_id = new_session_id
                 project_repo.save(project)
-                current_app.logger.info(f"  Project updated with cover image path")
+                current_app.logger.info(f"  Project updated with cover image path and metadata")
         except Exception as e:
             current_app.logger.warning(f"  Failed to update project with cover image: {e}")
 

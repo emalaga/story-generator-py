@@ -9,6 +9,7 @@ import asyncio
 import base64
 import time
 import httpx
+from datetime import datetime
 from flask import Blueprint, request, jsonify, current_app
 from werkzeug.exceptions import BadRequest
 
@@ -234,7 +235,7 @@ def generate_art_bible_image():
         local_path = run_async(save_image_to_disk(image_url, story_id, 'art_bible', filename))
         current_app.logger.info(f"Art bible image saved to: {local_path}")
 
-        # Update the project file with the new image path
+        # Update the project file with the new image path and metadata
         try:
             project_repo = current_app.config['REPOSITORIES']['project']
             project = project_repo.get(story_id)
@@ -244,9 +245,13 @@ def generate_art_bible_image():
                     project.story.art_bible = ArtBible(prompt=prompt, art_style=art_style)
                 project.story.art_bible.local_image_path = local_path
                 project.story.art_bible.prompt = prompt
+                # Save image generation metadata
+                project.story.art_bible.image_model = data.get('image_model', 'gpt-image-1')
+                project.story.art_bible.image_generated_at = datetime.now()
+                project.story.art_bible.image_resolution = size
                 project.story.image_session_id = session_id
                 project_repo.save(project)
-                current_app.logger.info(f"Project updated with art bible image path")
+                current_app.logger.info(f"Project updated with art bible image path and metadata")
         except Exception as e:
             current_app.logger.warning(f"Failed to update project with art bible: {e}")
 
@@ -440,7 +445,7 @@ def generate_character_reference_image():
         local_path = run_async(save_image_to_disk(image_url, story_id, 'character', filename))
         current_app.logger.info(f"Character reference image saved to: {local_path}")
 
-        # Update the project file with the new image path
+        # Update the project file with the new image path and metadata
         try:
             project_repo = current_app.config['REPOSITORIES']['project']
             project = project_repo.get(story_id)
@@ -456,18 +461,25 @@ def generate_character_reference_image():
                 if existing_ref:
                     existing_ref.local_image_path = local_path
                     existing_ref.prompt = prompt
+                    # Save image generation metadata
+                    existing_ref.image_model = data.get('image_model', 'gpt-image-1')
+                    existing_ref.image_generated_at = datetime.now()
+                    existing_ref.image_resolution = size
                 else:
                     from src.models.art_bible import CharacterReference
                     new_ref = CharacterReference(
                         character_name=character_name,
                         prompt=prompt,
-                        local_image_path=local_path
+                        local_image_path=local_path,
+                        image_model=data.get('image_model', 'gpt-image-1'),
+                        image_generated_at=datetime.now(),
+                        image_resolution=size
                     )
                     project.story.character_references.append(new_ref)
 
                 project.story.image_session_id = session_id
                 project_repo.save(project)
-                current_app.logger.info(f"Project updated with character reference image path")
+                current_app.logger.info(f"Project updated with character reference image path and metadata")
         except Exception as e:
             current_app.logger.warning(f"Failed to update project with character reference: {e}")
 

@@ -49,6 +49,10 @@ class StoryPage:
     image_url: Optional[str] = None
     image_prompt: Optional[str] = None
     local_image_path: Optional[str] = None
+    # Image generation metadata
+    image_model: Optional[str] = None
+    image_generated_at: Optional[datetime] = None
+    image_resolution: Optional[str] = None
 
 
 @dataclass
@@ -57,6 +61,10 @@ class CoverPage:
     image_prompt: Optional[str] = None
     image_url: Optional[str] = None
     local_image_path: Optional[str] = None
+    # Image generation metadata
+    image_model: Optional[str] = None
+    image_generated_at: Optional[datetime] = None
+    image_resolution: Optional[str] = None
 
 
 @dataclass
@@ -74,3 +82,7 @@ class Story:
     pdf_options: Optional[PDFOptions] = None  # PDF export options
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
+    # Text generation metadata
+    text_model: Optional[str] = None
+    text_generated_at: Optional[datetime] = None
+    text_edited_at: Optional[datetime] = None
