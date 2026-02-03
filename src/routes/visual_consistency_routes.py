@@ -260,6 +260,10 @@ def generate_art_bible_image():
         except Exception as e:
             current_app.logger.warning(f"Failed to update project with art bible: {e}")
 
+        # Mark context as initialized so Image Generation tab can reuse this session
+        image_client.mark_context_initialized(story_id)
+        current_app.logger.info(f"Context marked as initialized for story {story_id}")
+
         return jsonify({
             'local_image_path': local_path,
             'prompt': prompt,
@@ -494,6 +498,10 @@ def generate_character_reference_image():
                 current_app.logger.info(f"Project updated with character reference image path and metadata")
         except Exception as e:
             current_app.logger.warning(f"Failed to update project with character reference: {e}")
+
+        # Mark context as initialized so Image Generation tab can reuse this session
+        image_client.mark_context_initialized(story_id)
+        current_app.logger.info(f"Context marked as initialized for story {story_id}")
 
         return jsonify({
             'local_image_path': local_path,
