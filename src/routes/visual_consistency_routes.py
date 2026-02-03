@@ -218,17 +218,21 @@ def generate_art_bible_image():
             ))
 
         # Generate art bible image within the conversation session
-        current_app.logger.info(f"Generating art bible image for story {story_id} with size={size}, quality={quality}")
-        image_url = run_async(image_client.generate_image(
+        image_model = data.get('image_model', 'gpt-image-1')
+        current_app.logger.info(f"Generating art bible image for story {story_id} with size={size}, quality={quality}, model={image_model}")
+        result = run_async(image_client.generate_image_with_cost(
             story_id=story_id,
             prompt=prompt,
             size=size,
-            quality=quality
+            quality=quality,
+            model_name=image_model
         ))
+        image_url = result['image_url']
+        image_cost = result.get('cost')
 
         # Get updated session ID
         session_id = image_client.get_session_id(story_id)
-        current_app.logger.info(f"Art bible image generated: URL length={len(image_url) if image_url else 0}, session_id={session_id}")
+        current_app.logger.info(f"Art bible image generated: URL length={len(image_url) if image_url else 0}, session_id={session_id}, cost={image_cost}")
 
         # Save the image to disk
         filename = f'art_bible_{int(time.time() * 1000)}.png'
@@ -249,6 +253,7 @@ def generate_art_bible_image():
                 project.story.art_bible.image_model = data.get('image_model', 'gpt-image-1')
                 project.story.art_bible.image_generated_at = datetime.now()
                 project.story.art_bible.image_resolution = size
+                project.story.art_bible.image_cost = image_cost
                 project.story.image_session_id = session_id
                 project_repo.save(project)
                 current_app.logger.info(f"Project updated with art bible image path and metadata")
@@ -259,7 +264,8 @@ def generate_art_bible_image():
             'local_image_path': local_path,
             'prompt': prompt,
             'art_style': art_style,
-            'session_id': session_id  # Return session ID for persistence
+            'session_id': session_id,  # Return session ID for persistence
+            'image_cost': image_cost  # Estimated cost in USD
         }), 200
 
     except ValueError as e:
@@ -426,17 +432,21 @@ def generate_character_reference_image():
 
         # Generate character reference image using conversation session
         # The session already contains art bible context, so no need for reference images
-        current_app.logger.info(f"Generating character image with size={size}, quality={quality}")
-        image_url = run_async(image_client.generate_image(
+        image_model = data.get('image_model', 'gpt-image-1')
+        current_app.logger.info(f"Generating character image with size={size}, quality={quality}, model={image_model}")
+        result = run_async(image_client.generate_image_with_cost(
             story_id=story_id,
             prompt=prompt,
             size=size,
-            quality=quality
+            quality=quality,
+            model_name=image_model
         ))
+        image_url = result['image_url']
+        image_cost = result.get('cost')
 
         # Get updated session ID
         session_id = image_client.get_session_id(story_id)
-        current_app.logger.info(f"Character reference image generated: URL length={len(image_url) if image_url else 0}, session_id={session_id}")
+        current_app.logger.info(f"Character reference image generated: URL length={len(image_url) if image_url else 0}, session_id={session_id}, cost={image_cost}")
 
         # Save the image to disk
         # Sanitize character name for filename
@@ -465,6 +475,7 @@ def generate_character_reference_image():
                     existing_ref.image_model = data.get('image_model', 'gpt-image-1')
                     existing_ref.image_generated_at = datetime.now()
                     existing_ref.image_resolution = size
+                    existing_ref.image_cost = image_cost
                 else:
                     from src.models.art_bible import CharacterReference
                     new_ref = CharacterReference(
@@ -473,7 +484,8 @@ def generate_character_reference_image():
                         local_image_path=local_path,
                         image_model=data.get('image_model', 'gpt-image-1'),
                         image_generated_at=datetime.now(),
-                        image_resolution=size
+                        image_resolution=size,
+                        image_cost=image_cost
                     )
                     project.story.character_references.append(new_ref)
 
@@ -487,7 +499,8 @@ def generate_character_reference_image():
             'local_image_path': local_path,
             'character_name': character_name,
             'prompt': prompt,
-            'session_id': session_id  # Return session ID for persistence
+            'session_id': session_id,  # Return session ID for persistence
+            'image_cost': image_cost  # Estimated cost in USD
         }), 200
 
     except ValueError as e:

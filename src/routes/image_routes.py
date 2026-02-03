@@ -268,27 +268,32 @@ def generate_image_for_page(story_id, page_num):
                 raise
 
             # Generate image directly with custom prompt
-            print(f"[DEBUG] About to call generate_image", flush=True)
-            current_app.logger.info(f"  Calling generate_image with custom prompt, size={image_size}, quality={image_quality}...")
+            print(f"[DEBUG] About to call generate_image_with_cost", flush=True)
+            image_model = data.get('image_model', 'gpt-image-1')
+            current_app.logger.info(f"  Calling generate_image_with_cost with custom prompt, size={image_size}, quality={image_quality}, model={image_model}...")
             try:
-                print(f"[DEBUG] Inside try block, calling run_async(generate_image)", flush=True)
-                image_url = run_async(image_client.generate_image(
+                print(f"[DEBUG] Inside try block, calling run_async(generate_image_with_cost)", flush=True)
+                result = run_async(image_client.generate_image_with_cost(
                     story_id,
                     custom_prompt,
                     size=image_size,
-                    quality=image_quality
+                    quality=image_quality,
+                    model_name=image_model
                 ))
-                print(f"[DEBUG] generate_image returned, URL length={len(image_url) if image_url else 0}", flush=True)
-                current_app.logger.info(f"  generate_image completed, URL length: {len(image_url) if image_url else 0}")
+                image_url = result['image_url']
+                image_cost = result.get('cost')
+                print(f"[DEBUG] generate_image_with_cost returned, URL length={len(image_url) if image_url else 0}, cost={image_cost}", flush=True)
+                current_app.logger.info(f"  generate_image_with_cost completed, URL length: {len(image_url) if image_url else 0}, cost: {image_cost}")
             except Exception as e:
-                print(f"[DEBUG] generate_image EXCEPTION: {type(e).__name__}: {e}", flush=True)
-                current_app.logger.error(f"  generate_image FAILED: {e}", exc_info=True)
+                print(f"[DEBUG] generate_image_with_cost EXCEPTION: {type(e).__name__}: {e}", flush=True)
+                current_app.logger.error(f"  generate_image_with_cost FAILED: {e}", exc_info=True)
                 raise
 
             # Update session ID in story
             story.image_session_id = image_client.get_session_id(story_id)
         else:
             # Generate image using conversation session (builds prompt automatically)
+            # Note: This path doesn't return cost information yet
             current_app.logger.info(f"  Generating with automatic prompt building, size={image_size}, quality={image_quality}")
             image_url = run_async(image_generator.generate_image_for_page(
                 story,
@@ -298,6 +303,7 @@ def generate_image_for_page(story_id, page_num):
                 size=image_size,
                 quality=image_quality
             ))
+            image_cost = None  # Cost not available for automatic prompt generation
 
         # Get updated session ID
         new_session_id = image_client.get_session_id(story_id)
@@ -327,6 +333,7 @@ def generate_image_for_page(story_id, page_num):
                         page.image_model = data.get('image_model', 'gpt-image-1')
                         page.image_generated_at = datetime.now()
                         page.image_resolution = image_size
+                        page.image_cost = image_cost
                         break
                 project.story.image_session_id = new_session_id
                 project_repo.save(project)
@@ -337,7 +344,8 @@ def generate_image_for_page(story_id, page_num):
         return jsonify({
             'local_image_path': local_path,
             'page_number': page_num,
-            'session_id': new_session_id  # Return session ID for persistence
+            'session_id': new_session_id,  # Return session ID for persistence
+            'image_cost': image_cost  # Estimated cost in USD
         }), 200
 
     except ValueError as e:
@@ -476,14 +484,18 @@ def generate_cover_image(story_id):
         current_app.logger.info(f"  ensure_session completed, session_id: {story.image_session_id}")
 
         # Generate cover image directly with custom prompt
-        current_app.logger.info(f"  Calling generate_image with cover prompt, size={image_size}, quality={image_quality}...")
-        image_url = run_async(image_client.generate_image(
+        image_model = data.get('image_model', 'gpt-image-1')
+        current_app.logger.info(f"  Calling generate_image_with_cost with cover prompt, size={image_size}, quality={image_quality}, model={image_model}...")
+        result = run_async(image_client.generate_image_with_cost(
             story_id,
             custom_prompt,
             size=image_size,
-            quality=image_quality
+            quality=image_quality,
+            model_name=image_model
         ))
-        current_app.logger.info(f"  generate_image completed, URL length: {len(image_url) if image_url else 0}")
+        image_url = result['image_url']
+        image_cost = result.get('cost')
+        current_app.logger.info(f"  generate_image_with_cost completed, URL length: {len(image_url) if image_url else 0}, cost: {image_cost}")
 
         # Get updated session ID
         new_session_id = image_client.get_session_id(story_id)
@@ -508,6 +520,7 @@ def generate_cover_image(story_id):
                 project.story.cover_page.image_model = data.get('image_model', 'gpt-image-1')
                 project.story.cover_page.image_generated_at = datetime.now()
                 project.story.cover_page.image_resolution = image_size
+                project.story.cover_page.image_cost = image_cost
                 project.story.image_session_id = new_session_id
                 project_repo.save(project)
                 current_app.logger.info(f"  Project updated with cover image path and metadata")
@@ -516,7 +529,8 @@ def generate_cover_image(story_id):
 
         return jsonify({
             'local_image_path': local_path,
-            'session_id': new_session_id  # Return session ID for persistence
+            'session_id': new_session_id,  # Return session ID for persistence
+            'image_cost': image_cost  # Estimated cost in USD
         }), 200
 
     except ValueError as e:

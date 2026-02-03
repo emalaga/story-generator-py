@@ -47,6 +47,7 @@ class ArtBible:
     image_model: Optional[str] = None
     image_generated_at: Optional[datetime] = None
     image_resolution: Optional[str] = None
+    image_cost: Optional[float] = None  # Estimated cost in USD
 
 
 @dataclass
@@ -86,3 +87,4 @@ class CharacterReference:
     image_model: Optional[str] = None
     image_generated_at: Optional[datetime] = None
     image_resolution: Optional[str] = None
+    image_cost: Optional[float] = None  # Estimated cost in USD

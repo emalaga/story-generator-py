@@ -38,6 +38,18 @@ function getImageUrl(localPath, fallbackUrl) {
     return fallbackUrl;
 }
 
+// ===== Cost Format Helper =====
+// Formats cost in USD for display
+function formatCost(cost) {
+    if (cost === null || cost === undefined) {
+        return null;
+    }
+    if (cost < 0.001) {
+        return '$0.00';
+    }
+    return `$${cost.toFixed(3)}`;
+}
+
 // ===== DOM Elements =====
 const storyForm = document.getElementById('story-form');
 const generateBtn = document.getElementById('generate-btn-top');
@@ -197,6 +209,7 @@ function updateImageGenerationTab() {
                     ${page.image_model ? `<span class="metadata-item"><strong>Model:</strong> ${page.image_model}</span>` : ''}
                     ${page.image_generated_at ? `<span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(page.image_generated_at)}</span>` : ''}
                     ${page.image_resolution ? `<span class="metadata-item"><strong>Resolution:</strong> ${page.image_resolution}</span>` : ''}
+                    ${page.image_cost ? `<span class="metadata-item"><strong>Cost:</strong> ${formatCost(page.image_cost)}</span>` : ''}
                 </div>
             `;
         }
@@ -1207,7 +1220,8 @@ async function generatePageImage(pageNumber) {
         page.image_model = imageModel;
         page.image_generated_at = new Date().toISOString();
         page.image_resolution = size;
-        console.log(`[generatePageImage] page.local_image_path and metadata updated`);
+        page.image_cost = result.image_cost;
+        console.log(`[generatePageImage] page.local_image_path and metadata updated, cost: ${result.image_cost}`);
 
         // Also save the prompt that was used
         const promptTextareaForSave = document.getElementById(`page-${pageNumber}-prompt`);
@@ -1221,6 +1235,7 @@ async function generatePageImage(pageNumber) {
                 <span class="metadata-item"><strong>Model:</strong> ${page.image_model}</span>
                 <span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(page.image_generated_at)}</span>
                 <span class="metadata-item"><strong>Resolution:</strong> ${page.image_resolution}</span>
+                ${page.image_cost ? `<span class="metadata-item"><strong>Cost:</strong> ${formatCost(page.image_cost)}</span>` : ''}
             </div>
         `;
 
@@ -1431,6 +1446,7 @@ async function generateCoverPageImage() {
         currentStory.cover_page.image_model = imageModel;
         currentStory.cover_page.image_generated_at = new Date().toISOString();
         currentStory.cover_page.image_resolution = size;
+        currentStory.cover_page.image_cost = result.image_cost;
 
         // Build metadata display
         const metadataHtml = `
@@ -1438,6 +1454,7 @@ async function generateCoverPageImage() {
                 <span class="metadata-item"><strong>Model:</strong> ${currentStory.cover_page.image_model}</span>
                 <span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(currentStory.cover_page.image_generated_at)}</span>
                 <span class="metadata-item"><strong>Resolution:</strong> ${currentStory.cover_page.image_resolution}</span>
+                ${currentStory.cover_page.image_cost ? `<span class="metadata-item"><strong>Cost:</strong> ${formatCost(currentStory.cover_page.image_cost)}</span>` : ''}
             </div>
         `;
 
@@ -1550,12 +1567,13 @@ function updateCoverPageDisplay() {
         // Build metadata display
         let metadataHtml = '';
         const cp = currentStory.cover_page;
-        if (cp.image_model || cp.image_generated_at || cp.image_resolution) {
+        if (cp.image_model || cp.image_generated_at || cp.image_resolution || cp.image_cost) {
             metadataHtml = `
                 <div class="image-metadata">
                     ${cp.image_model ? `<span class="metadata-item"><strong>Model:</strong> ${cp.image_model}</span>` : ''}
                     ${cp.image_generated_at ? `<span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(cp.image_generated_at)}</span>` : ''}
                     ${cp.image_resolution ? `<span class="metadata-item"><strong>Resolution:</strong> ${cp.image_resolution}</span>` : ''}
+                    ${cp.image_cost ? `<span class="metadata-item"><strong>Cost:</strong> ${formatCost(cp.image_cost)}</span>` : ''}
                 </div>
             `;
         }
@@ -2005,12 +2023,13 @@ function setupArtBibleSection() {
 
             // Build metadata display
             let metadataHtml = '';
-            if (artBible.image_model || artBible.image_generated_at || artBible.image_resolution) {
+            if (artBible.image_model || artBible.image_generated_at || artBible.image_resolution || artBible.image_cost) {
                 metadataHtml = `
                     <div class="image-metadata">
                         ${artBible.image_model ? `<span class="metadata-item"><strong>Model:</strong> ${artBible.image_model}</span>` : ''}
                         ${artBible.image_generated_at ? `<span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(artBible.image_generated_at)}</span>` : ''}
                         ${artBible.image_resolution ? `<span class="metadata-item"><strong>Resolution:</strong> ${artBible.image_resolution}</span>` : ''}
+                        ${artBible.image_cost ? `<span class="metadata-item"><strong>Cost:</strong> ${formatCost(artBible.image_cost)}</span>` : ''}
                     </div>
                 `;
             }
@@ -2144,6 +2163,7 @@ function setupArtBibleSection() {
             currentStory.art_bible.image_model = imageModel;
             currentStory.art_bible.image_generated_at = new Date().toISOString();
             currentStory.art_bible.image_resolution = size;
+            currentStory.art_bible.image_cost = result.image_cost;
 
             // Store session ID for conversation continuity
             if (result.session_id) {
@@ -2156,6 +2176,7 @@ function setupArtBibleSection() {
                     <span class="metadata-item"><strong>Model:</strong> ${imageModel}</span>
                     <span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(currentStory.art_bible.image_generated_at)}</span>
                     <span class="metadata-item"><strong>Resolution:</strong> ${size}</span>
+                    ${result.image_cost ? `<span class="metadata-item"><strong>Cost:</strong> ${formatCost(result.image_cost)}</span>` : ''}
                 </div>
             `;
 
@@ -2324,11 +2345,12 @@ function setupCharacterReferences() {
             <div id="char-preview-${index}" class="character-ref-preview ${existingRef && (existingRef.local_image_path || existingRef.image_url) ? '' : 'hidden'}">
                 ${existingRef && (existingRef.local_image_path || existingRef.image_url) ? `
                     <img src="${getImageUrl(existingRef.local_image_path, existingRef.image_url)}" alt="${character.name} Reference">
-                    ${(existingRef.image_model || existingRef.image_generated_at || existingRef.image_resolution) ? `
+                    ${(existingRef.image_model || existingRef.image_generated_at || existingRef.image_resolution || existingRef.image_cost) ? `
                         <div class="image-metadata">
                             ${existingRef.image_model ? `<span class="metadata-item"><strong>Model:</strong> ${existingRef.image_model}</span>` : ''}
                             ${existingRef.image_generated_at ? `<span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(existingRef.image_generated_at)}</span>` : ''}
                             ${existingRef.image_resolution ? `<span class="metadata-item"><strong>Resolution:</strong> ${existingRef.image_resolution}</span>` : ''}
+                            ${existingRef.image_cost ? `<span class="metadata-item"><strong>Cost:</strong> ${formatCost(existingRef.image_cost)}</span>` : ''}
                         </div>
                     ` : ''}
                     <div class="image-action-buttons">
@@ -2507,7 +2529,8 @@ async function generateCharacterImage(charIndex) {
         const imageMetadata = {
             image_model: imageModel,
             image_generated_at: new Date().toISOString(),
-            image_resolution: size
+            image_resolution: size,
+            image_cost: result.image_cost
         };
 
         if (existingIndex >= 0) {
@@ -2515,6 +2538,7 @@ async function generateCharacterImage(charIndex) {
             currentStory.character_references[existingIndex].image_model = imageMetadata.image_model;
             currentStory.character_references[existingIndex].image_generated_at = imageMetadata.image_generated_at;
             currentStory.character_references[existingIndex].image_resolution = imageMetadata.image_resolution;
+            currentStory.character_references[existingIndex].image_cost = imageMetadata.image_cost;
         } else {
             currentStory.character_references.push({
                 character_name: character.name,
@@ -2530,6 +2554,7 @@ async function generateCharacterImage(charIndex) {
                 <span class="metadata-item"><strong>Model:</strong> ${imageMetadata.image_model}</span>
                 <span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(imageMetadata.image_generated_at)}</span>
                 <span class="metadata-item"><strong>Resolution:</strong> ${imageMetadata.image_resolution}</span>
+                ${imageMetadata.image_cost ? `<span class="metadata-item"><strong>Cost:</strong> ${formatCost(imageMetadata.image_cost)}</span>` : ''}
             </div>
         `;
 

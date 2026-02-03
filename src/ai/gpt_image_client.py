@@ -11,12 +11,13 @@ import asyncio
 import base64
 import logging
 import os
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union, Tuple
 import httpx
 from openai import AsyncOpenAI
 
 from src.ai.base_client import BaseImageClient
 from src.models.config import OpenAIConfig
+from src.utils.image_cost_calculator import estimate_gpt_image_cost, extract_usage_from_response
 
 logger = logging.getLogger(__name__)
 
@@ -310,6 +311,110 @@ Respond briefly to acknowledge you're ready, then wait for my requests."""
         print(f"[GPTImageClient]   WARNING: No image URL found in any output item!", flush=True)
         logger.warning("No image URL found in response output")
         return None
+
+    async def generate_image_with_cost(
+        self,
+        story_id: str,
+        prompt: str,
+        size: str = "1024x1024",
+        quality: str = "high",
+        model_name: str = "gpt-image-1",
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Generate an image and return both the image URL and cost information.
+
+        Args:
+            story_id: The story ID to use for session context
+            prompt: The prompt describing the image to generate
+            size: Image size ("1024x1024", "1024x1536", "1536x1024", "auto")
+            quality: Image quality ("low", "medium", "high")
+            model_name: The model name for cost calculation (e.g., 'gpt-image-1')
+            **kwargs: Additional parameters
+
+        Returns:
+            Dictionary with 'image_url', 'cost', and 'usage' keys
+
+        Raises:
+            ValueError: If no session exists for the story
+            Exception: If image generation fails
+        """
+        if not self.api_key:
+            raise ValueError(
+                "OpenAI API key not found. Please set OPENAI_API_KEY in your .env file"
+            )
+
+        # Get the previous response ID for conversation continuity
+        previous_response_id = self._sessions.get(story_id)
+        print(f"[GPTImageClient] generate_image_with_cost called: story_id={story_id}, model={model_name}, size={size}, quality={quality}", flush=True)
+        logger.info(f"generate_image_with_cost called: story_id={story_id}, model={model_name}, size={size}, quality={quality}")
+
+        max_retries = 3
+        retry_delay = 2
+
+        for attempt in range(max_retries):
+            try:
+                # Build the request - use model_name parameter (from dropdown selection)
+                request_params = {
+                    "model": model_name,
+                    "input": prompt,
+                    "tools": [{"type": "image_generation", "size": size, "quality": quality}]
+                }
+
+                # Add conversation context if we have a previous response
+                if previous_response_id:
+                    request_params["previous_response_id"] = previous_response_id
+
+                print(f"[GPTImageClient]   Calling responses.create with model={model_name} (attempt {attempt + 1}/{max_retries})...", flush=True)
+                response = await self.client.responses.create(**request_params)
+                print(f"[GPTImageClient]   Response received, response.id={response.id}", flush=True)
+
+                # Update session with new response ID
+                self._sessions[story_id] = response.id
+
+                # Extract image URL from response
+                image_url = self._extract_image_url(response)
+                if not image_url:
+                    raise ValueError("No image was generated in the response")
+
+                # Extract usage and calculate cost
+                usage_data = extract_usage_from_response(response)
+                cost_info = None
+                if usage_data:
+                    try:
+                        cost_info = estimate_gpt_image_cost(
+                            model=model_name,
+                            size=size,
+                            quality=quality,
+                            usage=usage_data
+                        )
+                        print(f"[GPTImageClient]   Cost calculated: ${cost_info.get('total_estimated_cost', 0):.4f}", flush=True)
+                        logger.info(f"Cost calculated: ${cost_info.get('total_estimated_cost', 0):.4f}")
+                    except Exception as e:
+                        print(f"[GPTImageClient]   Cost calculation failed: {e}", flush=True)
+                        logger.warning(f"Cost calculation failed: {e}")
+
+                return {
+                    'image_url': image_url,
+                    'cost': cost_info.get('total_estimated_cost', 0.0) if cost_info else None,
+                    'cost_breakdown': cost_info,
+                    'usage': usage_data
+                }
+
+            except Exception as e:
+                error_str = str(e)
+                print(f"[GPTImageClient]   EXCEPTION: {type(e).__name__}: {error_str}", flush=True)
+                logger.error(f"Image generation error: {error_str}")
+
+                # Check if it's a retryable error (server errors, timeouts)
+                if any(x in error_str.lower() for x in ['timeout', 'server', '500', '502', '503', '504']):
+                    if attempt < max_retries - 1:
+                        print(f"[GPTImageClient]   Retrying in {retry_delay}s...", flush=True)
+                        await asyncio.sleep(retry_delay)
+                        retry_delay *= 2
+                        continue
+
+                raise Exception(f"Image generation failed: {error_str}")
 
     async def validate_session(self, story_id: str) -> bool:
         """
