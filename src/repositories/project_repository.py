@@ -129,7 +129,7 @@ class ProjectRepository:
         List all projects with their metadata.
 
         Returns:
-            List of dictionaries with project metadata (id, name, title, created_at, num_pages, language, user_prompt)
+            List of dictionaries with project metadata including art_bible and character_references image paths
         """
         projects_metadata = []
 
@@ -142,6 +142,20 @@ class ProjectRepository:
                 story_metadata = story_data.get('metadata', {})
                 pages = story_data.get('pages', [])
 
+                # Extract art_bible image path
+                art_bible_data = story_data.get('art_bible', {})
+                art_bible_image = art_bible_data.get('local_image_path') if art_bible_data else None
+
+                # Extract character_references image paths (up to 3 for tile display)
+                character_refs = story_data.get('character_references', []) or []
+                character_images = []
+                for char_ref in character_refs[:3]:  # Limit to first 3 characters
+                    if char_ref.get('local_image_path'):
+                        character_images.append({
+                            'name': char_ref.get('character_name', ''),
+                            'image_path': char_ref.get('local_image_path')
+                        })
+
                 # Extract relevant metadata
                 metadata = {
                     'id': project_data.get('id'),
@@ -151,7 +165,9 @@ class ProjectRepository:
                     'language': story_metadata.get('language', 'Unknown'),
                     'user_prompt': story_metadata.get('user_prompt', ''),
                     'created_at': project_data.get('created_at'),
-                    'updated_at': project_data.get('updated_at')
+                    'updated_at': project_data.get('updated_at'),
+                    'art_bible_image': art_bible_image,
+                    'character_images': character_images
                 }
                 projects_metadata.append(metadata)
             except (json.JSONDecodeError, KeyError):

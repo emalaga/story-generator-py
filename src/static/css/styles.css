@@ -2137,3 +2137,144 @@ select[disabled] {
 .version-thumbnail[title] {
     cursor: pointer;
 }
+
+/* ===== Project Tile Grid ===== */
+.projects-tile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    padding: 10px 0;
+}
+
+.project-tile {
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border: 1px solid var(--border-color);
+}
+
+.project-tile:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.project-tile-images {
+    cursor: pointer;
+    padding: 12px;
+    background-color: var(--bg-color);
+}
+
+.project-tile-art-bible-container {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 8px;
+    background-color: var(--border-color);
+}
+
+.project-tile-art-bible {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.project-tile-art-bible-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    text-align: center;
+    padding: 10px;
+}
+
+.project-tile-characters {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-start;
+}
+
+.project-tile-character {
+    width: calc(33.33% - 4px);
+    aspect-ratio: 1 / 1;
+    border-radius: 6px;
+    object-fit: cover;
+    background-color: var(--border-color);
+}
+
+.project-tile-characters-placeholder {
+    width: 100%;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 11px;
+    background-color: var(--border-color);
+    border-radius: 6px;
+}
+
+.project-tile-info {
+    padding: 12px;
+}
+
+.project-tile-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0 0 10px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.project-tile-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.project-tile-actions .btn,
+.project-tile-actions .btn-rename,
+.project-tile-actions .btn-delete {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 8px;
+    font-size: 11px;
+}
+
+/* Responsive adjustments for project tiles */
+@media (max-width: 768px) {
+    .projects-tile-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px;
+    }
+
+    .project-tile-info {
+        padding: 10px;
+    }
+
+    .project-tile-title {
+        font-size: 12px;
+    }
+
+    .project-tile-actions .btn,
+    .project-tile-actions .btn-rename,
+    .project-tile-actions .btn-delete {
+        font-size: 10px;
+        padding: 5px 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .projects-tile-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+}
