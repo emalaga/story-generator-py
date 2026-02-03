@@ -354,18 +354,20 @@ Respond briefly to acknowledge you're ready, then wait for my requests."""
 
         for attempt in range(max_retries):
             try:
-                # Build the request - use model_name parameter (from dropdown selection)
+                # Build the request
+                # Note: The main "model" must be a text model (e.g., gpt-4o) for the Responses API
+                # The image model is specified inside the image_generation tool configuration
                 request_params = {
-                    "model": model_name,
+                    "model": self.model,
                     "input": prompt,
-                    "tools": [{"type": "image_generation", "size": size, "quality": quality}]
+                    "tools": [{"type": "image_generation", "size": size, "quality": quality, "model": model_name}]
                 }
 
                 # Add conversation context if we have a previous response
                 if previous_response_id:
                     request_params["previous_response_id"] = previous_response_id
 
-                print(f"[GPTImageClient]   Calling responses.create with model={model_name} (attempt {attempt + 1}/{max_retries})...", flush=True)
+                print(f"[GPTImageClient]   Calling responses.create with text_model={self.model}, image_model={model_name} (attempt {attempt + 1}/{max_retries})...", flush=True)
                 response = await self.client.responses.create(**request_params)
                 print(f"[GPTImageClient]   Response received, response.id={response.id}", flush=True)
 
