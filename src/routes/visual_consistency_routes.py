@@ -247,16 +247,44 @@ def generate_art_bible_image():
                 if not project.story.art_bible:
                     from src.models.art_bible import ArtBible
                     project.story.art_bible = ArtBible(prompt=prompt, art_style=art_style)
+
+                # Create version entry for the new image
+                image_model = data.get('image_model', 'gpt-image-1')
+                generated_at = datetime.now()
+                version_entry = {
+                    'path': local_path,
+                    'model': image_model,
+                    'generated_at': generated_at.isoformat(),
+                    'resolution': size,
+                    'cost': image_cost
+                }
+
+                # Initialize versions list if needed, preserving existing image
+                if not project.story.art_bible.image_versions:
+                    project.story.art_bible.image_versions = []
+                    # Migrate existing image to versions list if present
+                    if project.story.art_bible.local_image_path:
+                        existing_version = {
+                            'path': project.story.art_bible.local_image_path,
+                            'model': project.story.art_bible.image_model,
+                            'generated_at': project.story.art_bible.image_generated_at.isoformat() if project.story.art_bible.image_generated_at else None,
+                            'resolution': project.story.art_bible.image_resolution,
+                            'cost': project.story.art_bible.image_cost
+                        }
+                        project.story.art_bible.image_versions.append(existing_version)
+                project.story.art_bible.image_versions.append(version_entry)
+
+                # Set the new image as active
                 project.story.art_bible.local_image_path = local_path
                 project.story.art_bible.prompt = prompt
-                # Save image generation metadata
-                project.story.art_bible.image_model = data.get('image_model', 'gpt-image-1')
-                project.story.art_bible.image_generated_at = datetime.now()
+                # Save image generation metadata for active version
+                project.story.art_bible.image_model = image_model
+                project.story.art_bible.image_generated_at = generated_at
                 project.story.art_bible.image_resolution = size
                 project.story.art_bible.image_cost = image_cost
                 project.story.image_session_id = session_id
                 project_repo.save(project)
-                current_app.logger.info(f"Project updated with art bible image path and metadata")
+                current_app.logger.info(f"Project updated with art bible image path and metadata (version {len(project.story.art_bible.image_versions)})")
         except Exception as e:
             current_app.logger.warning(f"Failed to update project with art bible: {e}")
 
@@ -468,34 +496,64 @@ def generate_character_reference_image():
                 if not project.story.character_references:
                     project.story.character_references = []
 
+                # Create version entry for the new image
+                image_model = data.get('image_model', 'gpt-image-1')
+                generated_at = datetime.now()
+                version_entry = {
+                    'path': local_path,
+                    'model': image_model,
+                    'generated_at': generated_at.isoformat(),
+                    'resolution': size,
+                    'cost': image_cost
+                }
+
                 existing_ref = next(
                     (ref for ref in project.story.character_references if ref.character_name == character_name),
                     None
                 )
                 if existing_ref:
+                    # Initialize versions list if needed, preserving existing image
+                    if not existing_ref.image_versions:
+                        existing_ref.image_versions = []
+                        # Migrate existing image to versions list if present
+                        if existing_ref.local_image_path:
+                            existing_version = {
+                                'path': existing_ref.local_image_path,
+                                'model': existing_ref.image_model,
+                                'generated_at': existing_ref.image_generated_at.isoformat() if existing_ref.image_generated_at else None,
+                                'resolution': existing_ref.image_resolution,
+                                'cost': existing_ref.image_cost
+                            }
+                            existing_ref.image_versions.append(existing_version)
+                    existing_ref.image_versions.append(version_entry)
+
+                    # Set the new image as active
                     existing_ref.local_image_path = local_path
                     existing_ref.prompt = prompt
-                    # Save image generation metadata
-                    existing_ref.image_model = data.get('image_model', 'gpt-image-1')
-                    existing_ref.image_generated_at = datetime.now()
+                    # Save image generation metadata for active version
+                    existing_ref.image_model = image_model
+                    existing_ref.image_generated_at = generated_at
                     existing_ref.image_resolution = size
                     existing_ref.image_cost = image_cost
+                    version_count = len(existing_ref.image_versions)
                 else:
                     from src.models.art_bible import CharacterReference
                     new_ref = CharacterReference(
                         character_name=character_name,
                         prompt=prompt,
                         local_image_path=local_path,
-                        image_model=data.get('image_model', 'gpt-image-1'),
-                        image_generated_at=datetime.now(),
+                        image_model=image_model,
+                        image_generated_at=generated_at,
                         image_resolution=size,
-                        image_cost=image_cost
+                        image_cost=image_cost,
+                        image_versions=[version_entry]
                     )
                     project.story.character_references.append(new_ref)
+                    version_count = 1
 
                 project.story.image_session_id = session_id
                 project_repo.save(project)
-                current_app.logger.info(f"Project updated with character reference image path and metadata")
+                current_app.logger.info(f"Project updated with character reference image path and metadata (version {version_count})")
         except Exception as e:
             current_app.logger.warning(f"Failed to update project with character reference: {e}")
 
@@ -583,10 +641,36 @@ def upload_art_bible():
                 if not project.story.art_bible:
                     from src.models.art_bible import ArtBible
                     project.story.art_bible = ArtBible(prompt='Custom uploaded image', art_style=art_style)
+
+                # Create version entry for the uploaded image
+                version_entry = {
+                    'path': local_path,
+                    'model': 'uploaded',
+                    'generated_at': datetime.now().isoformat(),
+                    'resolution': None,
+                    'cost': None
+                }
+
+                # Initialize versions list if needed, preserving existing image
+                if not project.story.art_bible.image_versions:
+                    project.story.art_bible.image_versions = []
+                    # Migrate existing image to versions list if present
+                    if project.story.art_bible.local_image_path:
+                        existing_version = {
+                            'path': project.story.art_bible.local_image_path,
+                            'model': project.story.art_bible.image_model,
+                            'generated_at': project.story.art_bible.image_generated_at.isoformat() if project.story.art_bible.image_generated_at else None,
+                            'resolution': project.story.art_bible.image_resolution,
+                            'cost': project.story.art_bible.image_cost
+                        }
+                        project.story.art_bible.image_versions.append(existing_version)
+                project.story.art_bible.image_versions.append(version_entry)
+
+                # Set the uploaded image as active
                 project.story.art_bible.local_image_path = local_path
                 project.story.art_bible.art_style = art_style
                 project_repo.save(project)
-                current_app.logger.info(f"Project updated with custom art bible image path")
+                current_app.logger.info(f"Project updated with custom art bible image path (version {len(project.story.art_bible.image_versions)})")
         except Exception as e:
             current_app.logger.warning(f"Failed to update project with art bible: {e}")
 
@@ -669,24 +753,52 @@ def upload_character_reference():
                 if not project.story.character_references:
                     project.story.character_references = []
 
+                # Create version entry for the uploaded image
+                version_entry = {
+                    'path': local_path,
+                    'model': 'uploaded',
+                    'generated_at': datetime.now().isoformat(),
+                    'resolution': None,
+                    'cost': None
+                }
+
                 existing_ref = next(
                     (ref for ref in project.story.character_references if ref.character_name == character_name),
                     None
                 )
                 if existing_ref:
+                    # Initialize versions list if needed, preserving existing image
+                    if not existing_ref.image_versions:
+                        existing_ref.image_versions = []
+                        # Migrate existing image to versions list if present
+                        if existing_ref.local_image_path:
+                            existing_version = {
+                                'path': existing_ref.local_image_path,
+                                'model': existing_ref.image_model,
+                                'generated_at': existing_ref.image_generated_at.isoformat() if existing_ref.image_generated_at else None,
+                                'resolution': existing_ref.image_resolution,
+                                'cost': existing_ref.image_cost
+                            }
+                            existing_ref.image_versions.append(existing_version)
+                    existing_ref.image_versions.append(version_entry)
+
+                    # Set the uploaded image as active
                     existing_ref.local_image_path = local_path
                     existing_ref.prompt = 'Custom uploaded image'
+                    version_count = len(existing_ref.image_versions)
                 else:
                     from src.models.art_bible import CharacterReference
                     new_ref = CharacterReference(
                         character_name=character_name,
                         prompt='Custom uploaded image',
-                        local_image_path=local_path
+                        local_image_path=local_path,
+                        image_versions=[version_entry]
                     )
                     project.story.character_references.append(new_ref)
+                    version_count = 1
 
                 project_repo.save(project)
-                current_app.logger.info(f"Project updated with custom character reference image path")
+                current_app.logger.info(f"Project updated with custom character reference image path (version {version_count})")
         except Exception as e:
             current_app.logger.warning(f"Failed to update project with character reference: {e}")
 

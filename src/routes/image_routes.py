@@ -325,15 +325,45 @@ def generate_image_for_page(story_id, page_num):
                 # Find the page and update its image path and metadata
                 for page in project.story.pages:
                     if page.page_number == page_num:
+                        # Create version entry for the new image
+                        image_model = data.get('image_model', 'gpt-image-1')
+                        generated_at = datetime.now()
+                        version_entry = {
+                            'path': local_path,
+                            'model': image_model,
+                            'generated_at': generated_at.isoformat(),
+                            'resolution': image_size,
+                            'cost': image_cost,
+                            'prompt': custom_prompt
+                        }
+
+                        # Initialize versions list if needed, preserving existing image
+                        if not page.image_versions:
+                            page.image_versions = []
+                            # Migrate existing image to versions list if present
+                            if page.local_image_path:
+                                existing_version = {
+                                    'path': page.local_image_path,
+                                    'model': page.image_model,
+                                    'generated_at': page.image_generated_at.isoformat() if page.image_generated_at else None,
+                                    'resolution': page.image_resolution,
+                                    'cost': page.image_cost,
+                                    'prompt': page.image_prompt
+                                }
+                                page.image_versions.append(existing_version)
+                        page.image_versions.append(version_entry)
+
+                        # Set the new image as active
                         page.local_image_path = local_path
                         # Also save the prompt if we have a custom one
                         if custom_prompt:
                             page.image_prompt = custom_prompt
-                        # Save image generation metadata
-                        page.image_model = data.get('image_model', 'gpt-image-1')
-                        page.image_generated_at = datetime.now()
+                        # Save image generation metadata for active version
+                        page.image_model = image_model
+                        page.image_generated_at = generated_at
                         page.image_resolution = image_size
                         page.image_cost = image_cost
+                        current_app.logger.info(f"  Page {page_num} now has {len(page.image_versions)} version(s)")
                         break
                 project.story.image_session_id = new_session_id
                 project_repo.save(project)
@@ -514,16 +544,46 @@ def generate_cover_image(story_id):
                 # Initialize cover_page if not present
                 if not project.story.cover_page:
                     project.story.cover_page = CoverPage()
+
+                # Create version entry for the new image
+                image_model = data.get('image_model', 'gpt-image-1')
+                generated_at = datetime.now()
+                version_entry = {
+                    'path': local_path,
+                    'model': image_model,
+                    'generated_at': generated_at.isoformat(),
+                    'resolution': image_size,
+                    'cost': image_cost,
+                    'prompt': custom_prompt
+                }
+
+                # Initialize versions list if needed, preserving existing image
+                if not project.story.cover_page.image_versions:
+                    project.story.cover_page.image_versions = []
+                    # Migrate existing image to versions list if present
+                    if project.story.cover_page.local_image_path:
+                        existing_version = {
+                            'path': project.story.cover_page.local_image_path,
+                            'model': project.story.cover_page.image_model,
+                            'generated_at': project.story.cover_page.image_generated_at.isoformat() if project.story.cover_page.image_generated_at else None,
+                            'resolution': project.story.cover_page.image_resolution,
+                            'cost': project.story.cover_page.image_cost,
+                            'prompt': project.story.cover_page.image_prompt
+                        }
+                        project.story.cover_page.image_versions.append(existing_version)
+                project.story.cover_page.image_versions.append(version_entry)
+
+                # Set the new image as active
                 project.story.cover_page.local_image_path = local_path
                 project.story.cover_page.image_prompt = custom_prompt
-                # Save image generation metadata
-                project.story.cover_page.image_model = data.get('image_model', 'gpt-image-1')
-                project.story.cover_page.image_generated_at = datetime.now()
+                # Save image generation metadata for active version
+                project.story.cover_page.image_model = image_model
+                project.story.cover_page.image_generated_at = generated_at
                 project.story.cover_page.image_resolution = image_size
                 project.story.cover_page.image_cost = image_cost
                 project.story.image_session_id = new_session_id
                 project_repo.save(project)
-                current_app.logger.info(f"  Project updated with cover image path and metadata")
+                current_app.logger.info(f"  Project updated with cover image path and metadata (version {len(project.story.cover_page.image_versions)})")
         except Exception as e:
             current_app.logger.warning(f"  Failed to update project with cover image: {e}")
 
@@ -750,3 +810,313 @@ def delete_image():
     except Exception as e:
         current_app.logger.error(f"Error deleting image: {e}")
         return jsonify({'error': f'Failed to delete image: {str(e)}'}), 500
+
+
+@image_bp.route('/stories/<story_id>/art-bible/set-active', methods=['POST'])
+def set_active_art_bible_version(story_id):
+    """
+    POST /api/images/stories/:id/art-bible/set-active - Set active art bible image version
+
+    Request body:
+    {
+        "image_path": str (required) - path of the version to set as active
+    }
+
+    Returns:
+        200: Active version updated
+        400: Invalid request
+        404: Story or version not found
+        500: Server error
+    """
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+
+        data = request.get_json()
+        if 'image_path' not in data:
+            return jsonify({'error': 'Missing required field: image_path'}), 400
+
+        image_path = data['image_path']
+
+        project_repo = current_app.config['REPOSITORIES']['project']
+        project = project_repo.get(story_id)
+
+        if not project or not project.story:
+            return jsonify({'error': 'Story not found'}), 404
+
+        if not project.story.art_bible:
+            return jsonify({'error': 'Art bible not found'}), 404
+
+        # Find the version in the versions list
+        if not project.story.art_bible.image_versions:
+            return jsonify({'error': 'No versions available'}), 404
+
+        version = next(
+            (v for v in project.story.art_bible.image_versions if v['path'] == image_path),
+            None
+        )
+        if not version:
+            return jsonify({'error': 'Version not found'}), 404
+
+        # Update the active image
+        project.story.art_bible.local_image_path = version['path']
+        project.story.art_bible.image_model = version.get('model')
+        project.story.art_bible.image_resolution = version.get('resolution')
+        project.story.art_bible.image_cost = version.get('cost')
+        if version.get('generated_at'):
+            from datetime import datetime
+            try:
+                project.story.art_bible.image_generated_at = datetime.fromisoformat(version['generated_at'])
+            except (ValueError, TypeError):
+                pass
+
+        project_repo.save(project)
+        current_app.logger.info(f"Set active art bible version to: {image_path}")
+
+        return jsonify({
+            'success': True,
+            'active_path': image_path
+        }), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error setting active art bible version: {e}")
+        return jsonify({'error': f'Failed to set active version: {str(e)}'}), 500
+
+
+@image_bp.route('/stories/<story_id>/characters/<character_name>/set-active', methods=['POST'])
+def set_active_character_version(story_id, character_name):
+    """
+    POST /api/images/stories/:id/characters/:name/set-active - Set active character reference version
+
+    Request body:
+    {
+        "image_path": str (required) - path of the version to set as active
+    }
+
+    Returns:
+        200: Active version updated
+        400: Invalid request
+        404: Story, character, or version not found
+        500: Server error
+    """
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+
+        data = request.get_json()
+        if 'image_path' not in data:
+            return jsonify({'error': 'Missing required field: image_path'}), 400
+
+        image_path = data['image_path']
+
+        project_repo = current_app.config['REPOSITORIES']['project']
+        project = project_repo.get(story_id)
+
+        if not project or not project.story:
+            return jsonify({'error': 'Story not found'}), 404
+
+        if not project.story.character_references:
+            return jsonify({'error': 'No character references found'}), 404
+
+        # URL decode the character name
+        from urllib.parse import unquote
+        character_name = unquote(character_name)
+
+        # Find the character reference
+        char_ref = next(
+            (ref for ref in project.story.character_references if ref.character_name == character_name),
+            None
+        )
+        if not char_ref:
+            return jsonify({'error': f'Character "{character_name}" not found'}), 404
+
+        # Find the version in the versions list
+        if not char_ref.image_versions:
+            return jsonify({'error': 'No versions available'}), 404
+
+        version = next(
+            (v for v in char_ref.image_versions if v['path'] == image_path),
+            None
+        )
+        if not version:
+            return jsonify({'error': 'Version not found'}), 404
+
+        # Update the active image
+        char_ref.local_image_path = version['path']
+        char_ref.image_model = version.get('model')
+        char_ref.image_resolution = version.get('resolution')
+        char_ref.image_cost = version.get('cost')
+        if version.get('generated_at'):
+            from datetime import datetime
+            try:
+                char_ref.image_generated_at = datetime.fromisoformat(version['generated_at'])
+            except (ValueError, TypeError):
+                pass
+
+        project_repo.save(project)
+        current_app.logger.info(f"Set active character reference version for {character_name} to: {image_path}")
+
+        return jsonify({
+            'success': True,
+            'active_path': image_path,
+            'character_name': character_name
+        }), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error setting active character version: {e}")
+        return jsonify({'error': f'Failed to set active version: {str(e)}'}), 500
+
+
+@image_bp.route('/stories/<story_id>/pages/<int:page_num>/set-active', methods=['POST'])
+def set_active_page_version(story_id, page_num):
+    """
+    POST /api/images/stories/:id/pages/:page_num/set-active - Set active page image version
+
+    Request body:
+    {
+        "image_path": str (required) - path of the version to set as active
+    }
+
+    Returns:
+        200: Active version updated
+        400: Invalid request
+        404: Story, page, or version not found
+        500: Server error
+    """
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+
+        data = request.get_json()
+        if 'image_path' not in data:
+            return jsonify({'error': 'Missing required field: image_path'}), 400
+
+        image_path = data['image_path']
+
+        project_repo = current_app.config['REPOSITORIES']['project']
+        project = project_repo.get(story_id)
+
+        if not project or not project.story:
+            return jsonify({'error': 'Story not found'}), 404
+
+        if not project.story.pages:
+            return jsonify({'error': 'No pages found'}), 404
+
+        # Find the page
+        page = next(
+            (p for p in project.story.pages if p.page_number == page_num),
+            None
+        )
+        if not page:
+            return jsonify({'error': f'Page {page_num} not found'}), 404
+
+        # Find the version in the versions list
+        if not page.image_versions:
+            return jsonify({'error': 'No versions available'}), 404
+
+        version = next(
+            (v for v in page.image_versions if v['path'] == image_path),
+            None
+        )
+        if not version:
+            return jsonify({'error': 'Version not found'}), 404
+
+        # Update the active image
+        page.local_image_path = version['path']
+        page.image_model = version.get('model')
+        page.image_resolution = version.get('resolution')
+        page.image_cost = version.get('cost')
+        if version.get('prompt'):
+            page.image_prompt = version['prompt']
+        if version.get('generated_at'):
+            from datetime import datetime
+            try:
+                page.image_generated_at = datetime.fromisoformat(version['generated_at'])
+            except (ValueError, TypeError):
+                pass
+
+        project_repo.save(project)
+        current_app.logger.info(f"Set active page {page_num} version to: {image_path}")
+
+        return jsonify({
+            'success': True,
+            'active_path': image_path,
+            'page_number': page_num
+        }), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error setting active page version: {e}")
+        return jsonify({'error': f'Failed to set active version: {str(e)}'}), 500
+
+
+@image_bp.route('/stories/<story_id>/cover/set-active', methods=['POST'])
+def set_active_cover_version(story_id):
+    """
+    POST /api/images/stories/:id/cover/set-active - Set active cover image version
+
+    Request body:
+    {
+        "image_path": str (required) - path of the version to set as active
+    }
+
+    Returns:
+        200: Active version updated
+        400: Invalid request
+        404: Story, cover, or version not found
+        500: Server error
+    """
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+
+        data = request.get_json()
+        if 'image_path' not in data:
+            return jsonify({'error': 'Missing required field: image_path'}), 400
+
+        image_path = data['image_path']
+
+        project_repo = current_app.config['REPOSITORIES']['project']
+        project = project_repo.get(story_id)
+
+        if not project or not project.story:
+            return jsonify({'error': 'Story not found'}), 404
+
+        if not project.story.cover_page:
+            return jsonify({'error': 'Cover page not found'}), 404
+
+        # Find the version in the versions list
+        if not project.story.cover_page.image_versions:
+            return jsonify({'error': 'No versions available'}), 404
+
+        version = next(
+            (v for v in project.story.cover_page.image_versions if v['path'] == image_path),
+            None
+        )
+        if not version:
+            return jsonify({'error': 'Version not found'}), 404
+
+        # Update the active image
+        project.story.cover_page.local_image_path = version['path']
+        project.story.cover_page.image_model = version.get('model')
+        project.story.cover_page.image_resolution = version.get('resolution')
+        project.story.cover_page.image_cost = version.get('cost')
+        if version.get('prompt'):
+            project.story.cover_page.image_prompt = version['prompt']
+        if version.get('generated_at'):
+            from datetime import datetime
+            try:
+                project.story.cover_page.image_generated_at = datetime.fromisoformat(version['generated_at'])
+            except (ValueError, TypeError):
+                pass
+
+        project_repo.save(project)
+        current_app.logger.info(f"Set active cover version to: {image_path}")
+
+        return jsonify({
+            'success': True,
+            'active_path': image_path
+        }), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error setting active cover version: {e}")
+        return jsonify({'error': f'Failed to set active version: {str(e)}'}), 500

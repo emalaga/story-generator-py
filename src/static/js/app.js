@@ -50,6 +50,257 @@ function formatCost(cost) {
     return `$${cost.toFixed(3)}`;
 }
 
+// ===== Image Version Helpers =====
+// Renders version thumbnails for an image with multiple versions
+function renderVersionThumbnails(versions, activePath, type, identifier, smallSize = false) {
+    if (!versions || versions.length <= 1) {
+        return ''; // Don't show versions if only one or none
+    }
+
+    const sizeClass = smallSize ? 'version-thumbnail-small' : '';
+    let html = `
+        <div class="image-versions-section">
+            <h5>All Versions (${versions.length})</h5>
+            <div class="image-versions-grid">
+    `;
+
+    versions.forEach((version, index) => {
+        const isActive = version.path === activePath;
+        const versionNum = index + 1;
+        const modelLabel = version.model === 'uploaded' ? 'Uploaded' : (version.model || 'Unknown');
+        const tooltip = `Version ${versionNum}: ${modelLabel}${version.resolution ? ` (${version.resolution})` : ''}`;
+
+        html += `
+            <div class="version-thumbnail ${sizeClass} ${isActive ? 'active' : ''}"
+                 title="${tooltip}"
+                 onclick="setActiveVersion('${type}', '${identifier}', '${version.path}')">
+                <img src="${getImageUrl(version.path, null)}" alt="Version ${versionNum}">
+                ${isActive ? '<span class="active-badge">Active</span>' : ''}
+                <span class="version-info">v${versionNum}</span>
+            </div>
+        `;
+    });
+
+    html += `
+            </div>
+        </div>
+    `;
+
+    return html;
+}
+
+// Set a specific version as active
+async function setActiveVersion(type, identifier, imagePath) {
+    if (!currentStory || !currentStory.id) {
+        showError('No story loaded');
+        return;
+    }
+
+    let endpoint = '';
+    if (type === 'art_bible') {
+        endpoint = `/images/stories/${currentStory.id}/art-bible/set-active`;
+    } else if (type === 'character') {
+        endpoint = `/images/stories/${currentStory.id}/characters/${encodeURIComponent(identifier)}/set-active`;
+    } else if (type === 'page') {
+        endpoint = `/images/stories/${currentStory.id}/pages/${identifier}/set-active`;
+    } else if (type === 'cover') {
+        endpoint = `/images/stories/${currentStory.id}/cover/set-active`;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}${endpoint}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ image_path: imagePath })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to set active version');
+        }
+
+        // Update local state and refresh display
+        if (type === 'art_bible' && currentStory.art_bible) {
+            currentStory.art_bible.local_image_path = imagePath;
+            // Update metadata from the version
+            const version = currentStory.art_bible.image_versions?.find(v => v.path === imagePath);
+            if (version) {
+                currentStory.art_bible.image_model = version.model;
+                currentStory.art_bible.image_resolution = version.resolution;
+                currentStory.art_bible.image_cost = version.cost;
+            }
+            refreshArtBiblePreview();
+        } else if (type === 'character' && currentStory.character_references) {
+            const charRef = currentStory.character_references.find(ref => ref.character_name === identifier);
+            if (charRef) {
+                charRef.local_image_path = imagePath;
+                // Update metadata from the version
+                const version = charRef.image_versions?.find(v => v.path === imagePath);
+                if (version) {
+                    charRef.image_model = version.model;
+                    charRef.image_resolution = version.resolution;
+                    charRef.image_cost = version.cost;
+                }
+                setupCharacterReferences(); // Refresh the entire list
+            }
+        } else if (type === 'page' && currentStory.pages) {
+            const pageNum = parseInt(identifier);
+            const page = currentStory.pages.find(p => p.page_number === pageNum);
+            if (page) {
+                page.local_image_path = imagePath;
+                // Update metadata from the version
+                const version = page.image_versions?.find(v => v.path === imagePath);
+                if (version) {
+                    page.image_model = version.model;
+                    page.image_resolution = version.resolution;
+                    page.image_cost = version.cost;
+                    if (version.prompt) {
+                        page.image_prompt = version.prompt;
+                    }
+                }
+                refreshPageImagePreview(pageNum);
+            }
+        } else if (type === 'cover' && currentStory.cover_page) {
+            currentStory.cover_page.local_image_path = imagePath;
+            // Update metadata from the version
+            const version = currentStory.cover_page.image_versions?.find(v => v.path === imagePath);
+            if (version) {
+                currentStory.cover_page.image_model = version.model;
+                currentStory.cover_page.image_resolution = version.resolution;
+                currentStory.cover_page.image_cost = version.cost;
+                if (version.prompt) {
+                    currentStory.cover_page.image_prompt = version.prompt;
+                }
+            }
+            refreshCoverPagePreview();
+        }
+
+        // Auto-save to persist the change
+        await autoSaveProject();
+
+    } catch (error) {
+        showError(`Failed to set active version: ${error.message}`);
+    }
+}
+
+// Refresh art bible preview with current data
+function refreshArtBiblePreview() {
+    const previewDiv = document.getElementById('art-bible-preview');
+    if (!previewDiv || !currentStory.art_bible) return;
+
+    const artBible = currentStory.art_bible;
+    if (!artBible.local_image_path && !artBible.image_url) {
+        previewDiv.classList.add('hidden');
+        return;
+    }
+
+    const metadataHtml = (artBible.image_model || artBible.image_generated_at || artBible.image_resolution || artBible.image_cost) ? `
+        <div class="image-metadata">
+            ${artBible.image_model ? `<span class="metadata-item"><strong>Model:</strong> ${artBible.image_model}</span>` : ''}
+            ${artBible.image_generated_at ? `<span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(artBible.image_generated_at)}</span>` : ''}
+            ${artBible.image_resolution ? `<span class="metadata-item"><strong>Resolution:</strong> ${artBible.image_resolution}</span>` : ''}
+            ${artBible.image_cost ? `<span class="metadata-item"><strong>Cost:</strong> ${formatCost(artBible.image_cost)}</span>` : ''}
+        </div>
+    ` : '';
+
+    const versionsHtml = renderVersionThumbnails(
+        artBible.image_versions,
+        artBible.local_image_path,
+        'art_bible',
+        ''
+    );
+
+    previewDiv.classList.remove('hidden');
+    previewDiv.innerHTML = `
+        <img src="${getImageUrl(artBible.local_image_path, artBible.image_url)}" alt="Art Bible Reference">
+        ${metadataHtml}
+        <div class="image-action-buttons">
+            <button class="btn-small btn-delete-image" onclick="deleteArtBibleImage()">Delete Image</button>
+        </div>
+        ${versionsHtml}
+    `;
+}
+
+// Refresh page image preview for a specific page
+function refreshPageImagePreview(pageNumber) {
+    const previewSection = document.getElementById(`page-${pageNumber}-image-preview`);
+    if (!previewSection || !currentStory.pages) return;
+
+    const page = currentStory.pages.find(p => p.page_number === pageNumber);
+    if (!page) return;
+
+    if (!page.local_image_path && !page.image_url) {
+        previewSection.innerHTML = '<div class="image-placeholder">No image generated yet</div>';
+        return;
+    }
+
+    const metadataHtml = (page.image_model || page.image_generated_at || page.image_resolution || page.image_cost) ? `
+        <div class="image-metadata">
+            ${page.image_model ? `<span class="metadata-item"><strong>Model:</strong> ${page.image_model}</span>` : ''}
+            ${page.image_generated_at ? `<span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(page.image_generated_at)}</span>` : ''}
+            ${page.image_resolution ? `<span class="metadata-item"><strong>Resolution:</strong> ${page.image_resolution}</span>` : ''}
+            ${page.image_cost ? `<span class="metadata-item"><strong>Cost:</strong> ${formatCost(page.image_cost)}</span>` : ''}
+        </div>
+    ` : '';
+
+    const versionsHtml = renderVersionThumbnails(
+        page.image_versions,
+        page.local_image_path,
+        'page',
+        pageNumber.toString(),
+        true // small size
+    );
+
+    previewSection.innerHTML = `
+        <img src="${getImageUrl(page.local_image_path, page.image_url)}" alt="Page ${pageNumber}" class="page-image">
+        ${metadataHtml}
+        <div class="image-action-buttons">
+            <button class="btn-small btn-delete-image" onclick="deletePageImage(${pageNumber})">Delete Image</button>
+        </div>
+        ${versionsHtml}
+    `;
+}
+
+// Refresh cover page preview with current data
+function refreshCoverPagePreview() {
+    const previewSection = document.getElementById('cover-page-image-preview');
+    if (!previewSection || !currentStory.cover_page) return;
+
+    const cover = currentStory.cover_page;
+    if (!cover.local_image_path && !cover.image_url) {
+        previewSection.innerHTML = '<div class="image-placeholder">No cover image generated yet</div>';
+        return;
+    }
+
+    const metadataHtml = (cover.image_model || cover.image_generated_at || cover.image_resolution || cover.image_cost) ? `
+        <div class="image-metadata">
+            ${cover.image_model ? `<span class="metadata-item"><strong>Model:</strong> ${cover.image_model}</span>` : ''}
+            ${cover.image_generated_at ? `<span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(cover.image_generated_at)}</span>` : ''}
+            ${cover.image_resolution ? `<span class="metadata-item"><strong>Resolution:</strong> ${cover.image_resolution}</span>` : ''}
+            ${cover.image_cost ? `<span class="metadata-item"><strong>Cost:</strong> ${formatCost(cover.image_cost)}</span>` : ''}
+        </div>
+    ` : '';
+
+    const versionsHtml = renderVersionThumbnails(
+        cover.image_versions,
+        cover.local_image_path,
+        'cover',
+        '',
+        true // small size
+    );
+
+    previewSection.innerHTML = `
+        <img src="${getImageUrl(cover.local_image_path, cover.image_url)}" alt="Cover Page">
+        ${metadataHtml}
+        <div class="image-action-buttons">
+            <button class="btn-small btn-delete-image" onclick="removeCoverPage()">Delete Cover</button>
+        </div>
+        ${versionsHtml}
+    `;
+}
+
 // ===== DOM Elements =====
 const storyForm = document.getElementById('story-form');
 const generateBtn = document.getElementById('generate-btn-top');
@@ -216,6 +467,15 @@ function updateImageGenerationTab() {
             `;
         }
 
+        // Build version thumbnails if there are multiple versions
+        const versionsHtml = renderVersionThumbnails(
+            page.image_versions,
+            page.local_image_path,
+            'page',
+            page.page_number.toString(),
+            true
+        );
+
         pageCard.innerHTML = `
             <h4>Page ${page.page_number}</h4>
             <div class="image-page-content">
@@ -226,7 +486,8 @@ function updateImageGenerationTab() {
                                ${imageMetadataHtml}
                                <div class="image-action-buttons">
                                    <button class="btn-small btn-delete-image" onclick="deletePageImage(${page.page_number})">Delete Image</button>
-                               </div>`
+                               </div>
+                               ${versionsHtml}`
                             : '<div class="image-placeholder">No image generated yet</div>'
                         }
                     </div>
@@ -1217,43 +1478,52 @@ async function generatePageImage(pageNumber) {
             console.log(`[generatePageImage] Session ID updated: ${result.session_id}`);
         }
 
+        // Get the prompt that was used
+        const promptTextareaForSave = document.getElementById(`page-${pageNumber}-prompt`);
+        const usedPrompt = promptTextareaForSave ? promptTextareaForSave.value : null;
+
+        // Create version entry
+        const versionEntry = {
+            path: result.local_image_path,
+            model: imageModel,
+            generated_at: new Date().toISOString(),
+            resolution: size,
+            cost: result.image_cost,
+            prompt: usedPrompt
+        };
+
+        // Initialize versions list if needed, preserving existing image
+        if (!page.image_versions) {
+            page.image_versions = [];
+            // Migrate existing image to versions list if present
+            if (page.local_image_path) {
+                page.image_versions.push({
+                    path: page.local_image_path,
+                    model: page.image_model,
+                    generated_at: page.image_generated_at,
+                    resolution: page.image_resolution,
+                    cost: page.image_cost,
+                    prompt: page.image_prompt
+                });
+            }
+        }
+        page.image_versions.push(versionEntry);
+
         // Update the page with the local image path and metadata (image is already saved by backend)
         page.local_image_path = result.local_image_path;
         page.image_model = imageModel;
         page.image_generated_at = new Date().toISOString();
         page.image_resolution = size;
         page.image_cost = result.image_cost;
-        console.log(`[generatePageImage] page.local_image_path and metadata updated, cost: ${result.image_cost}`);
+        console.log(`[generatePageImage] page.local_image_path and metadata updated, cost: ${result.image_cost}, versions: ${page.image_versions.length}`);
 
         // Also save the prompt that was used
-        const promptTextareaForSave = document.getElementById(`page-${pageNumber}-prompt`);
-        if (promptTextareaForSave) {
-            page.image_prompt = promptTextareaForSave.value;
+        if (usedPrompt) {
+            page.image_prompt = usedPrompt;
         }
 
-        // Build metadata display
-        const metadataHtml = `
-            <div class="image-metadata">
-                <span class="metadata-item"><strong>Model:</strong> ${page.image_model}</span>
-                <span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(page.image_generated_at)}</span>
-                <span class="metadata-item"><strong>Resolution:</strong> ${page.image_resolution}</span>
-                ${page.image_cost ? `<span class="metadata-item"><strong>Cost:</strong> ${formatCost(page.image_cost)}</span>` : ''}
-            </div>
-        `;
-
-        // Update the display using the local path
-        const previewSection = document.getElementById(`page-${pageNumber}-image-preview`);
-        console.log(`[generatePageImage] previewSection found: ${!!previewSection}`);
-        if (previewSection) {
-            previewSection.innerHTML = `
-                <img src="${getImageUrl(result.local_image_path, null)}" alt="Page ${pageNumber} illustration" onerror="console.error('Image failed to load for page ${pageNumber}')">
-                ${metadataHtml}
-                <div class="image-action-buttons">
-                    <button class="btn-small btn-delete-image" onclick="deletePageImage(${pageNumber})">Delete Image</button>
-                </div>
-            `;
-            console.log(`[generatePageImage] innerHTML updated`);
-        }
+        // Refresh the preview with version thumbnails
+        refreshPageImagePreview(pageNumber);
 
         // Hide loading indicator
         loadingDiv.classList.add('hidden');
@@ -1443,6 +1713,34 @@ async function generateCoverPageImage() {
         if (!currentStory.cover_page) {
             currentStory.cover_page = {};
         }
+
+        // Create version entry
+        const versionEntry = {
+            path: result.local_image_path,
+            model: imageModel,
+            generated_at: new Date().toISOString(),
+            resolution: size,
+            cost: result.image_cost,
+            prompt: promptTextarea.value
+        };
+
+        // Initialize versions list if needed, preserving existing image
+        if (!currentStory.cover_page.image_versions) {
+            currentStory.cover_page.image_versions = [];
+            // Migrate existing image to versions list if present
+            if (currentStory.cover_page.local_image_path) {
+                currentStory.cover_page.image_versions.push({
+                    path: currentStory.cover_page.local_image_path,
+                    model: currentStory.cover_page.image_model,
+                    generated_at: currentStory.cover_page.image_generated_at,
+                    resolution: currentStory.cover_page.image_resolution,
+                    cost: currentStory.cover_page.image_cost,
+                    prompt: currentStory.cover_page.image_prompt
+                });
+            }
+        }
+        currentStory.cover_page.image_versions.push(versionEntry);
+
         currentStory.cover_page.local_image_path = result.local_image_path;
         currentStory.cover_page.image_prompt = promptTextarea.value;
         currentStory.cover_page.image_model = imageModel;
@@ -1450,25 +1748,8 @@ async function generateCoverPageImage() {
         currentStory.cover_page.image_resolution = size;
         currentStory.cover_page.image_cost = result.image_cost;
 
-        // Build metadata display
-        const metadataHtml = `
-            <div class="image-metadata">
-                <span class="metadata-item"><strong>Model:</strong> ${currentStory.cover_page.image_model}</span>
-                <span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(currentStory.cover_page.image_generated_at)}</span>
-                <span class="metadata-item"><strong>Resolution:</strong> ${currentStory.cover_page.image_resolution}</span>
-                ${currentStory.cover_page.image_cost ? `<span class="metadata-item"><strong>Cost:</strong> ${formatCost(currentStory.cover_page.image_cost)}</span>` : ''}
-            </div>
-        `;
-
-        // Update the display
-        const previewSection = document.getElementById('cover-page-image-preview');
-        previewSection.innerHTML = `
-            <img src="${getImageUrl(result.local_image_path, null)}" alt="Cover illustration">
-            ${metadataHtml}
-            <div class="image-action-buttons">
-                <button class="btn-small btn-delete-image" onclick="deleteCoverPageImage(true)">Delete Image</button>
-            </div>
-        `;
+        // Refresh the preview with version thumbnails
+        refreshCoverPagePreview();
 
         // Update button text
         document.getElementById('cover-page-generate-btn').textContent = 'Regenerate Cover Image';
@@ -1564,29 +1845,9 @@ function updateCoverPageDisplay() {
         generateBtn.disabled = true;
     }
 
-    // Show image if available
+    // Show image if available (with version thumbnails)
     if (currentStory.cover_page.local_image_path || currentStory.cover_page.image_url) {
-        // Build metadata display
-        let metadataHtml = '';
-        const cp = currentStory.cover_page;
-        if (cp.image_model || cp.image_generated_at || cp.image_resolution || cp.image_cost) {
-            metadataHtml = `
-                <div class="image-metadata">
-                    ${cp.image_model ? `<span class="metadata-item"><strong>Model:</strong> ${cp.image_model}</span>` : ''}
-                    ${cp.image_generated_at ? `<span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(cp.image_generated_at)}</span>` : ''}
-                    ${cp.image_resolution ? `<span class="metadata-item"><strong>Resolution:</strong> ${cp.image_resolution}</span>` : ''}
-                    ${cp.image_cost ? `<span class="metadata-item"><strong>Cost:</strong> ${formatCost(cp.image_cost)}</span>` : ''}
-                </div>
-            `;
-        }
-
-        previewSection.innerHTML = `
-            <img src="${getImageUrl(currentStory.cover_page.local_image_path, currentStory.cover_page.image_url)}" alt="Cover illustration">
-            ${metadataHtml}
-            <div class="image-action-buttons">
-                <button class="btn-small btn-delete-image" onclick="deleteCoverPageImage(true)">Delete Image</button>
-            </div>
-        `;
+        refreshCoverPagePreview();
         generateBtn.textContent = 'Regenerate Cover Image';
     } else {
         previewSection.innerHTML = '<div class="image-placeholder">No cover image generated yet</div>';
@@ -2018,32 +2279,9 @@ function setupArtBibleSection() {
             document.getElementById('art-bible-prompt').value = artBible.prompt;
         }
 
-        // Display existing art bible image
+        // Display existing art bible image (with version thumbnails if available)
         if (artBible.local_image_path || artBible.image_url) {
-            const previewDiv = document.getElementById('art-bible-preview');
-            previewDiv.classList.remove('hidden');
-
-            // Build metadata display
-            let metadataHtml = '';
-            if (artBible.image_model || artBible.image_generated_at || artBible.image_resolution || artBible.image_cost) {
-                metadataHtml = `
-                    <div class="image-metadata">
-                        ${artBible.image_model ? `<span class="metadata-item"><strong>Model:</strong> ${artBible.image_model}</span>` : ''}
-                        ${artBible.image_generated_at ? `<span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(artBible.image_generated_at)}</span>` : ''}
-                        ${artBible.image_resolution ? `<span class="metadata-item"><strong>Resolution:</strong> ${artBible.image_resolution}</span>` : ''}
-                        ${artBible.image_cost ? `<span class="metadata-item"><strong>Cost:</strong> ${formatCost(artBible.image_cost)}</span>` : ''}
-                    </div>
-                `;
-            }
-
-            previewDiv.innerHTML = `
-                <img src="${getImageUrl(artBible.local_image_path, artBible.image_url)}" alt="Art Bible Reference">
-                ${metadataHtml}
-                <div class="image-action-buttons">
-                    <button class="btn-small btn-delete-image" onclick="deleteArtBibleImage()">Delete Image</button>
-                </div>
-                <p>Art Bible reference loaded.</p>
-            `;
+            refreshArtBiblePreview();
         }
     }
 
@@ -2160,6 +2398,31 @@ function setupArtBibleSection() {
             if (!currentStory.art_bible) {
                 currentStory.art_bible = {};
             }
+
+            // Add version entry to local versions list
+            const versionEntry = {
+                path: result.local_image_path,
+                model: imageModel,
+                generated_at: new Date().toISOString(),
+                resolution: size,
+                cost: result.image_cost
+            };
+            // Initialize versions list if needed, preserving existing image
+            if (!currentStory.art_bible.image_versions) {
+                currentStory.art_bible.image_versions = [];
+                // Migrate existing image to versions list if present
+                if (currentStory.art_bible.local_image_path) {
+                    currentStory.art_bible.image_versions.push({
+                        path: currentStory.art_bible.local_image_path,
+                        model: currentStory.art_bible.image_model,
+                        generated_at: currentStory.art_bible.image_generated_at,
+                        resolution: currentStory.art_bible.image_resolution,
+                        cost: currentStory.art_bible.image_cost
+                    });
+                }
+            }
+            currentStory.art_bible.image_versions.push(versionEntry);
+
             currentStory.art_bible.local_image_path = result.local_image_path;
             currentStory.art_bible.prompt = prompt;
             currentStory.art_bible.image_model = imageModel;
@@ -2172,27 +2435,8 @@ function setupArtBibleSection() {
                 currentStory.image_session_id = result.session_id;
             }
 
-            // Build metadata display
-            const metadataHtml = `
-                <div class="image-metadata">
-                    <span class="metadata-item"><strong>Model:</strong> ${imageModel}</span>
-                    <span class="metadata-item"><strong>Generated:</strong> ${formatMetadataTimestamp(currentStory.art_bible.image_generated_at)}</span>
-                    <span class="metadata-item"><strong>Resolution:</strong> ${size}</span>
-                    ${result.image_cost ? `<span class="metadata-item"><strong>Cost:</strong> ${formatCost(result.image_cost)}</span>` : ''}
-                </div>
-            `;
-
-            // Display art bible image using the local path
-            const previewDiv = document.getElementById('art-bible-preview');
-            previewDiv.classList.remove('hidden');
-            previewDiv.innerHTML = `
-                <img src="${getImageUrl(result.local_image_path, null)}" alt="Art Bible Reference">
-                ${metadataHtml}
-                <div class="image-action-buttons">
-                    <button class="btn-small btn-delete-image" onclick="deleteArtBibleImage()">Delete Image</button>
-                </div>
-                <p>Art Bible generated and saved successfully! This will be used as a style reference for all story illustrations.</p>
-            `;
+            // Refresh the preview with version thumbnails
+            refreshArtBiblePreview();
 
             loadingDiv.classList.add('hidden');
 
@@ -2240,15 +2484,36 @@ function setupArtBibleSection() {
             if (!currentStory.art_bible) {
                 currentStory.art_bible = {};
             }
+
+            // Create version entry for uploaded image
+            const versionEntry = {
+                path: result.local_image_path,
+                model: 'uploaded',
+                generated_at: new Date().toISOString(),
+                resolution: null,
+                cost: null
+            };
+
+            // Initialize versions list if needed, preserving existing image
+            if (!currentStory.art_bible.image_versions) {
+                currentStory.art_bible.image_versions = [];
+                if (currentStory.art_bible.local_image_path) {
+                    currentStory.art_bible.image_versions.push({
+                        path: currentStory.art_bible.local_image_path,
+                        model: currentStory.art_bible.image_model,
+                        generated_at: currentStory.art_bible.image_generated_at,
+                        resolution: currentStory.art_bible.image_resolution,
+                        cost: currentStory.art_bible.image_cost
+                    });
+                }
+            }
+            currentStory.art_bible.image_versions.push(versionEntry);
+
             currentStory.art_bible.local_image_path = result.local_image_path;
             currentStory.art_bible.art_style = result.art_style;
 
-            // Show the preview
-            const previewDiv = document.getElementById('art-bible-preview');
-            previewDiv.classList.remove('hidden');
-            previewDiv.innerHTML = `
-                <img src="${getImageUrl(result.local_image_path, null)}" alt="Art Bible Reference">
-            `;
+            // Refresh the preview with version thumbnails
+            refreshArtBiblePreview();
 
             // Auto-save the project
             await autoSaveProject();
@@ -2358,6 +2623,7 @@ function setupCharacterReferences() {
                     <div class="image-action-buttons">
                         <button class="btn-small btn-delete-image" onclick="deleteCharacterImage(${index})">Delete Image</button>
                     </div>
+                    ${renderVersionThumbnails(existingRef.image_versions, existingRef.local_image_path, 'character', character.name, true)}
                 ` : ''}
             </div>
         `;
@@ -2535,20 +2801,50 @@ async function generateCharacterImage(charIndex) {
             image_cost: result.image_cost
         };
 
+        // Create version entry
+        const versionEntry = {
+            path: result.local_image_path,
+            model: imageModel,
+            generated_at: imageMetadata.image_generated_at,
+            resolution: size,
+            cost: result.image_cost
+        };
+
         if (existingIndex >= 0) {
-            currentStory.character_references[existingIndex].local_image_path = result.local_image_path;
-            currentStory.character_references[existingIndex].image_model = imageMetadata.image_model;
-            currentStory.character_references[existingIndex].image_generated_at = imageMetadata.image_generated_at;
-            currentStory.character_references[existingIndex].image_resolution = imageMetadata.image_resolution;
-            currentStory.character_references[existingIndex].image_cost = imageMetadata.image_cost;
+            const existingRef = currentStory.character_references[existingIndex];
+            // Initialize versions list if needed, preserving existing image
+            if (!existingRef.image_versions) {
+                existingRef.image_versions = [];
+                // Migrate existing image to versions list if present
+                if (existingRef.local_image_path) {
+                    existingRef.image_versions.push({
+                        path: existingRef.local_image_path,
+                        model: existingRef.image_model,
+                        generated_at: existingRef.image_generated_at,
+                        resolution: existingRef.image_resolution,
+                        cost: existingRef.image_cost
+                    });
+                }
+            }
+            existingRef.image_versions.push(versionEntry);
+
+            existingRef.local_image_path = result.local_image_path;
+            existingRef.image_model = imageMetadata.image_model;
+            existingRef.image_generated_at = imageMetadata.image_generated_at;
+            existingRef.image_resolution = imageMetadata.image_resolution;
+            existingRef.image_cost = imageMetadata.image_cost;
         } else {
             currentStory.character_references.push({
                 character_name: character.name,
                 prompt: prompt,
                 local_image_path: result.local_image_path,
+                image_versions: [versionEntry],
                 ...imageMetadata
             });
         }
+
+        // Get the updated reference for version display
+        const updatedRef = currentStory.character_references.find(ref => ref.character_name === character.name);
 
         // Build metadata display
         const metadataHtml = `
@@ -2560,6 +2856,15 @@ async function generateCharacterImage(charIndex) {
             </div>
         `;
 
+        // Render version thumbnails
+        const versionsHtml = renderVersionThumbnails(
+            updatedRef.image_versions,
+            result.local_image_path,
+            'character',
+            character.name,
+            true
+        );
+
         // Display character reference image using the local path
         const previewDiv = document.getElementById(`char-preview-${charIndex}`);
         previewDiv.classList.remove('hidden');
@@ -2569,7 +2874,7 @@ async function generateCharacterImage(charIndex) {
             <div class="image-action-buttons">
                 <button class="btn-small btn-delete-image" onclick="deleteCharacterImage(${charIndex})">Delete Image</button>
             </div>
-            <p>Reference image for ${character.name} generated and saved successfully!</p>
+            ${versionsHtml}
         `;
 
         loadingDiv.classList.add('hidden');
@@ -2629,21 +2934,56 @@ function setupCharacterRefFileInput() {
                 currentStory.character_references = [];
             }
 
+            // Create version entry for uploaded image
+            const versionEntry = {
+                path: result.local_image_path,
+                model: 'uploaded',
+                generated_at: new Date().toISOString(),
+                resolution: null,
+                cost: null
+            };
+
             const existingRefIndex = currentStory.character_references.findIndex(
                 ref => ref.character_name === character.name
             );
 
             if (existingRefIndex >= 0) {
-                currentStory.character_references[existingRefIndex].local_image_path = result.local_image_path;
+                const existingRef = currentStory.character_references[existingRefIndex];
+                // Initialize versions list if needed, preserving existing image
+                if (!existingRef.image_versions) {
+                    existingRef.image_versions = [];
+                    if (existingRef.local_image_path) {
+                        existingRef.image_versions.push({
+                            path: existingRef.local_image_path,
+                            model: existingRef.image_model,
+                            generated_at: existingRef.image_generated_at,
+                            resolution: existingRef.image_resolution,
+                            cost: existingRef.image_cost
+                        });
+                    }
+                }
+                existingRef.image_versions.push(versionEntry);
+                existingRef.local_image_path = result.local_image_path;
             } else {
                 currentStory.character_references.push({
                     character_name: character.name,
                     local_image_path: result.local_image_path,
-                    prompt: 'Custom uploaded image'
+                    prompt: 'Custom uploaded image',
+                    image_versions: [versionEntry]
                 });
             }
 
-            // Show the preview
+            // Get updated reference for version display
+            const updatedRef = currentStory.character_references.find(ref => ref.character_name === character.name);
+            const versionsHtml = renderVersionThumbnails(
+                updatedRef.image_versions,
+                result.local_image_path,
+                'character',
+                character.name,
+                true
+            );
+
+            // Show the preview with version thumbnails
             const previewDiv = document.getElementById(`char-preview-${charIndex}`);
             previewDiv.classList.remove('hidden');
             previewDiv.innerHTML = `
@@ -2651,7 +2991,7 @@ function setupCharacterRefFileInput() {
                 <div class="image-action-buttons">
                     <button class="btn-small btn-delete-image" onclick="deleteCharacterImage(${charIndex})">Delete Image</button>
                 </div>
-                <p>Custom reference image for ${character.name} uploaded successfully!</p>
+                ${versionsHtml}
             `;
 
             // Auto-save the project

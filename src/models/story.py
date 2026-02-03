@@ -6,7 +6,7 @@ These models define the structure for story metadata, pages, and complete storie
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, List, Dict, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.models.character import CharacterProfile
@@ -48,12 +48,14 @@ class StoryPage:
     text: str
     image_url: Optional[str] = None
     image_prompt: Optional[str] = None
-    local_image_path: Optional[str] = None
+    local_image_path: Optional[str] = None  # Active version path
     # Image generation metadata
     image_model: Optional[str] = None
     image_generated_at: Optional[datetime] = None
     image_resolution: Optional[str] = None
     image_cost: Optional[float] = None  # Estimated cost in USD
+    # Image versions - list of dicts with path, model, timestamp, resolution, cost
+    image_versions: Optional[List[Dict[str, Any]]] = None
 
 
 @dataclass
@@ -61,12 +63,14 @@ class CoverPage:
     """Cover page for a story book"""
     image_prompt: Optional[str] = None
     image_url: Optional[str] = None
-    local_image_path: Optional[str] = None
+    local_image_path: Optional[str] = None  # Active version path
     # Image generation metadata
     image_model: Optional[str] = None
     image_generated_at: Optional[datetime] = None
     image_resolution: Optional[str] = None
     image_cost: Optional[float] = None  # Estimated cost in USD
+    # Image versions - list of dicts with path, model, timestamp, resolution, cost
+    image_versions: Optional[List[Dict[str, Any]]] = None
 
 
 @dataclass

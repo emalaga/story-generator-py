@@ -109,7 +109,8 @@ def create_project():
                 image_model=page_data.get('image_model'),
                 image_generated_at=datetime.fromisoformat(page_data['image_generated_at']) if page_data.get('image_generated_at') else None,
                 image_resolution=page_data.get('image_resolution'),
-                image_cost=page_data.get('image_cost')
+                image_cost=page_data.get('image_cost'),
+                image_versions=page_data.get('image_versions')
             )
             pages.append(page)
 
@@ -142,7 +143,8 @@ def create_project():
                 image_model=art_bible_data.get('image_model'),
                 image_generated_at=datetime.fromisoformat(art_bible_data['image_generated_at']) if art_bible_data.get('image_generated_at') else None,
                 image_resolution=art_bible_data.get('image_resolution'),
-                image_cost=art_bible_data.get('image_cost')
+                image_cost=art_bible_data.get('image_cost'),
+                image_versions=art_bible_data.get('image_versions')
             )
 
         # Parse character references if present
@@ -160,7 +162,8 @@ def create_project():
                 image_model=char_ref_data.get('image_model'),
                 image_generated_at=datetime.fromisoformat(char_ref_data['image_generated_at']) if char_ref_data.get('image_generated_at') else None,
                 image_resolution=char_ref_data.get('image_resolution'),
-                image_cost=char_ref_data.get('image_cost')
+                image_cost=char_ref_data.get('image_cost'),
+                image_versions=char_ref_data.get('image_versions')
             )
             character_references.append(char_ref)
 
@@ -190,7 +193,8 @@ def create_project():
                 image_model=cover_page_data.get('image_model'),
                 image_generated_at=datetime.fromisoformat(cover_page_data['image_generated_at']) if cover_page_data.get('image_generated_at') else None,
                 image_resolution=cover_page_data.get('image_resolution'),
-                image_cost=cover_page_data.get('image_cost')
+                image_cost=cover_page_data.get('image_cost'),
+                image_versions=cover_page_data.get('image_versions')
             )
 
         # Create Story object
@@ -314,7 +318,8 @@ def get_project(project_id):
                         'image_model': page.image_model,
                         'image_generated_at': page.image_generated_at.isoformat() if page.image_generated_at else None,
                         'image_resolution': page.image_resolution,
-                        'image_cost': page.image_cost
+                        'image_cost': page.image_cost,
+                        'image_versions': page.image_versions
                     }
                     for page in project.story.pages
                 ],
@@ -341,7 +346,8 @@ def get_project(project_id):
                     'image_model': project.story.art_bible.image_model,
                     'image_generated_at': project.story.art_bible.image_generated_at.isoformat() if project.story.art_bible.image_generated_at else None,
                     'image_resolution': project.story.art_bible.image_resolution,
-                    'image_cost': project.story.art_bible.image_cost
+                    'image_cost': project.story.art_bible.image_cost,
+                    'image_versions': project.story.art_bible.image_versions
                 } if project.story.art_bible else None,
                 'character_references': [
                     {
@@ -356,7 +362,8 @@ def get_project(project_id):
                         'image_model': char_ref.image_model,
                         'image_generated_at': char_ref.image_generated_at.isoformat() if char_ref.image_generated_at else None,
                         'image_resolution': char_ref.image_resolution,
-                        'image_cost': char_ref.image_cost
+                        'image_cost': char_ref.image_cost,
+                        'image_versions': char_ref.image_versions
                     }
                     for char_ref in (project.story.character_references or [])
                 ],
@@ -367,7 +374,8 @@ def get_project(project_id):
                     'image_model': project.story.cover_page.image_model,
                     'image_generated_at': project.story.cover_page.image_generated_at.isoformat() if project.story.cover_page.image_generated_at else None,
                     'image_resolution': project.story.cover_page.image_resolution,
-                    'image_cost': project.story.cover_page.image_cost
+                    'image_cost': project.story.cover_page.image_cost,
+                    'image_versions': project.story.cover_page.image_versions
                 } if project.story.cover_page else None,
                 'image_session_id': project.story.image_session_id,
                 'pdf_options': {

@@ -7,7 +7,7 @@ brush techniques that should be used consistently throughout the story.
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
 
 @dataclass
@@ -48,6 +48,8 @@ class ArtBible:
     image_generated_at: Optional[datetime] = None
     image_resolution: Optional[str] = None
     image_cost: Optional[float] = None  # Estimated cost in USD
+    # Image versions - list of dicts with path, model, timestamp, resolution, cost
+    image_versions: Optional[List[Dict[str, Any]]] = None
 
 
 @dataclass
@@ -88,3 +90,5 @@ class CharacterReference:
     image_generated_at: Optional[datetime] = None
     image_resolution: Optional[str] = None
     image_cost: Optional[float] = None  # Estimated cost in USD
+    # Image versions - list of dicts with path, model, timestamp, resolution, cost
+    image_versions: Optional[List[Dict[str, Any]]] = None
