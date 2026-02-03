@@ -1558,3 +1558,96 @@ def delete_pdf(project_id, filename):
     except Exception as e:
         current_app.logger.error(f"Error deleting PDF: {e}")
         return jsonify({'error': f'Failed to delete PDF: {str(e)}'}), 500
+
+
+# ============================================================================
+# Library Endpoints - Browse art bibles and characters across all projects
+# ============================================================================
+
+@project_bp.route('/library/art-bibles', methods=['GET'])
+def list_all_art_bibles():
+    """
+    GET /api/projects/library/art-bibles - List all art bibles from all projects
+
+    Returns:
+        200: List of art bibles with project info
+        500: Server error
+    """
+    try:
+        project_repo = current_app.config['REPOSITORIES']['project']
+        projects = project_repo.list_all()
+
+        art_bibles = []
+        for project_meta in projects:
+            project = project_repo.get(project_meta['id'])
+            if project and project.story and project.story.art_bible:
+                art_bible = project.story.art_bible
+                if art_bible.local_image_path:
+                    art_bibles.append({
+                        'project_id': project_meta['id'],
+                        'project_name': project.name,
+                        'story_title': project.story.metadata.title if project.story.metadata else '',
+                        'art_style': art_bible.art_style,
+                        'local_image_path': art_bible.local_image_path,
+                        'image_model': art_bible.image_model,
+                        'image_resolution': art_bible.image_resolution,
+                        'image_cost': art_bible.image_cost,
+                        'image_generated_at': art_bible.image_generated_at.isoformat() if art_bible.image_generated_at else None
+                    })
+
+        # Sort by generation date (newest first)
+        art_bibles.sort(
+            key=lambda x: x.get('image_generated_at') or '',
+            reverse=True
+        )
+
+        return jsonify({'art_bibles': art_bibles}), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error listing art bibles: {e}")
+        return jsonify({'error': f'Failed to list art bibles: {str(e)}'}), 500
+
+
+@project_bp.route('/library/characters', methods=['GET'])
+def list_all_characters():
+    """
+    GET /api/projects/library/characters - List all character references from all projects
+
+    Returns:
+        200: List of character references with project info
+        500: Server error
+    """
+    try:
+        project_repo = current_app.config['REPOSITORIES']['project']
+        projects = project_repo.list_all()
+
+        characters = []
+        for project_meta in projects:
+            project = project_repo.get(project_meta['id'])
+            if project and project.story and project.story.character_references:
+                for char_ref in project.story.character_references:
+                    if char_ref.local_image_path:
+                        characters.append({
+                            'project_id': project_meta['id'],
+                            'project_name': project.name,
+                            'story_title': project.story.metadata.title if project.story.metadata else '',
+                            'character_name': char_ref.character_name,
+                            'species': char_ref.species,
+                            'local_image_path': char_ref.local_image_path,
+                            'image_model': char_ref.image_model,
+                            'image_resolution': char_ref.image_resolution,
+                            'image_cost': char_ref.image_cost,
+                            'image_generated_at': char_ref.image_generated_at.isoformat() if char_ref.image_generated_at else None
+                        })
+
+        # Sort by generation date (newest first)
+        characters.sort(
+            key=lambda x: x.get('image_generated_at') or '',
+            reverse=True
+        )
+
+        return jsonify({'characters': characters}), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error listing characters: {e}")
+        return jsonify({'error': f'Failed to list characters: {str(e)}'}), 500

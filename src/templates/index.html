@@ -20,6 +20,7 @@
             <button class="tab-button" data-tab="visual-consistency">Visual Consistency</button>
             <button class="tab-button" data-tab="image-generation">Image Generation</button>
             <button class="tab-button" data-tab="pdf-export">PDF Export</button>
+            <button class="tab-button tab-icon" data-tab="library" title="Library">&#128218;</button>
             <button class="tab-button tab-icon" data-tab="settings" title="Settings">&#9881;</button>
         </div>
 
@@ -807,6 +808,36 @@
                             <div id="existing-pdfs-list" class="existing-pdfs-list">
                                 <p class="no-pdfs-message">No PDFs generated yet for this project.</p>
                             </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- LIBRARY TAB -->
+            <div id="library-tab" class="tab-content">
+                <section class="card">
+                    <h2>Library</h2>
+                    <p class="section-description">Browse art bibles and character references from all projects.</p>
+
+                    <!-- Sub-tabs for Art Bibles and Characters -->
+                    <div class="library-subtabs">
+                        <button class="library-subtab-btn active" data-subtab="art-bibles">Art Bibles</button>
+                        <button class="library-subtab-btn" data-subtab="characters">Characters</button>
+                    </div>
+
+                    <!-- Art Bibles Gallery -->
+                    <div id="library-art-bibles" class="library-subtab-content active">
+                        <div id="art-bibles-gallery" class="library-gallery">
+                            <!-- Art bibles will be populated dynamically -->
+                            <p class="gallery-loading">Loading art bibles...</p>
+                        </div>
+                    </div>
+
+                    <!-- Characters Gallery -->
+                    <div id="library-characters" class="library-subtab-content">
+                        <div id="characters-gallery" class="library-gallery">
+                            <!-- Characters will be populated dynamically -->
+                            <p class="gallery-loading">Loading characters...</p>
                         </div>
                     </div>
                 </section>

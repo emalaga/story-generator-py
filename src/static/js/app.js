@@ -158,6 +158,8 @@ function switchTab(tabName, shouldUpdateUrl = true) {
         updatePDFTab();
     } else if (tabName === 'settings') {
         updateSettingsTab();
+    } else if (tabName === 'library') {
+        updateLibraryTab();
     }
 }
 
@@ -3608,3 +3610,149 @@ function setupSettingsTab() {
         };
     }
 }
+
+// ============================================================================
+// Library Tab Functions
+// ============================================================================
+
+let libraryDataLoaded = false;
+
+function updateLibraryTab() {
+    // Only load data once per session
+    if (!libraryDataLoaded) {
+        loadLibraryArtBibles();
+        loadLibraryCharacters();
+        libraryDataLoaded = true;
+    }
+}
+
+async function loadLibraryArtBibles() {
+    const gallery = document.getElementById('art-bibles-gallery');
+    if (!gallery) return;
+
+    gallery.innerHTML = '<p class="gallery-loading">Loading art bibles...</p>';
+
+    try {
+        const response = await fetch('/api/projects/library/art-bibles');
+        if (!response.ok) throw new Error('Failed to load art bibles');
+
+        const data = await response.json();
+        const artBibles = data.art_bibles || [];
+
+        if (artBibles.length === 0) {
+            gallery.innerHTML = '<p class="gallery-empty">No art bibles found. Create art bibles in the Visual Consistency tab.</p>';
+            return;
+        }
+
+        gallery.innerHTML = artBibles.map(ab => `
+            <div class="library-item" data-project-id="${ab.project_id}">
+                <div class="library-item-image">
+                    <img src="/api/${ab.local_image_path}"
+                         alt="Art Bible for ${ab.story_title}"
+                         loading="lazy"
+                         onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2212%22>No Image</text></svg>'">
+                </div>
+                <div class="library-item-info">
+                    <span class="library-item-title">${ab.story_title || ab.project_name}</span>
+                    <span class="library-item-style">${ab.art_style || ''}</span>
+                </div>
+            </div>
+        `).join('');
+
+        // Add click handlers to open the project
+        gallery.querySelectorAll('.library-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const projectId = item.dataset.projectId;
+                loadProject(projectId).then(() => {
+                    switchTab('visual-consistency');
+                });
+            });
+        });
+
+    } catch (error) {
+        console.error('Error loading art bibles:', error);
+        gallery.innerHTML = '<p class="gallery-error">Failed to load art bibles.</p>';
+    }
+}
+
+async function loadLibraryCharacters() {
+    const gallery = document.getElementById('characters-gallery');
+    if (!gallery) return;
+
+    gallery.innerHTML = '<p class="gallery-loading">Loading characters...</p>';
+
+    try {
+        const response = await fetch('/api/projects/library/characters');
+        if (!response.ok) throw new Error('Failed to load characters');
+
+        const data = await response.json();
+        const characters = data.characters || [];
+
+        if (characters.length === 0) {
+            gallery.innerHTML = '<p class="gallery-empty">No character references found. Create characters in the Visual Consistency tab.</p>';
+            return;
+        }
+
+        gallery.innerHTML = characters.map(char => `
+            <div class="library-item" data-project-id="${char.project_id}">
+                <div class="library-item-image">
+                    <img src="/api/${char.local_image_path}"
+                         alt="${char.character_name}"
+                         loading="lazy"
+                         onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2212%22>No Image</text></svg>'">
+                </div>
+                <div class="library-item-info">
+                    <span class="library-item-name">${char.character_name}</span>
+                    <span class="library-item-project">${char.story_title || char.project_name}</span>
+                </div>
+            </div>
+        `).join('');
+
+        // Add click handlers to open the project
+        gallery.querySelectorAll('.library-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const projectId = item.dataset.projectId;
+                loadProject(projectId).then(() => {
+                    switchTab('visual-consistency');
+                });
+            });
+        });
+
+    } catch (error) {
+        console.error('Error loading characters:', error);
+        gallery.innerHTML = '<p class="gallery-error">Failed to load characters.</p>';
+    }
+}
+
+// Library sub-tab switching
+function initLibrarySubtabs() {
+    const subtabButtons = document.querySelectorAll('.library-subtab-btn');
+    subtabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const subtab = btn.dataset.subtab;
+
+            // Update button states
+            subtabButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Update content visibility
+            document.querySelectorAll('.library-subtab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`library-${subtab}`).classList.add('active');
+        });
+    });
+}
+
+// Refresh library data (can be called after generating new content)
+function refreshLibraryData() {
+    libraryDataLoaded = false;
+    if (currentTab === 'library') {
+        updateLibraryTab();
+    }
+}
+
+// Initialize library sub-tabs when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    initLibrarySubtabs();
+});
