@@ -290,6 +290,9 @@
                                 <button id="upload-art-bible-btn" class="btn btn-secondary">
                                     Upload Custom Art Bible
                                 </button>
+                                <button id="browse-art-bible-library-btn" class="btn btn-secondary">
+                                    Browse Library
+                                </button>
                                 <input type="file" id="art-bible-file-input" accept="image/png,image/jpeg,image/gif,image/webp" style="display: none;">
                             </div>
 
@@ -348,6 +351,12 @@
                             <p class="section-description">
                                 Create reference images for each character to maintain visual consistency across all illustrations.
                             </p>
+
+                            <div class="visual-controls character-library-controls">
+                                <button id="browse-character-library-btn" class="btn btn-secondary">
+                                    Browse Character Library
+                                </button>
+                            </div>
 
                             <div id="character-references-list">
                                 <!-- Character reference cards will be added here dynamically -->
@@ -909,6 +918,38 @@
         <footer>
             <p>Powered by AI &bull; Built with ❤️ for storytelling</p>
         </footer>
+    </div>
+
+    <!-- Art Bible Library Modal -->
+    <div id="art-bible-library-modal" class="library-modal hidden">
+        <div class="library-modal-overlay" onclick="closeArtBibleLibraryModal()"></div>
+        <div class="library-modal-content">
+            <div class="library-modal-header">
+                <h3>Select Art Bible from Library</h3>
+                <button class="library-modal-close" onclick="closeArtBibleLibraryModal()">&times;</button>
+            </div>
+            <div class="library-modal-body">
+                <div id="art-bible-library-gallery" class="library-modal-gallery">
+                    <p class="gallery-loading">Loading art bibles...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Character Library Modal -->
+    <div id="character-library-modal" class="library-modal hidden">
+        <div class="library-modal-overlay" onclick="closeCharacterLibraryModal()"></div>
+        <div class="library-modal-content">
+            <div class="library-modal-header">
+                <h3>Select Character from Library</h3>
+                <button class="library-modal-close" onclick="closeCharacterLibraryModal()">&times;</button>
+            </div>
+            <div class="library-modal-body">
+                <div id="character-library-gallery" class="library-modal-gallery">
+                    <p class="gallery-loading">Loading characters...</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>

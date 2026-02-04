@@ -2535,11 +2535,23 @@ function setupArtBibleSection() {
             artBibleFileInput.value = '';
         }
     };
+
+    // Setup Browse Library button for Art Bible
+    const browseArtBibleLibraryBtn = document.getElementById('browse-art-bible-library-btn');
+    if (browseArtBibleLibraryBtn) {
+        browseArtBibleLibraryBtn.onclick = openArtBibleLibraryModal;
+    }
 }
 
 function setupCharacterReferences() {
     const charactersList = document.getElementById('character-references-list');
     charactersList.innerHTML = '';
+
+    // Setup Browse Character Library button (do this first, before any early returns)
+    const browseCharacterLibraryBtn = document.getElementById('browse-character-library-btn');
+    if (browseCharacterLibraryBtn) {
+        browseCharacterLibraryBtn.onclick = openCharacterLibraryModal;
+    }
 
     if (!currentStory.characters || currentStory.characters.length === 0) {
         charactersList.innerHTML = '<p>No characters found in this story.</p>';
@@ -4123,6 +4135,287 @@ function refreshLibraryData() {
     libraryDataLoaded = false;
     if (currentTab === 'library') {
         updateLibraryTab();
+    }
+}
+
+// ===== Library Browser Modal Functions =====
+
+// Open Art Bible Library Modal
+async function openArtBibleLibraryModal() {
+    if (!currentStory) {
+        showError('Please load a story first');
+        return;
+    }
+
+    const modal = document.getElementById('art-bible-library-modal');
+    const gallery = document.getElementById('art-bible-library-gallery');
+
+    modal.classList.remove('hidden');
+    gallery.innerHTML = '<p class="gallery-loading">Loading art bibles...</p>';
+
+    try {
+        const response = await fetch('/api/projects/library/art-bibles');
+        if (!response.ok) throw new Error('Failed to load art bibles');
+
+        const data = await response.json();
+        const artBibles = data.art_bibles || [];
+
+        // Filter out art bible from current project
+        const filteredArtBibles = artBibles.filter(ab => ab.project_id !== currentStory.id);
+
+        if (filteredArtBibles.length === 0) {
+            gallery.innerHTML = '<p class="gallery-empty">No other art bibles found in your projects.</p>';
+            return;
+        }
+
+        gallery.innerHTML = filteredArtBibles.map(ab => `
+            <div class="library-item" data-project-id="${ab.project_id}" data-image-path="${ab.local_image_path}" data-art-style="${ab.art_style || ''}" data-prompt="${encodeURIComponent(ab.prompt || '')}">
+                <div class="library-item-image">
+                    <img src="/api/${ab.local_image_path}"
+                         alt="Art Bible for ${ab.story_title}"
+                         loading="lazy"
+                         onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2212%22>No Image</text></svg>'">
+                </div>
+                <div class="library-item-info">
+                    <span class="library-item-title">${ab.story_title || ab.project_name}</span>
+                    <span class="library-item-style">${ab.art_style || ''}</span>
+                </div>
+            </div>
+        `).join('');
+
+        // Add click handlers to copy art bible
+        gallery.querySelectorAll('.library-item').forEach(item => {
+            item.addEventListener('click', () => {
+                copyArtBibleFromLibrary(
+                    item.dataset.projectId,
+                    item.dataset.imagePath,
+                    item.dataset.artStyle,
+                    decodeURIComponent(item.dataset.prompt || '')
+                );
+            });
+        });
+
+    } catch (error) {
+        console.error('Error loading art bibles:', error);
+        gallery.innerHTML = '<p class="gallery-error">Failed to load art bibles.</p>';
+    }
+}
+
+function closeArtBibleLibraryModal() {
+    document.getElementById('art-bible-library-modal').classList.add('hidden');
+}
+
+async function copyArtBibleFromLibrary(sourceProjectId, imagePath, artStyle, prompt) {
+    if (!currentStory) {
+        showError('No story loaded');
+        return;
+    }
+
+    try {
+        // Copy the image file to current project
+        const response = await fetch(`${API_BASE}/visual-consistency/stories/${currentStory.id}/art-bible/copy`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                source_project_id: sourceProjectId,
+                image_path: imagePath,
+                art_style: artStyle,
+                prompt: prompt
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to copy art bible');
+        }
+
+        const result = await response.json();
+
+        // Update currentStory with new art bible
+        if (!currentStory.art_bible) {
+            currentStory.art_bible = {};
+        }
+        currentStory.art_bible.local_image_path = result.local_image_path;
+        currentStory.art_bible.prompt = prompt;
+        currentStory.art_bible.art_style = artStyle;
+
+        // Close modal and update UI
+        closeArtBibleLibraryModal();
+
+        // Show art bible section, populate prompt, and refresh preview
+        document.getElementById('art-bible-section').classList.remove('hidden');
+        document.getElementById('art-bible-prompt').value = prompt;
+        refreshArtBiblePreview();
+
+        await autoSaveProject();
+
+        showSuccess('Art bible copied successfully!');
+
+    } catch (error) {
+        showError(`Failed to copy art bible: ${error.message}`);
+    }
+}
+
+// Open Character Library Modal
+async function openCharacterLibraryModal() {
+    if (!currentStory) {
+        showError('Please load a story first');
+        return;
+    }
+
+    const modal = document.getElementById('character-library-modal');
+    const gallery = document.getElementById('character-library-gallery');
+
+    modal.classList.remove('hidden');
+    gallery.innerHTML = '<p class="gallery-loading">Loading characters...</p>';
+
+    try {
+        const response = await fetch('/api/projects/library/characters');
+        if (!response.ok) throw new Error('Failed to load characters');
+
+        const data = await response.json();
+        const characters = data.characters || [];
+
+        // Filter out characters from current project
+        const filteredCharacters = characters.filter(char => char.project_id !== currentStory.id);
+
+        if (filteredCharacters.length === 0) {
+            gallery.innerHTML = '<p class="gallery-empty">No other character references found in your projects.</p>';
+            return;
+        }
+
+        gallery.innerHTML = filteredCharacters.map(char => `
+            <div class="library-item"
+                 data-project-id="${char.project_id}"
+                 data-image-path="${char.local_image_path}"
+                 data-character-name="${encodeURIComponent(char.character_name)}"
+                 data-prompt="${encodeURIComponent(char.prompt || '')}"
+                 data-species="${encodeURIComponent(char.species || '')}"
+                 data-physical-description="${encodeURIComponent(char.physical_description || '')}"
+                 data-clothing="${encodeURIComponent(char.clothing || '')}"
+                 data-distinctive-features="${encodeURIComponent(char.distinctive_features || '')}">
+                <div class="library-item-image">
+                    <img src="/api/${char.local_image_path}"
+                         alt="${char.character_name}"
+                         loading="lazy"
+                         onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2212%22>No Image</text></svg>'">
+                </div>
+                <div class="library-item-info">
+                    <span class="library-item-name">${char.character_name}</span>
+                    <span class="library-item-project">${char.story_title || char.project_name}</span>
+                </div>
+            </div>
+        `).join('');
+
+        // Add click handlers to copy character
+        gallery.querySelectorAll('.library-item').forEach(item => {
+            item.addEventListener('click', () => {
+                copyCharacterFromLibrary(
+                    item.dataset.projectId,
+                    item.dataset.imagePath,
+                    decodeURIComponent(item.dataset.characterName),
+                    decodeURIComponent(item.dataset.prompt || ''),
+                    decodeURIComponent(item.dataset.species || ''),
+                    decodeURIComponent(item.dataset.physicalDescription || ''),
+                    decodeURIComponent(item.dataset.clothing || ''),
+                    decodeURIComponent(item.dataset.distinctiveFeatures || '')
+                );
+            });
+        });
+
+    } catch (error) {
+        console.error('Error loading characters:', error);
+        gallery.innerHTML = '<p class="gallery-error">Failed to load characters.</p>';
+    }
+}
+
+function closeCharacterLibraryModal() {
+    document.getElementById('character-library-modal').classList.add('hidden');
+}
+
+async function copyCharacterFromLibrary(sourceProjectId, imagePath, characterName, prompt, species, physicalDescription, clothing, distinctiveFeatures) {
+    if (!currentStory) {
+        showError('No story loaded');
+        return;
+    }
+
+    try {
+        // Copy the character image file to current project
+        const response = await fetch(`${API_BASE}/visual-consistency/stories/${currentStory.id}/characters/copy`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                source_project_id: sourceProjectId,
+                image_path: imagePath,
+                character_name: characterName,
+                prompt: prompt,
+                species: species,
+                physical_description: physicalDescription,
+                clothing: clothing,
+                distinctive_features: distinctiveFeatures
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to copy character');
+        }
+
+        const result = await response.json();
+
+        // Update currentStory with new character reference
+        if (!currentStory.character_references) {
+            currentStory.character_references = [];
+        }
+
+        // Check if character already exists, update it, otherwise add new
+        const existingIndex = currentStory.character_references.findIndex(
+            ref => ref.character_name === characterName
+        );
+
+        const newCharRef = {
+            character_name: characterName,
+            local_image_path: result.local_image_path,
+            prompt: prompt,
+            species: species,
+            physical_description: physicalDescription,
+            clothing: clothing,
+            distinctive_features: distinctiveFeatures
+        };
+
+        if (existingIndex >= 0) {
+            currentStory.character_references[existingIndex] = {
+                ...currentStory.character_references[existingIndex],
+                ...newCharRef
+            };
+        } else {
+            currentStory.character_references.push(newCharRef);
+        }
+
+        // Also add to story.characters if not present
+        if (!currentStory.characters) {
+            currentStory.characters = [];
+        }
+        const existingCharInStory = currentStory.characters.find(c => c.name === characterName);
+        if (!existingCharInStory) {
+            currentStory.characters.push({
+                name: characterName,
+                species: species,
+                physical_description: physicalDescription,
+                clothing: clothing,
+                distinctive_features: distinctiveFeatures
+            });
+        }
+
+        // Close modal and update UI
+        closeCharacterLibraryModal();
+        setupCharacterReferences();
+        await autoSaveProject();
+
+        showSuccess(`Character "${characterName}" copied successfully!`);
+
+    } catch (error) {
+        showError(`Failed to copy character: ${error.message}`);
     }
 }
 

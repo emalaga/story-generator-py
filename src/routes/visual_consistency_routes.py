@@ -1029,3 +1029,317 @@ def rebuild_session():
     except Exception as e:
         current_app.logger.error(f"Error rebuilding session: {e}", exc_info=True)
         return jsonify({'error': f'Failed to rebuild visual context: {str(e)}'}), 500
+
+
+@visual_bp.route('/stories/<story_id>/art-bible/copy', methods=['POST'])
+def copy_art_bible_from_library(story_id):
+    """
+    POST /api/visual-consistency/stories/<story_id>/art-bible/copy
+
+    Copy an art bible from another project to the current project.
+
+    Request body:
+    {
+        "source_project_id": str (required),
+        "image_path": str (required) - path to the source image,
+        "art_style": str (optional),
+        "prompt": str (optional)
+    }
+
+    Returns:
+        200: Art bible copied successfully
+        400: Invalid request
+        404: Source or target project not found
+        500: Server error
+    """
+    try:
+        # Validate request
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+
+        try:
+            data = request.get_json()
+        except BadRequest:
+            return jsonify({'error': 'Invalid JSON'}), 400
+
+        # Validate required fields
+        if 'source_project_id' not in data:
+            return jsonify({'error': 'Missing required field: source_project_id'}), 400
+        if 'image_path' not in data:
+            return jsonify({'error': 'Missing required field: image_path'}), 400
+
+        source_project_id = data['source_project_id']
+        source_image_path = data['image_path']
+        art_style = data.get('art_style', 'custom')
+        prompt = data.get('prompt', '')
+
+        # Get project repository
+        project_repo = current_app.config['REPOSITORIES']['project']
+
+        # Load target project
+        target_project = project_repo.get(story_id)
+        if not target_project or not target_project.story:
+            return jsonify({'error': 'Target project not found'}), 404
+
+        # Load source project to verify image exists
+        source_project = project_repo.get(source_project_id)
+        if not source_project:
+            return jsonify({'error': 'Source project not found'}), 404
+
+        # Build the full source path
+        storage_dir = project_repo.storage_dir
+        source_full_path = storage_dir / source_image_path
+
+        if not source_full_path.exists():
+            return jsonify({'error': 'Source image not found'}), 404
+
+        # Get target project's images directory
+        target_images_dir = project_repo.get_project_images_dir(story_id)
+        target_art_bible_dir = target_images_dir / 'art_bible'
+
+        # Generate new filename with timestamp
+        import shutil
+        file_ext = source_full_path.suffix or '.png'
+        filename = f'art_bible_copied_{int(time.time() * 1000)}{file_ext}'
+        target_path = target_art_bible_dir / filename
+
+        # Copy the image file
+        shutil.copy2(source_full_path, target_path)
+
+        # Build relative path for storage
+        local_path = f'images/{story_id}/art_bible/{filename}'
+        current_app.logger.info(f"Art bible copied from {source_image_path} to {local_path}")
+
+        # Update target project with the copied art bible
+        if not target_project.story.art_bible:
+            from src.models.art_bible import ArtBible
+            target_project.story.art_bible = ArtBible(prompt=prompt, art_style=art_style)
+
+        # Create version entry for the copied image
+        version_entry = {
+            'path': local_path,
+            'model': 'copied',
+            'generated_at': datetime.now().isoformat(),
+            'resolution': None,
+            'cost': None
+        }
+
+        # Initialize versions list if needed
+        if not target_project.story.art_bible.image_versions:
+            target_project.story.art_bible.image_versions = []
+            # Migrate existing image to versions list if present
+            if target_project.story.art_bible.local_image_path:
+                existing_version = {
+                    'path': target_project.story.art_bible.local_image_path,
+                    'model': target_project.story.art_bible.image_model,
+                    'generated_at': target_project.story.art_bible.image_generated_at.isoformat() if target_project.story.art_bible.image_generated_at else None,
+                    'resolution': target_project.story.art_bible.image_resolution,
+                    'cost': target_project.story.art_bible.image_cost
+                }
+                target_project.story.art_bible.image_versions.append(existing_version)
+        target_project.story.art_bible.image_versions.append(version_entry)
+
+        # Set the copied image as active
+        target_project.story.art_bible.local_image_path = local_path
+        target_project.story.art_bible.prompt = prompt
+        target_project.story.art_bible.art_style = art_style
+        target_project.story.art_bible.image_model = 'copied'
+        target_project.story.art_bible.image_generated_at = datetime.now()
+
+        # Save the updated project
+        project_repo.save(target_project)
+
+        return jsonify({
+            'local_image_path': local_path,
+            'prompt': prompt,
+            'art_style': art_style,
+            'message': 'Art bible copied successfully'
+        }), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error copying art bible: {e}", exc_info=True)
+        return jsonify({'error': f'Failed to copy art bible: {str(e)}'}), 500
+
+
+@visual_bp.route('/stories/<story_id>/characters/copy', methods=['POST'])
+def copy_character_from_library(story_id):
+    """
+    POST /api/visual-consistency/stories/<story_id>/characters/copy
+
+    Copy a character reference from another project to the current project.
+
+    Request body:
+    {
+        "source_project_id": str (required),
+        "image_path": str (required) - path to the source image,
+        "character_name": str (required),
+        "prompt": str (optional),
+        "species": str (optional),
+        "physical_description": str (optional),
+        "clothing": str (optional),
+        "distinctive_features": str (optional)
+    }
+
+    Returns:
+        200: Character copied successfully
+        400: Invalid request
+        404: Source or target project not found
+        500: Server error
+    """
+    try:
+        # Validate request
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+
+        try:
+            data = request.get_json()
+        except BadRequest:
+            return jsonify({'error': 'Invalid JSON'}), 400
+
+        # Validate required fields
+        if 'source_project_id' not in data:
+            return jsonify({'error': 'Missing required field: source_project_id'}), 400
+        if 'image_path' not in data:
+            return jsonify({'error': 'Missing required field: image_path'}), 400
+        if 'character_name' not in data:
+            return jsonify({'error': 'Missing required field: character_name'}), 400
+
+        source_project_id = data['source_project_id']
+        source_image_path = data['image_path']
+        character_name = data['character_name']
+        prompt = data.get('prompt', '')
+        species = data.get('species', '')
+        physical_description = data.get('physical_description', '')
+        clothing = data.get('clothing', '')
+        distinctive_features = data.get('distinctive_features', '')
+
+        # Get project repository
+        project_repo = current_app.config['REPOSITORIES']['project']
+
+        # Load target project
+        target_project = project_repo.get(story_id)
+        if not target_project or not target_project.story:
+            return jsonify({'error': 'Target project not found'}), 404
+
+        # Load source project to verify image exists
+        source_project = project_repo.get(source_project_id)
+        if not source_project:
+            return jsonify({'error': 'Source project not found'}), 404
+
+        # Build the full source path
+        storage_dir = project_repo.storage_dir
+        source_full_path = storage_dir / source_image_path
+
+        if not source_full_path.exists():
+            return jsonify({'error': 'Source image not found'}), 404
+
+        # Get target project's images directory
+        target_images_dir = project_repo.get_project_images_dir(story_id)
+        target_characters_dir = target_images_dir / 'characters'
+
+        # Generate new filename with timestamp
+        import shutil
+        file_ext = source_full_path.suffix or '.png'
+        safe_char_name = character_name.replace(' ', '_').replace('/', '_').replace('\\', '_')
+        filename = f'character_{safe_char_name}_copied_{int(time.time() * 1000)}{file_ext}'
+        target_path = target_characters_dir / filename
+
+        # Copy the image file
+        shutil.copy2(source_full_path, target_path)
+
+        # Build relative path for storage
+        local_path = f'images/{story_id}/characters/{filename}'
+        current_app.logger.info(f"Character {character_name} copied from {source_image_path} to {local_path}")
+
+        # Update target project with the copied character reference
+        if not target_project.story.character_references:
+            target_project.story.character_references = []
+
+        # Create version entry for the copied image
+        version_entry = {
+            'path': local_path,
+            'model': 'copied',
+            'generated_at': datetime.now().isoformat(),
+            'resolution': None,
+            'cost': None
+        }
+
+        # Check if character already exists in target project
+        existing_ref = next(
+            (ref for ref in target_project.story.character_references if ref.character_name == character_name),
+            None
+        )
+
+        if existing_ref:
+            # Initialize versions list if needed
+            if not existing_ref.image_versions:
+                existing_ref.image_versions = []
+                if existing_ref.local_image_path:
+                    existing_version = {
+                        'path': existing_ref.local_image_path,
+                        'model': existing_ref.image_model,
+                        'generated_at': existing_ref.image_generated_at.isoformat() if existing_ref.image_generated_at else None,
+                        'resolution': existing_ref.image_resolution,
+                        'cost': existing_ref.image_cost
+                    }
+                    existing_ref.image_versions.append(existing_version)
+            existing_ref.image_versions.append(version_entry)
+
+            # Update with copied data
+            existing_ref.local_image_path = local_path
+            existing_ref.prompt = prompt
+            existing_ref.species = species
+            existing_ref.physical_description = physical_description
+            existing_ref.clothing = clothing
+            existing_ref.distinctive_features = distinctive_features
+            existing_ref.image_model = 'copied'
+            existing_ref.image_generated_at = datetime.now()
+        else:
+            # Create new character reference
+            from src.models.art_bible import CharacterReference
+            new_ref = CharacterReference(
+                character_name=character_name,
+                prompt=prompt,
+                species=species,
+                physical_description=physical_description,
+                clothing=clothing,
+                distinctive_features=distinctive_features,
+                local_image_path=local_path,
+                image_model='copied',
+                image_generated_at=datetime.now(),
+                image_versions=[version_entry]
+            )
+            target_project.story.character_references.append(new_ref)
+
+        # Also add the character to story.characters if not present
+        if not target_project.story.characters:
+            target_project.story.characters = []
+
+        existing_char = next(
+            (char for char in target_project.story.characters if char.name == character_name),
+            None
+        )
+        if not existing_char:
+            from src.models.character import CharacterProfile
+            new_char = CharacterProfile(
+                name=character_name,
+                species=species,
+                physical_description=physical_description,
+                clothing=clothing,
+                distinctive_features=distinctive_features
+            )
+            target_project.story.characters.append(new_char)
+
+        # Save the updated project
+        project_repo.save(target_project)
+
+        return jsonify({
+            'local_image_path': local_path,
+            'character_name': character_name,
+            'prompt': prompt,
+            'message': 'Character copied successfully'
+        }), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error copying character: {e}", exc_info=True)
+        return jsonify({'error': f'Failed to copy character: {str(e)}'}), 500
