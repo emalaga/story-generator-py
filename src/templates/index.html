@@ -216,13 +216,16 @@
                                 <button id="identify-characters-btn" class="btn btn-primary" onclick="identifyCharacters()">
                                     Identify Characters
                                 </button>
+                                <button id="add-character-initial-btn" class="btn btn-secondary" onclick="openAddCharacterModal()">
+                                    Add Character Manually
+                                </button>
                             </div>
                             <div id="identify-characters-loading" class="image-loading hidden">
                                 <div class="spinner-small"></div>
                                 <span>Analyzing story for characters...</span>
                             </div>
                             <p class="section-description">
-                                Click the button above to analyze your story and identify the characters.
+                                Click "Identify Characters" to analyze your story, or "Add Character Manually" to create characters yourself.
                             </p>
                         </div>
 
@@ -230,6 +233,9 @@
                             <div class="characters-actions">
                                 <button id="reidentify-characters-btn" class="btn btn-secondary" onclick="identifyCharacters()">
                                     Re-identify Characters
+                                </button>
+                                <button id="add-character-btn" class="btn btn-secondary" onclick="openAddCharacterModal()">
+                                    Add Character
                                 </button>
                                 <div id="reidentify-characters-loading" class="image-loading hidden">
                                     <div class="spinner-small"></div>
@@ -948,6 +954,49 @@
                 <div id="character-library-gallery" class="library-modal-gallery">
                     <p class="gallery-loading">Loading characters...</p>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Character Modal -->
+    <div id="add-character-modal" class="library-modal hidden">
+        <div class="library-modal-overlay" onclick="closeAddCharacterModal()"></div>
+        <div class="library-modal-content add-character-modal-content">
+            <div class="library-modal-header">
+                <h3>Add New Character</h3>
+                <button class="library-modal-close" onclick="closeAddCharacterModal()">&times;</button>
+            </div>
+            <div class="library-modal-body">
+                <form id="add-character-form" class="add-character-form">
+                    <div class="form-group">
+                        <label for="new-char-name">Name *</label>
+                        <input type="text" id="new-char-name" required placeholder="Character's name">
+                    </div>
+                    <div class="form-group">
+                        <label for="new-char-species">Species</label>
+                        <input type="text" id="new-char-species" placeholder="e.g., Human, Cat, Dragon">
+                    </div>
+                    <div class="form-group">
+                        <label for="new-char-physical">Physical Description</label>
+                        <textarea id="new-char-physical" rows="3" placeholder="Describe the character's appearance..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-char-clothing">Clothing</label>
+                        <textarea id="new-char-clothing" rows="2" placeholder="Describe what they wear..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-char-distinctive">Distinctive Features</label>
+                        <textarea id="new-char-distinctive" rows="2" placeholder="Any unique features, accessories, markings..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-char-personality">Personality Traits</label>
+                        <textarea id="new-char-personality" rows="2" placeholder="Character's personality..."></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeAddCharacterModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Character</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

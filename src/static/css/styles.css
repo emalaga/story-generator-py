@@ -562,6 +562,26 @@ header h1 {
     margin-top: 10px;
 }
 
+.character-card .character-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+}
+
+.character-card .character-actions .btn-delete {
+    background-color: transparent;
+    color: var(--error-color);
+    border: 1px solid var(--error-color);
+}
+
+.character-card .character-actions .btn-delete:hover {
+    background-color: var(--error-color);
+    color: white;
+}
+
 /* ===== Characters Tab ===== */
 .characters-list {
     display: grid;
@@ -2435,4 +2455,56 @@ select[disabled] {
         grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
         gap: 10px;
     }
+}
+
+/* Add Character Modal */
+.add-character-modal-content {
+    max-width: 500px;
+}
+
+.add-character-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.add-character-form .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.add-character-form .form-group label {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.add-character-form .form-group input,
+.add-character-form .form-group textarea {
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.add-character-form .form-group input:focus,
+.add-character-form .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.add-character-form .form-group textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+.add-character-form .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color);
 }

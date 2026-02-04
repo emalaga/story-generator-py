@@ -597,7 +597,10 @@ function updateCharactersTab() {
                 <label for="char-${index}-traits"><strong>Traits:</strong></label>
                 <textarea id="char-${index}-traits" rows="2" placeholder="Personality traits...">${char.personality_traits || ''}</textarea>
             </div>
-            <button class="btn-text-save" onclick="saveCharacter(${index})">Save Character</button>
+            <div class="character-actions">
+                <button class="btn-text-save" onclick="saveCharacter(${index})">Save Character</button>
+                <button class="btn-small btn-delete" onclick="deleteCharacter(${index})">Delete</button>
+            </div>
         `;
         charactersList.appendChild(charDiv);
     });
@@ -1343,6 +1346,43 @@ function saveCharacter(charIndex) {
 
     // Show success feedback
     alert(`Character "${character.name}" saved! Changes will be used when generating images.`);
+}
+
+async function deleteCharacter(charIndex) {
+    if (!currentStory) {
+        showError('No story loaded');
+        return;
+    }
+
+    if (!currentStory.characters || !currentStory.characters[charIndex]) {
+        showError('Character not found');
+        return;
+    }
+
+    const character = currentStory.characters[charIndex];
+
+    // Confirm deletion
+    if (!confirm(`Are you sure you want to delete the character "${character.name}"?`)) {
+        return;
+    }
+
+    // Remove the character
+    currentStory.characters.splice(charIndex, 1);
+
+    // Also remove any character reference for this character
+    if (currentStory.character_references) {
+        currentStory.character_references = currentStory.character_references.filter(
+            ref => ref.character_name !== character.name
+        );
+    }
+
+    // Update the display
+    updateCharactersTab();
+
+    // Save the project
+    await autoSaveProject();
+
+    showSuccess(`Character "${character.name}" deleted successfully!`);
 }
 
 // ===== Generate Image Prompt =====
@@ -4417,6 +4457,87 @@ async function copyCharacterFromLibrary(sourceProjectId, imagePath, characterNam
     } catch (error) {
         showError(`Failed to copy character: ${error.message}`);
     }
+}
+
+// ===== Add Character Modal Functions =====
+
+function openAddCharacterModal() {
+    if (!currentStory) {
+        showError('Please load a story first');
+        return;
+    }
+
+    const modal = document.getElementById('add-character-modal');
+    modal.classList.remove('hidden');
+
+    // Clear the form
+    document.getElementById('add-character-form').reset();
+
+    // Set up form submit handler
+    const form = document.getElementById('add-character-form');
+    form.onsubmit = handleAddCharacterSubmit;
+}
+
+function closeAddCharacterModal() {
+    document.getElementById('add-character-modal').classList.add('hidden');
+}
+
+async function handleAddCharacterSubmit(e) {
+    e.preventDefault();
+
+    const name = document.getElementById('new-char-name').value.trim();
+    const species = document.getElementById('new-char-species').value.trim();
+    const physical_description = document.getElementById('new-char-physical').value.trim();
+    const clothing = document.getElementById('new-char-clothing').value.trim();
+    const distinctive_features = document.getElementById('new-char-distinctive').value.trim();
+    const personality_traits = document.getElementById('new-char-personality').value.trim();
+
+    if (!name) {
+        showError('Character name is required');
+        return;
+    }
+
+    // Check if character already exists
+    if (currentStory.characters) {
+        const existingChar = currentStory.characters.find(c => c.name.toLowerCase() === name.toLowerCase());
+        if (existingChar) {
+            showError(`A character named "${name}" already exists`);
+            return;
+        }
+    }
+
+    // Initialize characters array if needed
+    if (!currentStory.characters) {
+        currentStory.characters = [];
+    }
+
+    // Add the new character
+    const newCharacter = {
+        name: name,
+        species: species || null,
+        physical_description: physical_description || null,
+        clothing: clothing || null,
+        distinctive_features: distinctive_features || null,
+        personality_traits: personality_traits || null
+    };
+
+    currentStory.characters.push(newCharacter);
+
+    // Close modal and update UI
+    closeAddCharacterModal();
+
+    // Update the characters tab display
+    updateCharactersTab();
+
+    // Also update visual consistency tab if it shows characters
+    if (currentTab === 'visual-consistency') {
+        setupCharacterReferences();
+    }
+
+    // Save the project
+    await autoSaveProject();
+
+    showSuccess(`Character "${name}" added successfully!`);
 }
 
 // Initialize library sub-tabs when DOM is ready
