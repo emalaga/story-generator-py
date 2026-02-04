@@ -623,6 +623,7 @@ def generate_pdf(project_id):
         image_size_str = data.get('image_size', 'medium')
         text_placement = data.get('text_placement', 'top-left')
         include_title_page = data.get('include_title_page', True)
+        cover_style = data.get('cover_style', 'with-image')  # 'with-image' or 'title-only'
         show_page_numbers = data.get('show_page_numbers', True)
 
         # Get cover-specific options (defaults to page options if not specified)
@@ -888,28 +889,38 @@ def generate_pdf(project_id):
 
         # Title page
         if include_title_page:
-            # Determine which image to use for the cover:
+            # Check if we want title only (no image)
+            title_only_cover = (cover_style == 'title-only')
+
+            # Determine which image to use for the cover (if not title-only):
             # 1. Prefer cover page image if available
             # 2. Fall back to art bible image
             cover_image_path = None
             full_cover_img_path = None
 
-            if story.cover_page and story.cover_page.local_image_path:
-                cover_image_path = story.cover_page.local_image_path
-                current_app.logger.info("Using cover page image for title page")
-            elif story.art_bible and story.art_bible.local_image_path:
-                cover_image_path = story.art_bible.local_image_path
-                current_app.logger.info("Using art bible image for title page (no cover available)")
+            if not title_only_cover:
+                if story.cover_page and story.cover_page.local_image_path:
+                    cover_image_path = story.cover_page.local_image_path
+                    current_app.logger.info("Using cover page image for title page")
+                elif story.art_bible and story.art_bible.local_image_path:
+                    cover_image_path = story.art_bible.local_image_path
+                    current_app.logger.info("Using art bible image for title page (no cover available)")
 
-            if cover_image_path:
-                images_dir = project_repo.images_dir
-                img_path = cover_image_path
-                if img_path.startswith('images/'):
-                    img_path = img_path[7:]
-                full_cover_img_path = images_dir / img_path
+                if cover_image_path:
+                    images_dir = project_repo.images_dir
+                    img_path = cover_image_path
+                    if img_path.startswith('images/'):
+                        img_path = img_path[7:]
+                    full_cover_img_path = images_dir / img_path
 
-            # Handle differently based on PDF mode
-            if pdf_mode == 'text-over-image' and full_cover_img_path and full_cover_img_path.exists():
+            # Handle differently based on PDF mode and cover style
+            if title_only_cover:
+                # TITLE-ONLY MODE: Just show the title, no image
+                current_app.logger.info("Using title-only cover (no image)")
+                story_content.append(Spacer(1, page_height * 0.35))  # Center title vertically
+                story_content.append(Paragraph(story.metadata.title, title_style))
+                story_content.append(PageBreak())
+            elif pdf_mode == 'text-over-image' and full_cover_img_path and full_cover_img_path.exists():
                 # TEXT-OVER-IMAGE MODE: Use cover as background, overlay title
                 page_background_images[0] = str(full_cover_img_path)
 
@@ -1389,6 +1400,7 @@ def generate_pdf(project_id):
                 'image_size': image_size_str,
                 'text_placement': text_placement,
                 'include_title_page': include_title_page,
+                'cover_style': cover_style,
                 'show_page_numbers': show_page_numbers,
                 'cover_font': cover_font_requested,
                 'cover_font_size': data.get('cover_font_size', font_size),

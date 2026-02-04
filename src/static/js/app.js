@@ -3428,6 +3428,7 @@ function updatePDFTab() {
         document.getElementById('pdf-text-placement').value = opts.text_placement || 'top-left';
         document.getElementById('pdf-include-title').checked = opts.include_title_page !== false;
         document.getElementById('pdf-page-numbers').checked = opts.show_page_numbers !== false;
+        document.getElementById('pdf-cover-style').value = opts.cover_style || 'with-image';
     }
 
     // Hide download section initially
@@ -3476,6 +3477,14 @@ function setupPDFEventListeners() {
         // Initialize visibility
         toggleCoverTextBgOptions();
     }
+
+    // Setup cover page checkbox toggle for cover style options
+    const includeTitleCheckbox = document.getElementById('pdf-include-title');
+    if (includeTitleCheckbox) {
+        includeTitleCheckbox.addEventListener('change', toggleCoverStyleOptions);
+        // Initialize visibility
+        toggleCoverStyleOptions();
+    }
 }
 
 function toggleTextBgOptions() {
@@ -3510,6 +3519,23 @@ function toggleCoverTextBgOptions() {
             if (select) select.disabled = true;
         }
     });
+}
+
+function toggleCoverStyleOptions() {
+    const includeCoverPage = document.getElementById('pdf-include-title').checked;
+    const coverStyleOption = document.querySelector('.pdf-cover-style-option');
+
+    if (coverStyleOption) {
+        if (includeCoverPage) {
+            coverStyleOption.style.display = '';
+            const select = coverStyleOption.querySelector('select');
+            if (select) select.disabled = false;
+        } else {
+            coverStyleOption.style.display = 'none';
+            const select = coverStyleOption.querySelector('select');
+            if (select) select.disabled = true;
+        }
+    }
 }
 
 function togglePDFMode() {
@@ -3565,6 +3591,7 @@ function getPDFOptionsFromForm() {
         font_size: parseInt(document.getElementById('pdf-font-size').value),
         font_color: document.getElementById('pdf-font-color').value,
         include_title_page: document.getElementById('pdf-include-title').checked,
+        cover_style: document.getElementById('pdf-cover-style').value,
         show_page_numbers: document.getElementById('pdf-page-numbers').checked
     };
 
@@ -3748,7 +3775,7 @@ async function loadExistingPDFs() {
                             <div class="pdf-metadata-item"><strong>Image Placement:</strong> <span>${options.image_placement || 'N/A'}</span></div>
                             <div class="pdf-metadata-item"><strong>Image Size:</strong> <span>${options.image_size || 'N/A'}</span></div>
                             <div class="pdf-metadata-item"><strong>Page Numbers:</strong> <span>${options.show_page_numbers ? 'Yes' : 'No'}</span></div>
-                            <div class="pdf-metadata-item"><strong>Title Page:</strong> <span>${options.include_title_page ? 'Yes' : 'No'}</span></div>
+                            <div class="pdf-metadata-item"><strong>Cover Page:</strong> <span>${options.include_title_page ? (options.cover_style === 'title-only' ? 'Title Only' : 'With Image') : 'No'}</span></div>
                             ${options.pdf_mode === 'text-over-image' ? `
                                 <div class="pdf-metadata-item"><strong>Text Placement:</strong> <span>${options.text_placement || 'N/A'}</span></div>
                                 <div class="pdf-metadata-item"><strong>Text Background:</strong> <span>${options.text_background_enabled ? 'Yes' : 'No'}</span></div>
