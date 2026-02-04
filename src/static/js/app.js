@@ -1077,7 +1077,7 @@ function displayStory(story) {
 }
 
 // ===== Save Page Text =====
-function savePageText(pageIndex) {
+async function savePageText(pageIndex) {
     if (!currentStory) {
         showError('No story loaded');
         return;
@@ -1112,6 +1112,9 @@ function savePageText(pageIndex) {
 
     // Update the text metadata display without re-rendering pages
     updateTextMetadataDisplay();
+
+    // Save to backend
+    await autoSaveProject();
 
     // Show brief success feedback on the save button
     const saveBtn = document.querySelector(`#page-${pageIndex}-text`).parentElement.querySelector('.btn-text-save');
