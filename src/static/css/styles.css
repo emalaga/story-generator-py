@@ -1055,6 +1055,13 @@ header h1 {
     min-height: 80px;
 }
 
+.page-prompt-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
 .image-actions {
     display: flex;
     gap: 10px;

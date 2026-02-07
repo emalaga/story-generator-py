@@ -504,9 +504,14 @@ function updateImageGenerationTab() {
                     <div class="page-prompt-section">
                         <label for="page-${page.page_number}-prompt">Image Prompt (editable):</label>
                         <textarea class="page-prompt-edit" id="page-${page.page_number}-prompt" rows="5">${page.image_prompt || ''}</textarea>
-                        <button class="btn-small" onclick="generateImagePrompt(${page.page_number})">
-                            ${page.image_prompt ? 'Regenerate' : 'Generate'} Prompt
-                        </button>
+                        <div class="page-prompt-buttons">
+                            <button class="btn-small" onclick="generateImagePrompt(${page.page_number})">
+                                ${page.image_prompt ? 'Regenerate' : 'Generate'} Prompt
+                            </button>
+                            <button class="btn-small btn-save-prompt hidden" id="page-${page.page_number}-save-prompt-btn" onclick="savePagePrompt(${page.page_number})">
+                                Save Prompt
+                            </button>
+                        </div>
                     </div>
                     <div class="image-actions">
                         <button class="btn-small btn-generate-image" id="page-${page.page_number}-generate-btn"
@@ -520,12 +525,17 @@ function updateImageGenerationTab() {
         `;
         pagesList.appendChild(pageCard);
 
-        // Add event listener to prompt textarea to enable/disable Generate Image button
+        // Add event listener to prompt textarea to enable/disable Generate Image button and show Save button
         const promptTextarea = document.getElementById(`page-${page.page_number}-prompt`);
         const generateBtn = document.getElementById(`page-${page.page_number}-generate-btn`);
+        const savePromptBtn = document.getElementById(`page-${page.page_number}-save-prompt-btn`);
         if (promptTextarea && generateBtn) {
             promptTextarea.addEventListener('input', () => {
                 generateBtn.disabled = !promptTextarea.value.trim();
+                // Show save button when user edits the prompt
+                if (savePromptBtn) {
+                    savePromptBtn.classList.remove('hidden');
+                }
             });
         }
     });
@@ -1418,6 +1428,38 @@ async function deleteCharacter(charIndex) {
     showSuccess(`Character "${character.name}" deleted successfully!`);
 }
 
+// ===== Save Page Prompt =====
+function savePagePrompt(pageNumber) {
+    if (!currentStory) {
+        showError('No story loaded');
+        return;
+    }
+
+    const page = currentStory.pages.find(p => p.page_number === pageNumber);
+    if (!page) {
+        showError(`Page ${pageNumber} not found`);
+        return;
+    }
+
+    const promptTextarea = document.getElementById(`page-${pageNumber}-prompt`);
+    const saveBtn = document.getElementById(`page-${pageNumber}-save-prompt-btn`);
+
+    if (promptTextarea) {
+        // Save the prompt to the page
+        page.image_prompt = promptTextarea.value;
+
+        // Hide the save button
+        if (saveBtn) {
+            saveBtn.classList.add('hidden');
+        }
+
+        // Auto-save the project
+        autoSaveProject();
+
+        console.log(`Saved prompt for page ${pageNumber}`);
+    }
+}
+
 // ===== Generate Image Prompt =====
 async function generateImagePrompt(pageNumber) {
     if (!currentStory) {
@@ -1474,6 +1516,12 @@ async function generateImagePrompt(pageNumber) {
         const generateBtn = document.getElementById(`page-${pageNumber}-generate-btn`);
         if (generateBtn) {
             generateBtn.disabled = false;
+        }
+
+        // Hide the Save Prompt button since the prompt was just generated
+        const savePromptBtn = document.getElementById(`page-${pageNumber}-save-prompt-btn`);
+        if (savePromptBtn) {
+            savePromptBtn.classList.add('hidden');
         }
 
     } catch (error) {
