@@ -2334,6 +2334,22 @@ function updateVisualConsistencyTab() {
         <p>Art Style: ${currentStory.metadata.art_style || 'cartoon'} &bull; ${currentStory.characters.length} character(s)</p>
     `;
 
+    // Set the art-style dropdown to current value and add change listener
+    const artStyleSelect = document.getElementById('art-style');
+    if (artStyleSelect) {
+        artStyleSelect.value = currentStory.metadata.art_style || 'cartoon';
+
+        // Add change listener to update story metadata when art style changes
+        artStyleSelect.onchange = function() {
+            currentStory.metadata.art_style = this.value;
+            // Update the info bar to reflect the change
+            infoBar.innerHTML = `
+                <h3>${currentStory.metadata.title}</h3>
+                <p>Art Style: ${this.value} &bull; ${currentStory.characters.length} character(s)</p>
+            `;
+        };
+    }
+
     // Update session status (shared with Image Generation tab)
     updateSessionStatus();
 
