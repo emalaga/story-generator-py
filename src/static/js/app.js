@@ -723,30 +723,45 @@ async function updateSessionStatus() {
 }
 
 function setSessionStatusDisplay(hasSession, contextInitialized) {
-    const statusSpan = document.getElementById('session-status');
-    if (!statusSpan) return;
+    // Update both Image Generation and Visual Consistency tab session status displays
+    const statusSpans = [
+        document.getElementById('session-status'),
+        document.getElementById('visual-session-status')
+    ];
 
-    if (contextInitialized) {
-        statusSpan.textContent = 'Session Active';
-        statusSpan.className = 'session-status valid-session';
-    } else if (hasSession) {
-        statusSpan.textContent = 'Session Exists (Not Initialized)';
-        statusSpan.className = 'session-status partial-session';
-    } else {
-        statusSpan.textContent = 'No Session';
-        statusSpan.className = 'session-status no-session';
-    }
+    statusSpans.forEach(statusSpan => {
+        if (!statusSpan) return;
+
+        if (contextInitialized) {
+            statusSpan.textContent = 'Session Active';
+            statusSpan.className = 'session-status valid-session';
+        } else if (hasSession) {
+            statusSpan.textContent = 'Session Exists (Not Initialized)';
+            statusSpan.className = 'session-status partial-session';
+        } else {
+            statusSpan.textContent = 'No Session';
+            statusSpan.className = 'session-status no-session';
+        }
+    });
 }
 
 let reloadContextButtonSetup = false;
 function setupReloadContextButton() {
     if (reloadContextButtonSetup) return;
 
+    // Set up reload button in Image Generation tab
     const reloadBtn = document.getElementById('reload-context-btn');
     if (reloadBtn) {
         reloadBtn.addEventListener('click', reloadVisualContext);
-        reloadContextButtonSetup = true;
     }
+
+    // Set up reload button in Visual Consistency tab
+    const visualReloadBtn = document.getElementById('visual-reload-context-btn');
+    if (visualReloadBtn) {
+        visualReloadBtn.addEventListener('click', reloadVisualContext);
+    }
+
+    reloadContextButtonSetup = true;
 }
 
 async function reloadVisualContext() {
@@ -755,25 +770,41 @@ async function reloadVisualContext() {
         return;
     }
 
+    // Get elements from both tabs
     const reloadBtn = document.getElementById('reload-context-btn');
     const loadingDiv = document.getElementById('reload-context-loading');
     const statusSpan = document.getElementById('session-status');
+    const visualReloadBtn = document.getElementById('visual-reload-context-btn');
+    const visualLoadingDiv = document.getElementById('visual-reload-context-loading');
+    const visualStatusSpan = document.getElementById('visual-session-status');
 
-    // Show loading state with elapsed time
-    reloadBtn.disabled = true;
-    loadingDiv.classList.remove('hidden');
+    // Show loading state with elapsed time for both tabs
+    if (reloadBtn) reloadBtn.disabled = true;
+    if (visualReloadBtn) visualReloadBtn.disabled = true;
+    if (loadingDiv) loadingDiv.classList.remove('hidden');
+    if (visualLoadingDiv) visualLoadingDiv.classList.remove('hidden');
 
     // Update status to show loading with elapsed time
     const startTime = Date.now();
-    statusSpan.textContent = 'Rebuilding... (0:00)';
-    statusSpan.className = 'session-status loading-session';
+    const updateStatus = (text, className) => {
+        if (statusSpan) {
+            statusSpan.textContent = text;
+            statusSpan.className = className;
+        }
+        if (visualStatusSpan) {
+            visualStatusSpan.textContent = text;
+            visualStatusSpan.className = className;
+        }
+    };
+
+    updateStatus('Rebuilding... (0:00)', 'session-status loading-session');
 
     // Update elapsed time every second
     const timerInterval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
         const minutes = Math.floor(elapsed / 60);
         const seconds = elapsed % 60;
-        statusSpan.textContent = `Rebuilding... (${minutes}:${seconds.toString().padStart(2, '0')})`;
+        updateStatus(`Rebuilding... (${minutes}:${seconds.toString().padStart(2, '0')})`, 'session-status loading-session');
     }, 1000);
 
     // Use AbortController with 15 minute timeout for long operations
@@ -824,9 +855,11 @@ async function reloadVisualContext() {
         }
         setSessionStatusDisplay(false, false);
     } finally {
-        // Hide loading state
-        reloadBtn.disabled = false;
-        loadingDiv.classList.add('hidden');
+        // Hide loading state for both tabs
+        if (reloadBtn) reloadBtn.disabled = false;
+        if (visualReloadBtn) visualReloadBtn.disabled = false;
+        if (loadingDiv) loadingDiv.classList.add('hidden');
+        if (visualLoadingDiv) visualLoadingDiv.classList.add('hidden');
     }
 }
 
@@ -2301,6 +2334,12 @@ function updateVisualConsistencyTab() {
         <p>Art Style: ${currentStory.metadata.art_style || 'cartoon'} &bull; ${currentStory.characters.length} character(s)</p>
     `;
 
+    // Update session status (shared with Image Generation tab)
+    updateSessionStatus();
+
+    // Setup reload context button if not already done
+    setupReloadContextButton();
+
     // Setup art bible section
     setupArtBibleSection();
 
@@ -2311,6 +2350,73 @@ function updateVisualConsistencyTab() {
     setupCharacterRefFileInput();
 }
 
+/**
+ * Populate the character selection list for art bible generation.
+ * Shows characters with reference images that can be used as visual references.
+ */
+function populateArtBibleCharacterRefs() {
+    const container = document.getElementById('art-bible-character-refs');
+    const list = document.getElementById('art-bible-character-list');
+
+    if (!container || !list) return;
+
+    // Get character references that have images
+    // Character reference images are stored in currentStory.character_references
+    const characterRefs = currentStory.character_references || [];
+    const charactersWithImages = characterRefs.filter(charRef =>
+        charRef.local_image_path || charRef.image_url
+    );
+
+    if (charactersWithImages.length === 0) {
+        container.classList.add('hidden');
+        return;
+    }
+
+    // Clear existing items
+    list.innerHTML = '';
+
+    // Create checkbox items for each character with an image
+    charactersWithImages.forEach((charRef, index) => {
+        const imagePath = charRef.local_image_path;
+        // Use the API route for serving images
+        const imageUrl = imagePath ? `/api/${imagePath}` : charRef.image_url;
+        const charName = charRef.character_name || 'Unknown';
+
+        const item = document.createElement('label');
+        item.className = 'art-bible-char-item';
+        item.innerHTML = `
+            <input type="checkbox" name="art-bible-char-ref" value="${index}"
+                   data-image-path="${imagePath || ''}"
+                   data-character-name="${charName}">
+            <img src="${imageUrl}" alt="${charName}" class="art-bible-char-thumb">
+            <span class="art-bible-char-name">${charName}</span>
+        `;
+
+        // Toggle selected class on checkbox change
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        checkbox.addEventListener('change', () => {
+            item.classList.toggle('selected', checkbox.checked);
+        });
+
+        list.appendChild(item);
+    });
+
+    // Show the container
+    container.classList.remove('hidden');
+}
+
+/**
+ * Get the selected character references for art bible generation.
+ * @returns {Array} Array of objects with character_name and image_path for selected characters
+ */
+function getSelectedArtBibleCharacterRefs() {
+    const checkboxes = document.querySelectorAll('input[name="art-bible-char-ref"]:checked');
+    return Array.from(checkboxes).map(cb => ({
+        character_name: cb.getAttribute('data-character-name'),
+        image_path: cb.getAttribute('data-image-path')
+    }));
+}
+
 function setupArtBibleSection() {
     // Display existing art bible if available
     if (currentStory.art_bible) {
@@ -2319,6 +2425,7 @@ function setupArtBibleSection() {
         // Show art bible section if there's a prompt OR an image
         if (artBible.prompt || artBible.local_image_path || artBible.image_url) {
             document.getElementById('art-bible-section').classList.remove('hidden');
+            populateArtBibleCharacterRefs();
         }
 
         // Populate the prompt if available
@@ -2362,6 +2469,7 @@ function setupArtBibleSection() {
             // Show art bible section and populate prompt
             document.getElementById('art-bible-section').classList.remove('hidden');
             document.getElementById('art-bible-prompt').value = result.prompt;
+            populateArtBibleCharacterRefs();
 
             // Store art bible in story (create or update)
             if (!currentStory.art_bible) {
@@ -2414,24 +2522,34 @@ function setupArtBibleSection() {
         const size = document.getElementById('art-bible-size').value;
         const detail = document.getElementById('art-bible-detail').value;
 
+        // Get selected character references (includes name and image path)
+        const characterReferences = getSelectedArtBibleCharacterRefs();
+
         const loadingDiv = document.getElementById('art-bible-loading');
         loadingDiv.classList.remove('hidden');
 
         try {
+            const requestBody = {
+                prompt: prompt,
+                art_style: currentStory.metadata.art_style || 'cartoon',
+                story_id: currentStory.id,
+                story_title: currentStory.metadata.title || '',
+                size: size,
+                quality: detail,
+                image_model: imageModel
+            };
+
+            // Include character references if any are selected
+            if (characterReferences.length > 0) {
+                requestBody.character_references = characterReferences;
+            }
+
             const response = await fetch(`${API_BASE}/visual-consistency/art-bible/generate-image`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    prompt: prompt,
-                    art_style: currentStory.metadata.art_style || 'cartoon',
-                    story_id: currentStory.id,
-                    story_title: currentStory.metadata.title || '',
-                    size: size,
-                    quality: detail,
-                    image_model: imageModel
-                }),
+                body: JSON.stringify(requestBody),
             });
 
             if (!response.ok) {
@@ -4285,6 +4403,7 @@ async function copyArtBibleFromLibrary(sourceProjectId, imagePath, artStyle, pro
         // Show art bible section, populate prompt, and refresh preview
         document.getElementById('art-bible-section').classList.remove('hidden');
         document.getElementById('art-bible-prompt').value = prompt;
+        populateArtBibleCharacterRefs();
         refreshArtBiblePreview();
 
         await autoSaveProject();

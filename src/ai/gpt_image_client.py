@@ -319,6 +319,7 @@ Respond briefly to acknowledge you're ready, then wait for my requests."""
         size: str = "1024x1024",
         quality: str = "high",
         model_name: str = "gpt-image-1",
+        reference_images: Optional[list] = None,
         **kwargs
     ) -> Dict[str, Any]:
         """
@@ -330,6 +331,8 @@ Respond briefly to acknowledge you're ready, then wait for my requests."""
             size: Image size ("1024x1024", "1024x1536", "1536x1024", "auto")
             quality: Image quality ("low", "medium", "high")
             model_name: The model name for cost calculation (e.g., 'gpt-image-1')
+            reference_images: Optional list of reference images. Each item should be a dict
+                             with 'data' (base64 encoded) and 'mime_type' keys
             **kwargs: Additional parameters
 
         Returns:
@@ -346,20 +349,66 @@ Respond briefly to acknowledge you're ready, then wait for my requests."""
 
         # Get the previous response ID for conversation continuity
         previous_response_id = self._sessions.get(story_id)
-        print(f"[GPTImageClient] generate_image_with_cost called: story_id={story_id}, model={model_name}, size={size}, quality={quality}", flush=True)
-        logger.info(f"generate_image_with_cost called: story_id={story_id}, model={model_name}, size={size}, quality={quality}")
+        num_refs = len(reference_images) if reference_images else 0
+        print(f"[GPTImageClient] generate_image_with_cost called: story_id={story_id}, model={model_name}, size={size}, quality={quality}, reference_images={num_refs}", flush=True)
+        logger.info(f"generate_image_with_cost called: story_id={story_id}, model={model_name}, size={size}, quality={quality}, reference_images={num_refs}")
 
         max_retries = 3
         retry_delay = 2
 
         for attempt in range(max_retries):
             try:
+                # Build the input - either a simple string or a list with text and images
+                if reference_images:
+                    # When reference images are provided, construct input as a list
+                    # with text prompt and reference images
+                    input_content = []
+
+                    # Build a description of the character references
+                    char_descriptions = []
+
+                    # Add reference images with descriptive text for each character
+                    for ref_img in reference_images:
+                        char_name = ref_img.get('character_name', 'Unknown Character')
+                        char_descriptions.append(char_name)
+
+                        # Add text describing this character image
+                        input_content.append({
+                            "type": "input_text",
+                            "text": f"Reference image for character '{char_name}':"
+                        })
+
+                        # Add the image
+                        data_url = f"data:{ref_img['mime_type']};base64,{ref_img['data']}"
+                        input_content.append({
+                            "type": "input_image",
+                            "image_url": data_url
+                        })
+
+                    # Add the main prompt with context about the reference images
+                    char_list = ", ".join(char_descriptions)
+                    enhanced_prompt = (
+                        f"I have provided reference images for the following characters: {char_list}. "
+                        f"Use these reference images to ensure visual consistency - the characters must match "
+                        f"their reference images exactly in terms of appearance, clothing, and distinctive features. "
+                        f"Now, {prompt}"
+                    )
+                    input_content.append({
+                        "type": "input_text",
+                        "text": enhanced_prompt
+                    })
+
+                    print(f"[GPTImageClient]   Including {len(reference_images)} character reference images: {char_list}", flush=True)
+                    logger.info(f"Including {len(reference_images)} character reference images: {char_list}")
+                else:
+                    input_content = prompt
+
                 # Build the request
                 # Note: The main "model" must be a text model (e.g., gpt-4o) for the Responses API
                 # The image model is specified inside the image_generation tool configuration
                 request_params = {
                     "model": self.model,
-                    "input": prompt,
+                    "input": input_content,
                     "tools": [{"type": "image_generation", "size": size, "quality": quality, "model": model_name}]
                 }
 

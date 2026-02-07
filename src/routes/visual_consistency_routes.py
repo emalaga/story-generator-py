@@ -170,7 +170,8 @@ def generate_art_bible_image():
         "art_style": str (required),
         "story_id": str (required) - ID of the story for session tracking,
         "size": str (optional) - Image size (default: 1536x1024),
-        "quality": str (optional) - Image quality/detail (default: low)
+        "quality": str (optional) - Image quality/detail (default: low),
+        "reference_images": list[str] (optional) - Paths to character reference images to use
     }
 
     Returns:
@@ -204,6 +205,47 @@ def generate_art_bible_image():
         size = data.get('size', '1536x1024')
         quality = data.get('quality', 'low')
 
+        # Get character references if provided (includes character_name and image_path)
+        character_references = data.get('character_references', [])
+        reference_images_data = []
+
+        # Load character reference images and convert to base64
+        if character_references:
+            import os
+            for char_ref in character_references:
+                try:
+                    image_path = char_ref.get('image_path', '')
+                    character_name = char_ref.get('character_name', 'Unknown Character')
+
+                    if not image_path:
+                        continue
+
+                    # Handle paths that may or may not start with /
+                    full_path = image_path.lstrip('/')
+                    if os.path.exists(full_path):
+                        with open(full_path, 'rb') as f:
+                            image_data = f.read()
+                            # Determine mime type
+                            if full_path.lower().endswith('.png'):
+                                mime_type = 'image/png'
+                            elif full_path.lower().endswith('.gif'):
+                                mime_type = 'image/gif'
+                            elif full_path.lower().endswith('.webp'):
+                                mime_type = 'image/webp'
+                            else:
+                                mime_type = 'image/jpeg'
+                            base64_data = base64.b64encode(image_data).decode('utf-8')
+                            reference_images_data.append({
+                                'data': base64_data,
+                                'mime_type': mime_type,
+                                'character_name': character_name
+                            })
+                            current_app.logger.info(f"Loaded reference image for character '{character_name}': {image_path}")
+                    else:
+                        current_app.logger.warning(f"Reference image not found for '{character_name}': {image_path}")
+                except Exception as e:
+                    current_app.logger.warning(f"Failed to load reference image: {e}")
+
         # Get image client
         image_client = current_app.config['SERVICES']['image_client']
 
@@ -219,13 +261,15 @@ def generate_art_bible_image():
 
         # Generate art bible image within the conversation session
         image_model = data.get('image_model', 'gpt-image-1')
-        current_app.logger.info(f"Generating art bible image for story {story_id} with size={size}, quality={quality}, model={image_model}")
+        num_refs = len(reference_images_data)
+        current_app.logger.info(f"Generating art bible image for story {story_id} with size={size}, quality={quality}, model={image_model}, character_references={num_refs}")
         result = run_async(image_client.generate_image_with_cost(
             story_id=story_id,
             prompt=prompt,
             size=size,
             quality=quality,
-            model_name=image_model
+            model_name=image_model,
+            reference_images=reference_images_data if reference_images_data else None
         ))
         image_url = result['image_url']
         image_cost = result.get('cost')
