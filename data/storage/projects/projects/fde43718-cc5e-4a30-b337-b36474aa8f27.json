@@ -1,11 +1,11 @@
 {
   "id": "fde43718-cc5e-4a30-b337-b36474aa8f27",
-  "name": "the inca portal",
+  "name": "the inca portal (with images)",
   "status": "completed",
   "story": {
     "id": "fde43718-cc5e-4a30-b337-b36474aa8f27",
     "metadata": {
-      "title": "the inca portal",
+      "title": "the inca portal (with images)",
       "language": "Spanish",
       "complexity": "beginner",
       "vocabulary_diversity": "medium",
@@ -273,8 +273,8 @@
     "text_model": null,
     "text_generated_at": null,
     "text_edited_at": null,
-    "created_at": "2026-02-06T18:37:31.015500",
-    "updated_at": "2026-02-06T18:37:31.015505"
+    "created_at": "2026-02-06T18:40:35.045400",
+    "updated_at": "2026-02-06T18:40:35.045407"
   },
   "character_profiles": [
     {
@@ -319,6 +319,6 @@
     }
   ],
   "image_prompts": [],
-  "created_at": "2026-02-06T18:37:31.015516",
-  "updated_at": "2026-02-06T18:37:31.015516"
+  "created_at": "2026-02-06T18:40:35.045416",
+  "updated_at": "2026-02-06T18:40:35.045416"
 }

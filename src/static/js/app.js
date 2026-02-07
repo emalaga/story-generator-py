@@ -2083,6 +2083,12 @@ async function handleSaveProject() {
         return;
     }
 
+    // Sync the title from the form input to the story metadata
+    const titleInput = document.getElementById('title');
+    if (titleInput && titleInput.value.trim()) {
+        currentStory.metadata.title = titleInput.value.trim();
+    }
+
     // Use currentProjectId if available (loaded project), otherwise use story.id (new story)
     const projectId = currentProjectId || currentStory.id;
 
@@ -2091,6 +2097,7 @@ async function handleSaveProject() {
     console.log('currentProjectId:', currentProjectId);
     console.log('currentStory.id:', currentStory.id);
     console.log('Using projectId:', projectId);
+    console.log('Title:', currentStory.metadata.title);
 
     const projectData = {
         id: projectId,
@@ -3336,6 +3343,12 @@ function setupCharacterRefFileInput() {
 // ===== Auto-save Project =====
 async function autoSaveProject() {
     if (!currentStory) return;
+
+    // Sync the title from the form input to the story metadata (if form is visible)
+    const titleInput = document.getElementById('title');
+    if (titleInput && titleInput.value.trim()) {
+        currentStory.metadata.title = titleInput.value.trim();
+    }
 
     // Use currentProjectId if available (loaded project), otherwise use story.id (new story)
     const projectId = currentProjectId || currentStory.id;
