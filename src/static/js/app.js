@@ -513,6 +513,9 @@ function updateImageGenerationTab() {
                             </button>
                         </div>
                     </div>
+                    <div id="page-${page.page_number}-character-refs" class="page-character-refs">
+                        <!-- Character checkboxes will be populated dynamically -->
+                    </div>
                     <div class="image-actions">
                         <button class="btn-small btn-generate-image" id="page-${page.page_number}-generate-btn"
                                 onclick="generatePageImage(${page.page_number})"
@@ -538,7 +541,77 @@ function updateImageGenerationTab() {
                 }
             });
         }
+
+        // Populate character references for this page
+        populatePageCharacterRefs(page.page_number);
     });
+}
+
+/**
+ * Populate the character selection list for a specific page's image generation.
+ * Shows characters with reference images that can be used as visual references.
+ */
+function populatePageCharacterRefs(pageNumber) {
+    const container = document.getElementById(`page-${pageNumber}-character-refs`);
+    if (!container) return;
+
+    // Get character references that have images
+    const characterRefs = currentStory.character_references || [];
+    const charactersWithImages = characterRefs.filter(charRef =>
+        charRef.local_image_path || charRef.image_url
+    );
+
+    if (charactersWithImages.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    // Build the character selection HTML
+    let html = `
+        <div class="page-char-refs-header">
+            <label>Include Character References (optional):</label>
+        </div>
+        <div class="page-char-refs-list">
+    `;
+
+    charactersWithImages.forEach((charRef, index) => {
+        const imagePath = charRef.local_image_path;
+        const imageUrl = imagePath ? `/api/${imagePath}` : charRef.image_url;
+        const charName = charRef.character_name || 'Unknown';
+
+        html += `
+            <label class="page-char-ref-item">
+                <input type="checkbox" name="page-${pageNumber}-char-ref" value="${index}"
+                       data-image-path="${imagePath || ''}"
+                       data-character-name="${charName}">
+                <img src="${imageUrl}" alt="${charName}" class="page-char-ref-thumb">
+                <span class="page-char-ref-name">${charName}</span>
+            </label>
+        `;
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+
+    // Add click handlers to toggle selected class
+    container.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+            checkbox.closest('.page-char-ref-item').classList.toggle('selected', checkbox.checked);
+        });
+    });
+}
+
+/**
+ * Get the selected character references for a specific page's image generation.
+ * @param {number} pageNumber - The page number
+ * @returns {Array} Array of objects with character_name and image_path for selected characters
+ */
+function getSelectedPageCharacterRefs(pageNumber) {
+    const checkboxes = document.querySelectorAll(`input[name="page-${pageNumber}-char-ref"]:checked`);
+    return Array.from(checkboxes).map(cb => ({
+        character_name: cb.getAttribute('data-character-name'),
+        image_path: cb.getAttribute('data-image-path')
+    }));
 }
 
 // ===== Characters Tab =====
@@ -1551,6 +1624,9 @@ async function generatePageImage(pageNumber) {
     const size = document.getElementById('page-image-size').value;
     const detail = document.getElementById('page-image-detail').value;
 
+    // Get selected character references for this page
+    const selectedCharacterRefs = getSelectedPageCharacterRefs(pageNumber);
+
     // Show loading indicator
     const loadingDiv = document.getElementById(`page-${pageNumber}-loading`);
     loadingDiv.classList.remove('hidden');
@@ -1569,6 +1645,12 @@ async function generatePageImage(pageNumber) {
             quality: detail,
             image_model: imageModel
         };
+
+        // Include selected character references if any are selected
+        if (selectedCharacterRefs.length > 0) {
+            requestData.selected_character_refs = selectedCharacterRefs;
+            console.log(`[generatePageImage] Including ${selectedCharacterRefs.length} selected character references`);
+        }
 
         // If user has edited the prompt, use it directly
         if (customPrompt) {

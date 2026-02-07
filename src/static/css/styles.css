@@ -1062,6 +1062,71 @@ header h1 {
     align-items: center;
 }
 
+/* Page Character References */
+.page-character-refs {
+    margin: 15px 0;
+    padding: 10px;
+    background-color: var(--bg-color, #f8f9fa);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+}
+
+.page-char-refs-header {
+    margin-bottom: 8px;
+}
+
+.page-char-refs-header label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-color);
+}
+
+.page-char-refs-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.page-char-ref-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background-color: white;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.85rem;
+}
+
+.page-char-ref-item:hover {
+    border-color: var(--primary-color);
+}
+
+.page-char-ref-item.selected {
+    border-color: var(--primary-color);
+    background-color: rgba(74, 144, 226, 0.1);
+}
+
+.page-char-ref-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.page-char-ref-thumb {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--border-color);
+}
+
+.page-char-ref-name {
+    font-weight: 500;
+}
+
 .image-actions {
     display: flex;
     gap: 10px;

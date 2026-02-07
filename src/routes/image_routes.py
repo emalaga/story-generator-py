@@ -247,6 +247,49 @@ def generate_image_for_page(story_id, page_num):
         # Check if a custom prompt was provided (user edited the prompt)
         custom_prompt = data.get('custom_prompt')
 
+        # Get selected character references if provided (only these will be used as reference images)
+        selected_character_refs = data.get('selected_character_refs', [])
+        reference_images_data = []
+
+        # Load selected character reference images and convert to base64
+        if selected_character_refs:
+            import os
+            for char_ref in selected_character_refs:
+                try:
+                    image_path = char_ref.get('image_path', '')
+                    character_name = char_ref.get('character_name', 'Unknown Character')
+
+                    if not image_path:
+                        continue
+
+                    # Handle paths that may or may not start with /
+                    full_path = image_path.lstrip('/')
+                    if os.path.exists(full_path):
+                        with open(full_path, 'rb') as f:
+                            image_data = f.read()
+                            # Determine mime type
+                            if full_path.lower().endswith('.png'):
+                                mime_type = 'image/png'
+                            elif full_path.lower().endswith('.gif'):
+                                mime_type = 'image/gif'
+                            elif full_path.lower().endswith('.webp'):
+                                mime_type = 'image/webp'
+                            else:
+                                mime_type = 'image/jpeg'
+                            base64_data = base64.b64encode(image_data).decode('utf-8')
+                            reference_images_data.append({
+                                'data': base64_data,
+                                'mime_type': mime_type,
+                                'character_name': character_name
+                            })
+                            current_app.logger.info(f"  Loaded reference image for character '{character_name}': {image_path}")
+                    else:
+                        current_app.logger.warning(f"  Reference image not found for '{character_name}': {image_path}")
+                except Exception as e:
+                    current_app.logger.warning(f"  Failed to load reference image: {e}")
+
+            current_app.logger.info(f"  Loaded {len(reference_images_data)} character reference images")
+
         if custom_prompt:
             # Use the custom prompt directly without regenerating
             current_app.logger.info(f"  Using custom prompt (length: {len(custom_prompt)})")
@@ -270,7 +313,8 @@ def generate_image_for_page(story_id, page_num):
             # Generate image directly with custom prompt
             print(f"[DEBUG] About to call generate_image_with_cost", flush=True)
             image_model = data.get('image_model', 'gpt-image-1')
-            current_app.logger.info(f"  Calling generate_image_with_cost with custom prompt, size={image_size}, quality={image_quality}, model={image_model}...")
+            num_refs = len(reference_images_data)
+            current_app.logger.info(f"  Calling generate_image_with_cost with custom prompt, size={image_size}, quality={image_quality}, model={image_model}, character_refs={num_refs}...")
             try:
                 print(f"[DEBUG] Inside try block, calling run_async(generate_image_with_cost)", flush=True)
                 result = run_async(image_client.generate_image_with_cost(
@@ -278,7 +322,8 @@ def generate_image_for_page(story_id, page_num):
                     custom_prompt,
                     size=image_size,
                     quality=image_quality,
-                    model_name=image_model
+                    model_name=image_model,
+                    reference_images=reference_images_data if reference_images_data else None
                 ))
                 image_url = result['image_url']
                 image_cost = result.get('cost')

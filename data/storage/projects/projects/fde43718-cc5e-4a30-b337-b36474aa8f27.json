@@ -21,13 +21,22 @@
         "page_number": 1,
         "text": "Era una vez un niño llamado Coco que vivía en Perú. Coco era curioso, ingenioso y siempre lleno de energía. Un día, él y sus compañeros de clase se preparaban para una visita muy especial: El Museo de la Nación en Lima. Coco estaba emocionado, ya que siempre había soñado con aprender más sobre los Incas, una antigua civilización que una vez reinó en su país.",
         "image_url": null,
-        "image_prompt": null,
-        "local_image_path": null,
-        "image_model": null,
-        "image_generated_at": null,
-        "image_resolution": null,
-        "image_cost": null,
-        "image_versions": null
+        "image_prompt": "CRITICAL: Generate the next illustration for this children's book. You MUST strictly follow the digital cartoon illustration visual style defined in the art bible image we established earlier in this conversation. Match the exact same colors, line weight, shading technique, and overall aesthetic. Include Coco in this scene, drawing them EXACTLY as shown in the character reference image we created earlier. The character's appearance, proportions, colors, and clothing must be identical. Scene: The most exciting moment to illustrate is when Coco, filled with anticipation and energy, is in line boarding the school bus that will take Coco and his classmates for the special visit to El Museo de la Nación in Lima, their faces lit up with excitement. Maintain perfect visual consistency with all previous illustrations in this story. Professional, vibrant, child-friendly children's book illustration.",
+        "local_image_path": "images/fde43718-cc5e-4a30-b337-b36474aa8f27/pages/page_1_1770431726087.png",
+        "image_model": "gpt-image-1-mini",
+        "image_generated_at": "2026-02-07T02:35:26.132000+00:00",
+        "image_resolution": "1024x1024",
+        "image_cost": 0.039717999999999996,
+        "image_versions": [
+          {
+            "cost": 0.039717999999999996,
+            "generated_at": "2026-02-07T02:35:26.132Z",
+            "model": "gpt-image-1-mini",
+            "path": "images/fde43718-cc5e-4a30-b337-b36474aa8f27/pages/page_1_1770431726087.png",
+            "prompt": "CRITICAL: Generate the next illustration for this children's book. You MUST strictly follow the digital cartoon illustration visual style defined in the art bible image we established earlier in this conversation. Match the exact same colors, line weight, shading technique, and overall aesthetic. Include Coco in this scene, drawing them EXACTLY as shown in the character reference image we created earlier. The character's appearance, proportions, colors, and clothing must be identical. Scene: The most exciting moment to illustrate is when Coco, filled with anticipation and energy, is in line boarding the school bus that will take Coco and his classmates for the special visit to El Museo de la Nación in Lima, their faces lit up with excitement. Maintain perfect visual consistency with all previous illustrations in this story. Professional, vibrant, child-friendly children's book illustration.",
+            "resolution": "1024x1024"
+          }
+        ]
       },
       {
         "page_number": 2,
@@ -249,23 +258,23 @@
         "image_cost": 0.039757999999999995,
         "image_versions": [
           {
-            "path": "images/fde43718-cc5e-4a30-b337-b36474aa8f27/characters/character_La_profesora_1770425085616.png",
-            "model": "gpt-image-1-mini",
+            "cost": 0.039757999999999995,
             "generated_at": "2026-02-07T00:44:45.655Z",
-            "resolution": "1024x1024",
-            "cost": 0.039757999999999995
+            "model": "gpt-image-1-mini",
+            "path": "images/fde43718-cc5e-4a30-b337-b36474aa8f27/characters/character_La_profesora_1770425085616.png",
+            "resolution": "1024x1024"
           }
         ]
       }
     ],
     "cover_page": null,
     "pdf_options": null,
-    "image_session_id": "resp_0093cece5cf12e590069868ada0c90819d89886c99e79ecbfe",
+    "image_session_id": null,
     "text_model": null,
     "text_generated_at": null,
     "text_edited_at": null,
-    "created_at": "2026-02-06T16:44:45.730484",
-    "updated_at": "2026-02-06T16:44:45.730490"
+    "created_at": "2026-02-06T18:37:31.015500",
+    "updated_at": "2026-02-06T18:37:31.015505"
   },
   "character_profiles": [
     {
@@ -310,6 +319,6 @@
     }
   ],
   "image_prompts": [],
-  "created_at": "2026-02-06T16:44:45.730499",
-  "updated_at": "2026-02-06T16:44:45.730499"
+  "created_at": "2026-02-06T18:37:31.015516",
+  "updated_at": "2026-02-06T18:37:31.015516"
 }
