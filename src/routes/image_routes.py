@@ -13,6 +13,8 @@ from pathlib import Path
 from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from werkzeug.exceptions import BadRequest
 
+from src.utils.ai_logger import log_ai_call
+
 # Create blueprint
 image_bp = Blueprint('images', __name__)
 
@@ -336,10 +338,25 @@ def generate_image_for_page(story_id, page_num):
 
             # Update session ID in story
             story.image_session_id = image_client.get_session_id(story_id)
+
+            # Log the AI call
+            start_time = time.time()
+            ref_image_paths = [ref.get('image_path', '') for ref in selected_character_refs] if selected_character_refs else []
+            log_ai_call(
+                call_type='page_image',
+                model=image_model,
+                prompt=custom_prompt,
+                payload={'size': image_size, 'quality': image_quality, 'page_number': page_num},
+                response_summary=f'Generated page {page_num} image',
+                reference_images=ref_image_paths,
+                cost=image_cost,
+                project_id=story_id
+            )
         else:
             # Generate image using conversation session (builds prompt automatically)
             # Note: This path doesn't return cost information yet
             current_app.logger.info(f"  Generating with automatic prompt building, size={image_size}, quality={image_quality}")
+            start_time = time.time()
             image_url = run_async(image_generator.generate_image_for_page(
                 story,
                 scene_description,
@@ -349,6 +366,17 @@ def generate_image_for_page(story_id, page_num):
                 quality=image_quality
             ))
             image_cost = None  # Cost not available for automatic prompt generation
+
+            # Log the AI call
+            log_ai_call(
+                call_type='page_image',
+                model='gpt-image-1',
+                prompt=scene_description[:500],
+                payload={'size': image_size, 'quality': image_quality, 'page_number': page_num, 'auto_prompt': True},
+                response_summary=f'Generated page {page_num} image (auto prompt)',
+                cost=image_cost,
+                project_id=story_id
+            )
 
         # Get updated session ID
         new_session_id = image_client.get_session_id(story_id)
@@ -571,6 +599,17 @@ def generate_cover_image(story_id):
         image_url = result['image_url']
         image_cost = result.get('cost')
         current_app.logger.info(f"  generate_image_with_cost completed, URL length: {len(image_url) if image_url else 0}, cost: {image_cost}")
+
+        # Log the AI call
+        log_ai_call(
+            call_type='cover_image',
+            model=image_model,
+            prompt=custom_prompt,
+            payload={'size': image_size, 'quality': image_quality, 'story_title': story_title},
+            response_summary=f'Generated cover image for "{story_title}"',
+            cost=image_cost,
+            project_id=story_id
+        )
 
         # Get updated session ID
         new_session_id = image_client.get_session_id(story_id)

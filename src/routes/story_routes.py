@@ -12,6 +12,7 @@ from flask import Blueprint, request, jsonify, current_app
 from werkzeug.exceptions import BadRequest
 
 from src.models.story import StoryMetadata
+from src.utils.ai_logger import log_ai_call
 
 # Create blueprint
 story_bp = Blueprint('stories', __name__)
@@ -133,6 +134,23 @@ def create_story():
         # Add text generation metadata
         story.text_model = text_model or 'default'
         story.text_generated_at = datetime.now()
+
+        # Log the AI call
+        log_ai_call(
+            call_type='story',
+            model=text_model or 'default',
+            prompt=custom_prompt or f"Generate a {metadata.genre} story titled '{metadata.title}'",
+            payload={
+                'title': metadata.title,
+                'genre': metadata.genre,
+                'age_group': metadata.age_group,
+                'language': metadata.language,
+                'num_pages': metadata.num_pages,
+                'words_per_page': metadata.words_per_page
+            },
+            response_summary=f'Generated story "{metadata.title}" with {len(story.pages)} pages',
+            project_id=story.id
+        )
 
         # Debug logging
         print(f"[STORY ROUTES] Story generated: ID={story.id}")
@@ -276,6 +294,24 @@ def _run_story_generation_in_background(task_id, app, data, app_config, defaults
             # Add text generation metadata
             story.text_model = text_model or 'default'
             story.text_generated_at = datetime.now()
+
+            # Log the AI call
+            log_ai_call(
+                call_type='story',
+                model=text_model or 'default',
+                prompt=custom_prompt or f"Generate a {metadata.genre} story titled '{metadata.title}'",
+                payload={
+                    'title': metadata.title,
+                    'genre': metadata.genre,
+                    'age_group': metadata.age_group,
+                    'language': metadata.language,
+                    'num_pages': metadata.num_pages,
+                    'words_per_page': metadata.words_per_page,
+                    'async': True
+                },
+                response_summary=f'Generated story "{metadata.title}" with {len(story.pages)} pages',
+                project_id=story.id
+            )
 
             print(f"[STORY ROUTES ASYNC] Story generated: ID={story.id}")
             print(f"[STORY ROUTES ASYNC] Pages: {len(story.pages)}")
@@ -544,6 +580,15 @@ def extract_characters():
 
         print(f"[STORY ROUTES] Extracted {len(characters)} characters on demand")
 
+        # Log the AI call
+        log_ai_call(
+            call_type='characters',
+            model=text_model or 'default',
+            prompt=f"Extract characters from {len(pages)} pages of story text",
+            payload={'page_count': len(pages), 'text_length': len(full_story_text)},
+            response_summary=f'Extracted {len(characters)} characters: {", ".join([c.name for c in characters[:5]])}'
+        )
+
         return jsonify(response), 200
 
     except ValueError as e:
@@ -612,6 +657,16 @@ def _run_character_extraction_in_background(task_id, app, data, app_config):
             ))
 
             print(f"[STORY ROUTES ASYNC] Extracted {len(characters)} characters")
+
+            # Log the AI call
+            log_ai_call(
+                call_type='characters',
+                model=text_model or 'default',
+                prompt=f"Extract characters from {len(pages)} pages of story text (async)",
+                payload={'page_count': len(pages), 'text_length': len(full_story_text), 'project_id': project_id, 'async': True},
+                response_summary=f'Extracted {len(characters)} characters: {", ".join([c.name for c in characters[:5]])}',
+                project_id=project_id
+            )
 
             # Save characters to project if project_id is provided
             if project_id:

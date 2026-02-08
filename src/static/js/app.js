@@ -411,6 +411,8 @@ function switchTab(tabName, shouldUpdateUrl = true) {
         updateSettingsTab();
     } else if (tabName === 'library') {
         updateLibraryTab();
+    } else if (tabName === 'ai-logs') {
+        loadAILogs();
     }
 }
 
@@ -4842,7 +4844,244 @@ async function handleAddCharacterSubmit(e) {
     showSuccess(`Character "${name}" added successfully!`);
 }
 
+// ===== AI Logs Tab =====
+let logsAutoRefreshInterval = null;
+let currentLogsFilter = 'all';
+
+async function loadAILogs() {
+    const logsContainer = document.getElementById('ai-logs-list');
+    if (!logsContainer) return;
+
+    try {
+        const response = await fetch(`${API_BASE}/logs?type=${currentLogsFilter}&limit=200`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch logs');
+        }
+
+        const data = await response.json();
+        renderAILogs(data.logs, data.total);
+    } catch (error) {
+        console.error('Error loading AI logs:', error);
+        logsContainer.innerHTML = '<p class="logs-empty">Failed to load logs. Please try again.</p>';
+    }
+}
+
+function renderAILogs(logs, total) {
+    const logsContainer = document.getElementById('ai-logs-list');
+    if (!logsContainer) return;
+
+    if (!logs || logs.length === 0) {
+        logsContainer.innerHTML = '<p class="logs-empty">No AI calls logged yet. Generate some content to see logs here.</p>';
+        return;
+    }
+
+    // Calculate total cost
+    const totalCost = logs.reduce((sum, log) => sum + (log.cost || 0), 0);
+    const errorCount = logs.filter(log => log.error).length;
+
+    let html = `
+        <div class="log-stats-bar">
+            <div class="log-stat">
+                <span class="log-stat-label">Total Calls:</span>
+                <span class="log-stat-value">${total}</span>
+            </div>
+            <div class="log-stat">
+                <span class="log-stat-label">Estimated Cost:</span>
+                <span class="log-stat-value cost">$${totalCost.toFixed(4)}</span>
+            </div>
+            ${errorCount > 0 ? `
+            <div class="log-stat">
+                <span class="log-stat-label">Errors:</span>
+                <span class="log-stat-value" style="color: var(--error-color);">${errorCount}</span>
+            </div>
+            ` : ''}
+        </div>
+    `;
+
+    logs.forEach(log => {
+        const timestamp = new Date(log.timestamp);
+        const timeStr = timestamp.toLocaleTimeString();
+        const dateStr = timestamp.toLocaleDateString();
+
+        // Truncate prompt for summary
+        const promptSummary = log.prompt
+            ? (log.prompt.length > 150 ? log.prompt.substring(0, 150) + '...' : log.prompt)
+            : (log.response_summary || 'No details available');
+
+        html += `
+            <div class="log-entry" onclick="toggleLogEntry(this)">
+                <div class="log-entry-header">
+                    <span class="log-type-badge ${log.call_type}">${formatLogType(log.call_type)}</span>
+                    <span class="log-model">${log.model || 'unknown'}</span>
+                    ${log.cost ? `<span class="log-cost">$${log.cost.toFixed(4)}</span>` : ''}
+                    ${log.error ? `<span class="log-error-indicator">ERROR</span>` : ''}
+                    <span class="log-timestamp">${timeStr} - ${dateStr}</span>
+                </div>
+                <div class="log-summary">${escapeHtml(promptSummary)}</div>
+                <div class="log-details">
+                    ${log.prompt ? `
+                    <div class="log-detail-section">
+                        <div class="log-detail-label">Prompt</div>
+                        <div class="log-detail-content">${escapeHtml(log.prompt)}</div>
+                    </div>
+                    ` : ''}
+                    ${log.payload ? `
+                    <div class="log-detail-section">
+                        <div class="log-detail-label">Payload</div>
+                        <div class="log-detail-content">${escapeHtml(JSON.stringify(log.payload, null, 2))}</div>
+                    </div>
+                    ` : ''}
+                    ${log.reference_images && log.reference_images.length > 0 ? `
+                    <div class="log-detail-section">
+                        <div class="log-detail-label">Reference Images (${log.reference_images.length})</div>
+                        <div class="log-references">
+                            ${log.reference_images.map(ref => `
+                                <div class="log-reference-item">
+                                    <img src="${API_BASE}/${ref}" class="log-reference-thumb" alt="Reference">
+                                    <span>${ref.split('/').pop()}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+                    ${log.response_summary ? `
+                    <div class="log-detail-section">
+                        <div class="log-detail-label">Response</div>
+                        <div class="log-detail-content">${escapeHtml(log.response_summary)}</div>
+                    </div>
+                    ` : ''}
+                    ${log.error ? `
+                    <div class="log-detail-section">
+                        <div class="log-detail-label">Error</div>
+                        <div class="log-detail-content error">${escapeHtml(log.error)}</div>
+                    </div>
+                    ` : ''}
+                    ${log.duration_ms ? `
+                    <div class="log-detail-section">
+                        <div class="log-detail-label">Duration</div>
+                        <div class="log-detail-content">${log.duration_ms}ms</div>
+                    </div>
+                    ` : ''}
+                    ${log.metadata && Object.keys(log.metadata).length > 0 ? `
+                    <div class="log-detail-section">
+                        <div class="log-detail-label">Metadata</div>
+                        <div class="log-detail-content">${escapeHtml(JSON.stringify(log.metadata, null, 2))}</div>
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    });
+
+    logsContainer.innerHTML = html;
+}
+
+function formatLogType(type) {
+    const typeLabels = {
+        'story': 'Story',
+        'characters': 'Characters',
+        'art_bible': 'Art Bible',
+        'character_image': 'Char Image',
+        'page_image': 'Page Image',
+        'cover_image': 'Cover Image',
+        'prompt': 'Prompt',
+        'session': 'Session'
+    };
+    return typeLabels[type] || type;
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function toggleLogEntry(element) {
+    element.classList.toggle('expanded');
+}
+
+async function clearAILogs() {
+    if (!confirm('Are you sure you want to clear all AI logs?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/logs/clear`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to clear logs');
+        }
+
+        await loadAILogs();
+        showSuccess('Logs cleared successfully');
+    } catch (error) {
+        showError('Failed to clear logs: ' + error.message);
+    }
+}
+
+function setupAILogsTab() {
+    // Refresh button
+    const refreshBtn = document.getElementById('refresh-logs-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', loadAILogs);
+    }
+
+    // Clear button
+    const clearBtn = document.getElementById('clear-logs-btn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', clearAILogs);
+    }
+
+    // Filter dropdown
+    const filterSelect = document.getElementById('logs-filter-type');
+    if (filterSelect) {
+        filterSelect.addEventListener('change', (e) => {
+            currentLogsFilter = e.target.value;
+            loadAILogs();
+        });
+    }
+
+    // Auto-refresh checkbox
+    const autoRefreshCheckbox = document.getElementById('logs-auto-refresh');
+    if (autoRefreshCheckbox) {
+        autoRefreshCheckbox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                startLogsAutoRefresh();
+            } else {
+                stopLogsAutoRefresh();
+            }
+        });
+    }
+}
+
+function startLogsAutoRefresh() {
+    stopLogsAutoRefresh(); // Clear any existing interval
+    logsAutoRefreshInterval = setInterval(() => {
+        // Only refresh if the logs tab is visible
+        if (currentTab === 'ai-logs') {
+            loadAILogs();
+        }
+    }, 5000); // Refresh every 5 seconds
+}
+
+function stopLogsAutoRefresh() {
+    if (logsAutoRefreshInterval) {
+        clearInterval(logsAutoRefreshInterval);
+        logsAutoRefreshInterval = null;
+    }
+}
+
 // Initialize library sub-tabs when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     initLibrarySubtabs();
+    setupAILogsTab();
+
+    // Start auto-refresh if checkbox is checked
+    const autoRefreshCheckbox = document.getElementById('logs-auto-refresh');
+    if (autoRefreshCheckbox && autoRefreshCheckbox.checked) {
+        startLogsAutoRefresh();
+    }
 });

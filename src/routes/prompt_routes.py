@@ -10,6 +10,7 @@ from werkzeug.exceptions import BadRequest
 
 from src.models.character import CharacterProfile
 from src.models.art_bible import ArtBible, CharacterReference
+from src.utils.ai_logger import log_ai_call
 
 # Create blueprint
 prompt_bp = Blueprint('prompts', __name__)
@@ -144,12 +145,32 @@ def generate_image_prompt():
 
         current_app.logger.info(f"Generated prompt ({len(prompt)} chars): {prompt[:200]}...")
 
+        # Log the AI call for prompt generation
+        log_ai_call(
+            call_type='prompt',
+            model='gpt-4o',  # Prompt builder uses GPT for summarization
+            prompt=scene_description[:500] if len(scene_description) > 500 else scene_description,
+            payload={
+                'art_style': art_style,
+                'character_count': len(character_objects),
+                'has_art_bible': art_bible is not None,
+                'character_references_count': len(character_references) if character_references else 0
+            },
+            response_summary=f'Generated image prompt ({len(prompt)} chars)'
+        )
+
         return jsonify({'prompt': prompt}), 200
 
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:
         current_app.logger.error(f"Error generating image prompt: {e}")
+        log_ai_call(
+            call_type='prompt',
+            model='gpt-4o',
+            prompt=data.get('scene_description', '')[:200],
+            error=str(e)
+        )
         return jsonify({'error': f'Failed to generate prompt: {str(e)}'}), 500
 
 

@@ -14,6 +14,7 @@ from flask import Blueprint, request, jsonify, current_app
 from werkzeug.exceptions import BadRequest
 
 from src.models.character import CharacterProfile
+from src.utils.ai_logger import log_ai_call
 
 # Create blueprint
 visual_bp = Blueprint('visual_consistency', __name__)
@@ -278,6 +279,19 @@ def generate_art_bible_image():
         session_id = image_client.get_session_id(story_id)
         current_app.logger.info(f"Art bible image generated: URL length={len(image_url) if image_url else 0}, session_id={session_id}, cost={image_cost}")
 
+        # Log the AI call
+        ref_image_paths = [ref.get('image_path', '') for ref in character_references] if character_references else []
+        log_ai_call(
+            call_type='art_bible',
+            model=image_model,
+            prompt=prompt,
+            payload={'size': size, 'quality': quality, 'art_style': art_style},
+            response_summary=f'Generated art bible image for "{story_title or story_id}"',
+            reference_images=ref_image_paths,
+            cost=image_cost,
+            project_id=story_id
+        )
+
         # Save the image to disk
         filename = f'art_bible_{int(time.time() * 1000)}.png'
         local_path = run_async(save_image_to_disk(image_url, story_id, 'art_bible', filename))
@@ -523,6 +537,17 @@ def generate_character_reference_image():
         # Get updated session ID
         session_id = image_client.get_session_id(story_id)
         current_app.logger.info(f"Character reference image generated: URL length={len(image_url) if image_url else 0}, session_id={session_id}, cost={image_cost}")
+
+        # Log the AI call
+        log_ai_call(
+            call_type='character_image',
+            model=image_model,
+            prompt=prompt,
+            payload={'size': size, 'quality': quality, 'character_name': character_name, 'include_turnaround': include_turnaround},
+            response_summary=f'Generated character reference image for "{character_name}"',
+            cost=image_cost,
+            project_id=story_id
+        )
 
         # Save the image to disk
         # Sanitize character name for filename

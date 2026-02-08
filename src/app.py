@@ -293,6 +293,7 @@ def create_app(config: AppConfig = None) -> Flask:
     from src.routes.image_routes import image_bp
     from src.routes.prompt_routes import prompt_bp
     from src.routes.visual_consistency_routes import visual_bp
+    from src.routes.logs_routes import logs_bp
 
     app.register_blueprint(story_bp, url_prefix='/api/stories')
     app.register_blueprint(project_bp, url_prefix='/api/projects')
@@ -300,6 +301,7 @@ def create_app(config: AppConfig = None) -> Flask:
     app.register_blueprint(image_bp, url_prefix='/api/images')
     app.register_blueprint(prompt_bp, url_prefix='/api/prompts')
     app.register_blueprint(visual_bp, url_prefix='/api/visual-consistency')
+    app.register_blueprint(logs_bp, url_prefix='/api/logs')
 
     return app
 
