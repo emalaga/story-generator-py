@@ -1549,10 +1549,34 @@ async function generateImagePrompt(pageNumber) {
     try {
         // Build the prompt using the character profiles, art bible, character references, and scene description
         const scene_description = page.text;
-        const character_profiles = currentStory.characters || [];
         const art_style = currentStory.metadata.art_style || 'cartoon';
         const art_bible = currentStory.art_bible || null;
-        const character_references = currentStory.character_references || null;
+
+        // Get only the selected character references for this page
+        const selectedCharRefs = getSelectedPageCharacterRefs(pageNumber);
+        let character_references = null;
+        let character_profiles = [];
+
+        if (selectedCharRefs.length > 0) {
+            // Get selected character names
+            const selectedNames = selectedCharRefs.map(ref => ref.character_name);
+
+            // Filter character profiles to only include selected ones
+            const allCharacters = currentStory.characters || [];
+            character_profiles = allCharacters.filter(char =>
+                selectedNames.includes(char.name)
+            );
+
+            // Filter the full character references to only include selected ones
+            const allCharRefs = currentStory.character_references || [];
+            character_references = allCharRefs.filter(ref =>
+                selectedNames.includes(ref.character_name)
+            );
+            console.log(`[generateImagePrompt] Including ${character_profiles.length} selected character profiles and ${character_references.length} character references`);
+        } else {
+            console.log(`[generateImagePrompt] No characters selected - using all characters`);
+            character_profiles = currentStory.characters || [];
+        }
 
         // Call API to generate the prompt
         const response = await fetch(`${API_BASE}/prompts/image`, {

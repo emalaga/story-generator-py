@@ -86,7 +86,14 @@ def generate_image_prompt():
         # Log for debugging
         current_app.logger.info(f"Generating prompt with {len(character_objects)} characters")
         for char in character_objects:
-            current_app.logger.info(f"  Character: {char.name}, Species: {char.species}, Desc: {char.physical_description[:50] if char.physical_description else 'None'}")
+            desc = char.physical_description
+            desc_preview = 'None'
+            if desc:
+                if isinstance(desc, str):
+                    desc_preview = desc[:50]
+                else:
+                    desc_preview = str(desc)[:50]
+            current_app.logger.info(f"  Character: {char.name}, Species: {char.species}, Desc: {desc_preview}")
 
         # Use AI to create a concise scene summary
         # Pass character profiles so AI knows not to make assumptions

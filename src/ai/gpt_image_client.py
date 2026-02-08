@@ -375,23 +375,24 @@ Respond briefly to acknowledge you're ready, then wait for my requests."""
                         # Add text describing this character image
                         input_content.append({
                             "type": "input_text",
-                            "text": f"Reference image for character '{char_name}':"
+                            "text": f"Reference image for character '{char_name}'. Use this exact appearance for this character in the generated image:"
                         })
 
-                        # Add the image
+                        # Add the image - OpenAI Responses API expects image_url as an object with url key
                         data_url = f"data:{ref_img['mime_type']};base64,{ref_img['data']}"
                         input_content.append({
                             "type": "input_image",
-                            "image_url": data_url
+                            "image_url": {"url": data_url}
                         })
 
                     # Add the main prompt with context about the reference images
                     char_list = ", ".join(char_descriptions)
                     enhanced_prompt = (
-                        f"I have provided reference images for the following characters: {char_list}. "
-                        f"Use these reference images to ensure visual consistency - the characters must match "
-                        f"their reference images exactly in terms of appearance, clothing, and distinctive features. "
-                        f"Now, {prompt}"
+                        f"CRITICAL: I have provided reference images above for the following characters: {char_list}. "
+                        f"You MUST copy the EXACT appearance of each character from their reference image - "
+                        f"same face, hair color, hair style, clothing, accessories, and all distinctive features. "
+                        f"Do NOT change or reimagine how the characters look. "
+                        f"Now generate the following scene: {prompt}"
                     )
                     input_content.append({
                         "type": "input_text",
