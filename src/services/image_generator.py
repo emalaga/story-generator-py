@@ -9,12 +9,14 @@ This service coordinates the complete image generation process, including:
 """
 
 import logging
-from typing import List, Optional
+from pathlib import Path
+from typing import List, Optional, Union
 
 from src.ai.gpt_image_client import GPTImageClient
 from src.domain.prompt_builder import PromptBuilder
 from src.models.character import CharacterProfile
 from src.models.story import Story
+from src.utils.ai_logger import log_ai_call
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +32,8 @@ class ImageGeneratorService:
     def __init__(
         self,
         image_client: GPTImageClient,
-        prompt_builder: PromptBuilder
+        prompt_builder: PromptBuilder,
+        images_dir: Optional[Union[str, Path]] = None
     ):
         """
         Initialize the image generator service.
@@ -38,9 +41,38 @@ class ImageGeneratorService:
         Args:
             image_client: GPT-4o client for conversation-based image generation
             prompt_builder: Builder for creating AI image prompts
+            images_dir: Base directory for stored images (for resolving relative paths)
         """
         self.image_client = image_client
         self.prompt_builder = prompt_builder
+        self.images_dir = Path(images_dir) if images_dir else None
+
+    def _resolve_image_path(self, relative_path: str) -> str:
+        """
+        Resolve a relative image path to a full filesystem path.
+
+        Args:
+            relative_path: Path like 'images/project-id/art_bible/file.png'
+
+        Returns:
+            Full path to the image file
+        """
+        if not relative_path:
+            return relative_path
+
+        # Strip leading slash
+        path = relative_path.lstrip('/')
+
+        # If we have an images_dir, resolve the path
+        if self.images_dir:
+            # Strip 'images/' prefix since images_dir already points to images folder
+            if path.startswith('images/'):
+                path = path[7:]  # Remove "images/" prefix
+            full_path = str(self.images_dir / path)
+            return full_path
+
+        # Fallback: return as-is
+        return path
 
     async def ensure_session(self, story: Story) -> str:
         """
@@ -97,10 +129,10 @@ class ImageGeneratorService:
 
     async def rebuild_visual_context(self, story: Story) -> str:
         """
-        Start fresh session and regenerate visual context (art bible + characters).
+        Start fresh session and load existing visual context (art bible + characters).
 
-        This is called when loading a project with no active session or when
-        the session has become invalid.
+        This loads existing images into the session WITHOUT regenerating them,
+        so the AI can reference them for visual consistency in future generations.
 
         Args:
             story: The story to rebuild context for
@@ -131,54 +163,113 @@ class ImageGeneratorService:
             )
             print(f"[ImageGenerator]   New session started with ID: {session_id}", flush=True)
             logger.info(f"New session started with ID: {session_id}")
+
+            # Log the session start
+            log_ai_call(
+                call_type='session',
+                model='gpt-4o',
+                prompt=f"Start visual consistency session for '{story_title}' with art style '{art_style}'",
+                payload={'art_style': art_style, 'story_title': story_title},
+                response_summary=f'Session started: {session_id[:20]}...',
+                project_id=story.id
+            )
         except Exception as e:
             print(f"[ImageGenerator]   FAILED to start session: {type(e).__name__}: {e}", flush=True)
+            log_ai_call(
+                call_type='session',
+                model='gpt-4o',
+                prompt=f"Start visual consistency session for '{story_title}'",
+                error=str(e),
+                project_id=story.id
+            )
             raise
 
-        # If art bible exists with a prompt, regenerate it to establish style
-        if story.art_bible and story.art_bible.prompt:
-            print(f"[ImageGenerator]   Art bible exists, regenerating...", flush=True)
-            logger.info(f"Regenerating art bible (prompt length: {len(story.art_bible.prompt)})")
-            try:
-                image_url = await self.image_client.generate_image(
-                    story.id,
-                    story.art_bible.prompt,
-                    size='1536x1024',
-                    quality='high'
-                )
-                story.art_bible.image_url = image_url
-                print(f"[ImageGenerator]   Art bible regenerated successfully", flush=True)
-                logger.info(f"Art bible regenerated successfully")
-            except Exception as e:
-                print(f"[ImageGenerator]   Art bible regeneration failed: {e}", flush=True)
-                logger.warning(f"Failed to regenerate art bible: {e}")
-        else:
-            print(f"[ImageGenerator]   No art bible prompt to regenerate", flush=True)
-            logger.info("No art bible prompt to regenerate")
+        # Load existing art bible image into session (if it exists)
+        if story.art_bible and story.art_bible.local_image_path:
+            print(f"[ImageGenerator]   Loading existing art bible image into session...", flush=True)
+            logger.info(f"Loading existing art bible image: {story.art_bible.local_image_path}")
 
-        # Regenerate each character reference to establish characters
-        if story.character_references:
-            print(f"[ImageGenerator]   Regenerating {len(story.character_references)} character references...", flush=True)
-            logger.info(f"Regenerating {len(story.character_references)} character references")
-            for char_ref in story.character_references:
-                if char_ref.prompt:
-                    print(f"[ImageGenerator]   Regenerating character: {char_ref.character_name}...", flush=True)
-                    logger.info(f"Regenerating character reference for {char_ref.character_name}")
-                    try:
-                        image_url = await self.image_client.generate_image(
-                            story.id,
-                            char_ref.prompt,
-                            size='1536x1024',
-                            quality='high'
-                        )
-                        char_ref.image_url = image_url
-                        print(f"[ImageGenerator]   Character {char_ref.character_name} regenerated", flush=True)
-                        logger.info(f"Character reference for {char_ref.character_name} regenerated")
-                    except Exception as e:
-                        print(f"[ImageGenerator]   Character {char_ref.character_name} failed: {e}", flush=True)
-                        logger.warning(f"Failed to regenerate character reference for {char_ref.character_name}: {e}")
+            # Resolve the image path to full filesystem path
+            art_bible_full_path = self._resolve_image_path(story.art_bible.local_image_path)
+            print(f"[ImageGenerator]   Resolved path: {art_bible_full_path}", flush=True)
+
+            try:
+                description = f"Art style: {art_style}. Story: {story_title}."
+                if story.art_bible.prompt:
+                    description += f" Original prompt: {story.art_bible.prompt[:200]}"
+
+                await self.image_client.load_reference_image(
+                    story.id,
+                    art_bible_full_path,
+                    description,
+                    reference_type="art_bible"
+                )
+                print(f"[ImageGenerator]   Art bible loaded into session successfully", flush=True)
+                logger.info(f"Art bible loaded into session successfully")
+
+                # Log the art bible load
+                log_ai_call(
+                    call_type='session',
+                    model='gpt-4o',
+                    prompt=f"Load existing art bible image into session",
+                    payload={'image_path': story.art_bible.local_image_path, 'action': 'load_reference'},
+                    response_summary=f'Loaded art bible into session (no new image generated)',
+                    project_id=story.id,
+                    metadata={'reference_type': 'art_bible'}
+                )
+            except Exception as e:
+                print(f"[ImageGenerator]   Failed to load art bible: {e}", flush=True)
+                logger.warning(f"Failed to load art bible into session: {e}")
         else:
-            logger.info("No character references to regenerate")
+            print(f"[ImageGenerator]   No art bible image to load", flush=True)
+            logger.info("No art bible image to load")
+
+        # Load existing character reference images into session
+        if story.character_references:
+            print(f"[ImageGenerator]   Loading {len(story.character_references)} character references into session...", flush=True)
+            logger.info(f"Loading {len(story.character_references)} character references into session")
+            for char_ref in story.character_references:
+                if char_ref.local_image_path:
+                    print(f"[ImageGenerator]   Loading character: {char_ref.character_name}...", flush=True)
+                    logger.info(f"Loading character reference for {char_ref.character_name}")
+
+                    # Resolve the image path to full filesystem path
+                    char_full_path = self._resolve_image_path(char_ref.local_image_path)
+                    print(f"[ImageGenerator]   Resolved path: {char_full_path}", flush=True)
+
+                    try:
+                        description = f"Character name: {char_ref.character_name}."
+                        if char_ref.physical_description:
+                            description += f" {char_ref.physical_description}"
+                        if char_ref.clothing:
+                            description += f" Wearing: {char_ref.clothing}"
+                        if char_ref.distinctive_features:
+                            description += f" Features: {char_ref.distinctive_features}"
+
+                        await self.image_client.load_reference_image(
+                            story.id,
+                            char_full_path,
+                            description,
+                            reference_type="character"
+                        )
+                        print(f"[ImageGenerator]   Character {char_ref.character_name} loaded", flush=True)
+                        logger.info(f"Character reference for {char_ref.character_name} loaded")
+
+                        # Log the character load
+                        log_ai_call(
+                            call_type='session',
+                            model='gpt-4o',
+                            prompt=f"Load existing character reference image for '{char_ref.character_name}'",
+                            payload={'image_path': char_ref.local_image_path, 'character_name': char_ref.character_name, 'action': 'load_reference'},
+                            response_summary=f'Loaded character "{char_ref.character_name}" into session (no new image generated)',
+                            project_id=story.id,
+                            metadata={'reference_type': 'character', 'character_name': char_ref.character_name}
+                        )
+                    except Exception as e:
+                        print(f"[ImageGenerator]   Character {char_ref.character_name} failed to load: {e}", flush=True)
+                        logger.warning(f"Failed to load character reference for {char_ref.character_name}: {e}")
+        else:
+            logger.info("No character references to load")
 
         # Update session ID
         story.image_session_id = self.image_client.get_session_id(story.id)

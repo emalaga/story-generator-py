@@ -1127,6 +1127,31 @@ header h1 {
     font-weight: 500;
 }
 
+/* Art Bible reference item styling */
+.page-char-ref-item.art-bible-ref {
+    background-color: #fef9e7;
+    border-color: #f4d03f;
+}
+
+.page-char-ref-item.art-bible-ref:hover {
+    border-color: #d4ac0d;
+}
+
+.page-char-ref-item.art-bible-ref.selected {
+    border-color: #d4ac0d;
+    background-color: rgba(244, 208, 63, 0.2);
+}
+
+.page-char-ref-item.art-bible-ref .page-char-ref-thumb {
+    border-radius: 4px;
+    border-color: #f4d03f;
+}
+
+.page-char-ref-item.art-bible-ref .page-char-ref-name {
+    color: #9a7b0a;
+    font-weight: 600;
+}
+
 .image-actions {
     display: flex;
     gap: 10px;

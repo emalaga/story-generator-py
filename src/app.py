@@ -224,10 +224,11 @@ def create_app(config: AppConfig = None) -> Flask:
         character_extractor=character_extractor
     )
 
-    # Image generator with stub client
+    # Image generator with images directory for path resolution
     image_generator = ImageGeneratorService(
         image_client=image_client,
-        prompt_builder=prompt_builder
+        prompt_builder=prompt_builder,
+        images_dir=project_repo.images_dir
     )
 
     # Project orchestrator with all services

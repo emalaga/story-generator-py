@@ -150,6 +150,138 @@ Respond briefly to acknowledge you're ready, then wait for my requests."""
                 else:
                     raise Exception(f"Failed to start session after {max_retries} attempts: {str(e)}")
 
+    async def load_reference_image(
+        self,
+        story_id: str,
+        image_path: str,
+        description: str,
+        reference_type: str = "reference"
+    ) -> str:
+        """
+        Load an existing image into the session context without generating a new one.
+
+        This adds the image to the conversation so the model can reference it
+        for visual consistency in future generations.
+
+        Args:
+            story_id: The story ID for session context
+            image_path: Path to the local image file
+            description: Description of what this image represents
+            reference_type: Type of reference ("art_bible" or "character")
+
+        Returns:
+            The updated response ID
+
+        Raises:
+            ValueError: If no session exists or image not found
+            Exception: If loading fails
+        """
+        import base64
+        import os
+
+        print(f"[GPTImageClient] load_reference_image called:", flush=True)
+        print(f"[GPTImageClient]   story_id={story_id}", flush=True)
+        print(f"[GPTImageClient]   image_path={image_path}", flush=True)
+        print(f"[GPTImageClient]   reference_type={reference_type}", flush=True)
+
+        if not self.api_key:
+            raise ValueError("OpenAI API key not found")
+
+        previous_response_id = self._sessions.get(story_id)
+        print(f"[GPTImageClient]   previous_response_id={previous_response_id}", flush=True)
+        if not previous_response_id:
+            raise ValueError(f"No session exists for story {story_id}. Start a session first.")
+
+        # Load the image from disk
+        # Don't strip leading / from absolute paths
+        full_path = image_path
+        print(f"[GPTImageClient]   full_path={full_path}", flush=True)
+        if not os.path.exists(full_path):
+            print(f"[GPTImageClient]   ERROR: Image file not found!", flush=True)
+            raise ValueError(f"Image not found: {full_path}")
+
+        with open(full_path, 'rb') as f:
+            image_data = f.read()
+
+        image_size_kb = len(image_data) / 1024
+        print(f"[GPTImageClient]   Image loaded: {image_size_kb:.1f} KB", flush=True)
+
+        # Determine mime type
+        if full_path.lower().endswith('.png'):
+            mime_type = 'image/png'
+        elif full_path.lower().endswith('.gif'):
+            mime_type = 'image/gif'
+        elif full_path.lower().endswith('.webp'):
+            mime_type = 'image/webp'
+        else:
+            mime_type = 'image/jpeg'
+
+        base64_data = base64.b64encode(image_data).decode('utf-8')
+        data_url = f"data:{mime_type};base64,{base64_data}"
+        print(f"[GPTImageClient]   base64 data length: {len(base64_data)} chars", flush=True)
+        print(f"[GPTImageClient]   mime_type: {mime_type}", flush=True)
+
+        print(f"[GPTImageClient] load_reference_image: {reference_type} for story {story_id}", flush=True)
+        logger.info(f"Loading {reference_type} reference image into session: {image_path}")
+
+        # Build input with image and description
+        # Use the standard message format (not input_text/input_image which requires image_generation tool)
+        if reference_type == "art_bible":
+            context_text = f"This is the ART BIBLE for this story. It defines the visual style, color palette, and artistic approach. All images generated for this story must match this style exactly. Description: {description}"
+        else:
+            context_text = f"This is a CHARACTER REFERENCE image. {description}. When this character appears in any scene, they must look exactly like this - same face, hair, clothing, and all distinctive features."
+
+        input_content = [
+            {
+                "type": "message",
+                "role": "user",
+                "content": [
+                    {"type": "input_text", "text": context_text},
+                    {"type": "input_image", "image_url": data_url}
+                ]
+            }
+        ]
+
+        max_retries = 3
+        retry_delay = 2
+
+        print(f"[GPTImageClient]   Sending reference image to OpenAI API...", flush=True)
+        for attempt in range(max_retries):
+            try:
+                print(f"[GPTImageClient]   API call attempt {attempt + 1}/{max_retries}...", flush=True)
+                response = await self.client.responses.create(
+                    model=self.model,
+                    input=input_content,
+                    previous_response_id=previous_response_id
+                )
+
+                # Update session with new response ID
+                self._sessions[story_id] = response.id
+                print(f"[GPTImageClient]   SUCCESS! Reference image loaded", flush=True)
+                print(f"[GPTImageClient]   New response_id={response.id}", flush=True)
+
+                # Log the model's response text if any
+                if hasattr(response, 'output') and response.output:
+                    for item in response.output:
+                        if hasattr(item, 'content'):
+                            for content in item.content:
+                                if hasattr(content, 'text'):
+                                    print(f"[GPTImageClient]   Model response: {content.text[:200]}...", flush=True)
+
+                logger.info(f"Reference image loaded into session, response_id: {response.id}")
+
+                return response.id
+
+            except Exception as e:
+                print(f"[GPTImageClient]   Load reference FAILED: {type(e).__name__}: {e}", flush=True)
+                if attempt < max_retries - 1:
+                    print(f"[GPTImageClient]   Retrying in {retry_delay}s...", flush=True)
+                    await asyncio.sleep(retry_delay)
+                    retry_delay *= 2
+                    continue
+                else:
+                    raise Exception(f"Failed to load reference image after {max_retries} attempts: {str(e)}")
+
     async def generate_image(
         self,
         story_id: str,
@@ -358,49 +490,101 @@ Respond briefly to acknowledge you're ready, then wait for my requests."""
 
         for attempt in range(max_retries):
             try:
-                # Build the input - either a simple string or a list with text and images
+                # Build the input - either a simple string or a message with images
                 if reference_images:
-                    # When reference images are provided, construct input as a list
-                    # with text prompt and reference images
-                    input_content = []
+                    # When reference images are provided, construct input as a message
+                    # with text and image content items
+                    message_content = []
 
-                    # Build a description of the character references
+                    # Separate art bible from character references
+                    art_bible_ref = None
+                    char_refs = []
                     char_descriptions = []
 
-                    # Add reference images with descriptive text for each character
                     for ref_img in reference_images:
-                        char_name = ref_img.get('character_name', 'Unknown Character')
-                        char_descriptions.append(char_name)
+                        ref_name = ref_img.get('character_name', 'Unknown')
+                        if ref_name == 'Art Bible':
+                            art_bible_ref = ref_img
+                        else:
+                            char_refs.append(ref_img)
+                            char_descriptions.append(ref_name)
 
-                        # Add text describing this character image
-                        input_content.append({
+                    # Add art bible first if present
+                    if art_bible_ref:
+                        message_content.append({
+                            "type": "input_text",
+                            "text": "ART STYLE REFERENCE (Art Bible): This image defines the visual style, color palette, and artistic approach. Match this style exactly in the generated image:"
+                        })
+                        data_url = f"data:{art_bible_ref['mime_type']};base64,{art_bible_ref['data']}"
+                        message_content.append({
+                            "type": "input_image",
+                            "image_url": data_url
+                        })
+
+                    # Add character reference images
+                    for ref_img in char_refs:
+                        char_name = ref_img.get('character_name', 'Unknown Character')
+
+                        message_content.append({
                             "type": "input_text",
                             "text": f"Reference image for character '{char_name}'. Use this exact appearance for this character in the generated image:"
                         })
 
-                        # Add the image - OpenAI Responses API expects image_url as an object with url key
                         data_url = f"data:{ref_img['mime_type']};base64,{ref_img['data']}"
-                        input_content.append({
+                        message_content.append({
                             "type": "input_image",
-                            "image_url": {"url": data_url}
+                            "image_url": data_url
                         })
 
-                    # Add the main prompt with context about the reference images
-                    char_list = ", ".join(char_descriptions)
-                    enhanced_prompt = (
-                        f"CRITICAL: I have provided reference images above for the following characters: {char_list}. "
-                        f"You MUST copy the EXACT appearance of each character from their reference image - "
-                        f"same face, hair color, hair style, clothing, accessories, and all distinctive features. "
-                        f"Do NOT change or reimagine how the characters look. "
-                        f"Now generate the following scene: {prompt}"
-                    )
-                    input_content.append({
+                    # Build the enhanced prompt
+                    prompt_parts = []
+                    prompt_parts.append("CRITICAL INSTRUCTIONS:")
+
+                    if art_bible_ref:
+                        prompt_parts.append("- Match the art style, colors, and visual approach from the Art Bible reference image exactly.")
+
+                    if char_descriptions:
+                        char_list = ", ".join(char_descriptions)
+                        prompt_parts.append(f"- I have provided reference images for the following characters: {char_list}.")
+                        prompt_parts.append("- You MUST copy the EXACT appearance of each character from their reference image - same face, hair color, hair style, clothing, accessories, and all distinctive features.")
+                        prompt_parts.append("- Do NOT change or reimagine how the characters look.")
+
+                    prompt_parts.append(f"Now generate the following scene: {prompt}")
+
+                    enhanced_prompt = " ".join(prompt_parts)
+                    message_content.append({
                         "type": "input_text",
                         "text": enhanced_prompt
                     })
 
-                    print(f"[GPTImageClient]   Including {len(reference_images)} character reference images: {char_list}", flush=True)
-                    logger.info(f"Including {len(reference_images)} character reference images: {char_list}")
+                    # Wrap in a message structure
+                    input_content = [
+                        {
+                            "type": "message",
+                            "role": "user",
+                            "content": message_content
+                        }
+                    ]
+
+                    ref_summary = []
+                    if art_bible_ref:
+                        ref_summary.append("Art Bible")
+                        print(f"[GPTImageClient]   Art Bible reference: {len(art_bible_ref['data'])} chars base64", flush=True)
+                    if char_descriptions:
+                        ref_summary.extend(char_descriptions)
+                        for ref_img in char_refs:
+                            print(f"[GPTImageClient]   Character '{ref_img.get('character_name')}': {len(ref_img['data'])} chars base64", flush=True)
+                    ref_list = ", ".join(ref_summary)
+                    print(f"[GPTImageClient]   Including {len(reference_images)} reference images: {ref_list}", flush=True)
+                    print(f"[GPTImageClient]   Total message_content items: {len(message_content)}", flush=True)
+                    for i, item in enumerate(message_content):
+                        item_type = item.get('type', 'unknown')
+                        if item_type == 'input_text':
+                            text = item.get('text', '')[:100]
+                            print(f"[GPTImageClient]   Content {i}: {item_type} - '{text}...'", flush=True)
+                        else:
+                            print(f"[GPTImageClient]   Content {i}: {item_type}", flush=True)
+                    logger.info(f"Including {len(reference_images)} reference images: {ref_list}")
                 else:
                     input_content = prompt
 

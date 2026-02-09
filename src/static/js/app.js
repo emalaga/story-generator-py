@@ -557,25 +557,49 @@ function populatePageCharacterRefs(pageNumber) {
     const container = document.getElementById(`page-${pageNumber}-character-refs`);
     if (!container) return;
 
+    // Check if art bible has an image
+    const artBible = currentStory.art_bible;
+    const hasArtBibleImage = artBible && (artBible.local_image_path || artBible.image_url);
+
     // Get character references that have images
     const characterRefs = currentStory.character_references || [];
     const charactersWithImages = characterRefs.filter(charRef =>
         charRef.local_image_path || charRef.image_url
     );
 
-    if (charactersWithImages.length === 0) {
+    // If no art bible and no characters with images, hide the container
+    if (!hasArtBibleImage && charactersWithImages.length === 0) {
         container.innerHTML = '';
         return;
     }
 
-    // Build the character selection HTML
+    // Build the reference selection HTML
     let html = `
         <div class="page-char-refs-header">
-            <label>Include Character References (optional):</label>
+            <label>Include Visual References (optional):</label>
         </div>
         <div class="page-char-refs-list">
     `;
 
+    // Add art bible as the first item (checked by default)
+    if (hasArtBibleImage) {
+        const artBiblePath = artBible.local_image_path;
+        const artBibleUrl = artBiblePath ? `/api/${artBiblePath}` : artBible.image_url;
+
+        html += `
+            <label class="page-char-ref-item art-bible-ref selected">
+                <input type="checkbox" name="page-${pageNumber}-char-ref" value="art_bible"
+                       data-image-path="${artBiblePath || ''}"
+                       data-character-name="Art Bible"
+                       data-is-art-bible="true"
+                       checked>
+                <img src="${artBibleUrl}" alt="Art Bible" class="page-char-ref-thumb">
+                <span class="page-char-ref-name">Art Bible</span>
+            </label>
+        `;
+    }
+
+    // Add character references
     charactersWithImages.forEach((charRef, index) => {
         const imagePath = charRef.local_image_path;
         const imageUrl = imagePath ? `/api/${imagePath}` : charRef.image_url;
@@ -604,15 +628,17 @@ function populatePageCharacterRefs(pageNumber) {
 }
 
 /**
- * Get the selected character references for a specific page's image generation.
+ * Get the selected visual references for a specific page's image generation.
+ * Includes both art bible and character references.
  * @param {number} pageNumber - The page number
- * @returns {Array} Array of objects with character_name and image_path for selected characters
+ * @returns {Array} Array of objects with character_name, image_path, and is_art_bible flag
  */
 function getSelectedPageCharacterRefs(pageNumber) {
     const checkboxes = document.querySelectorAll(`input[name="page-${pageNumber}-char-ref"]:checked`);
     return Array.from(checkboxes).map(cb => ({
         character_name: cb.getAttribute('data-character-name'),
-        image_path: cb.getAttribute('data-image-path')
+        image_path: cb.getAttribute('data-image-path'),
+        is_art_bible: cb.getAttribute('data-is-art-bible') === 'true'
     }));
 }
 
