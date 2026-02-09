@@ -2088,6 +2088,7 @@ function updateCoverPageDisplay() {
     const promptTextarea = document.getElementById('cover-page-prompt');
     const previewSection = document.getElementById('cover-page-image-preview');
     const generateBtn = document.getElementById('cover-page-generate-btn');
+    const useArtBibleBtn = document.getElementById('cover-use-artbible-btn');
 
     if (!currentStory || !currentStory.cover_page) {
         // No cover page - show placeholder
@@ -2107,6 +2108,12 @@ function updateCoverPageDisplay() {
     } else {
         promptTextarea.value = '';
         generateBtn.disabled = true;
+    }
+
+    // Enable/disable Use Art Bible button based on art bible availability
+    if (useArtBibleBtn) {
+        const hasArtBible = currentStory.art_bible && currentStory.art_bible.local_image_path;
+        useArtBibleBtn.disabled = !hasArtBible;
     }
 
     // Show image if available (with version thumbnails)
@@ -3885,6 +3892,91 @@ async function useArtBibleAsPageImage(pageNumber) {
         if (loadingEl) {
             loadingEl.classList.add('hidden');
             loadingEl.querySelector('span').textContent = 'Generating image...';
+        }
+    }
+}
+
+async function useArtBibleAsCoverImage() {
+    if (!currentStory) {
+        showError('No story loaded');
+        return;
+    }
+
+    // Check if art bible exists and has an image
+    if (!currentStory.art_bible || !currentStory.art_bible.local_image_path) {
+        showError('No art bible image available. Please generate an art bible first.');
+        return;
+    }
+
+    // Ensure cover page exists
+    if (!currentStory.cover_page) {
+        currentStory.cover_page = {};
+    }
+
+    try {
+        // Show loading state
+        const loadingEl = document.getElementById('cover-page-loading');
+        if (loadingEl) {
+            loadingEl.classList.remove('hidden');
+            loadingEl.querySelector('span').textContent = 'Copying art bible...';
+        }
+
+        const response = await fetch(`${API_BASE}/images/stories/${currentStory.id}/cover/use-art-bible`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to copy art bible image');
+        }
+
+        const result = await response.json();
+
+        // Initialize versions list if needed
+        if (!currentStory.cover_page.image_versions) {
+            currentStory.cover_page.image_versions = [];
+            // Migrate existing image to versions list if present
+            if (currentStory.cover_page.local_image_path) {
+                currentStory.cover_page.image_versions.push({
+                    path: currentStory.cover_page.local_image_path,
+                    model: currentStory.cover_page.image_model,
+                    generated_at: currentStory.cover_page.image_generated_at,
+                    resolution: currentStory.cover_page.image_resolution,
+                    cost: currentStory.cover_page.image_cost
+                });
+            }
+        }
+
+        // Add the new version
+        currentStory.cover_page.image_versions.push(result.version);
+
+        // Update cover with the new image
+        currentStory.cover_page.local_image_path = result.local_image_path;
+        currentStory.cover_page.image_url = null;
+        currentStory.cover_page.image_model = result.version.model;
+        currentStory.cover_page.image_generated_at = result.version.generated_at;
+        currentStory.cover_page.image_resolution = result.version.resolution;
+        currentStory.cover_page.image_cost = result.version.cost;
+
+        console.log(`Cover now uses art bible image: ${result.local_image_path}`);
+
+        // Update the display
+        refreshCoverPagePreview();
+
+        // Auto-save project
+        await autoSaveProject();
+
+    } catch (error) {
+        showError(`Failed to use art bible as cover image: ${error.message}`);
+    } finally {
+        // Hide loading state
+        const loadingEl = document.getElementById('cover-page-loading');
+        if (loadingEl) {
+            loadingEl.classList.add('hidden');
+            loadingEl.querySelector('span').textContent = 'Generating cover...';
         }
     }
 }

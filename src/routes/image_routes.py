@@ -1007,6 +1007,85 @@ def use_art_bible_as_page_image(story_id, page_number):
         return jsonify({'error': f'Failed to copy art bible image: {str(e)}'}), 500
 
 
+@image_bp.route('/stories/<story_id>/cover/use-art-bible', methods=['POST'])
+def use_art_bible_as_cover_image(story_id):
+    """
+    POST /api/images/stories/:id/cover/use-art-bible - Copy art bible image to cover
+
+    Copies the current active art bible image as a new image version for the cover page.
+
+    Returns:
+        200: Image copied successfully with new path and version info
+        400: Invalid request
+        404: Story or art bible not found
+        500: Server error
+    """
+    import shutil
+    import uuid
+
+    try:
+        project_repo = current_app.config['REPOSITORIES']['project']
+        project = project_repo.get(story_id)
+
+        if not project or not project.story:
+            return jsonify({'error': 'Story not found'}), 404
+
+        # Check if art bible exists and has an image
+        art_bible = project.story.art_bible
+        if not art_bible or not art_bible.local_image_path:
+            return jsonify({'error': 'No art bible image found'}), 404
+
+        # Get source image path
+        source_path = art_bible.local_image_path
+        if source_path.startswith('images/'):
+            source_path = source_path[7:]  # Remove "images/" prefix
+
+        images_dir = project_repo.images_dir
+        full_source_path = images_dir / source_path
+
+        if not full_source_path.exists():
+            return jsonify({'error': 'Art bible image file not found'}), 404
+
+        # Generate unique filename for the cover copy
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        unique_id = str(uuid.uuid4())[:8]
+        extension = full_source_path.suffix or '.png'
+        new_filename = f"cover_from_artbible_{timestamp}_{unique_id}{extension}"
+
+        # Destination path for the cover
+        project_images_dir = project_repo.get_project_images_dir(story_id)
+        cover_dir = project_images_dir / 'cover'
+        cover_dir.mkdir(parents=True, exist_ok=True)
+        dest_path = cover_dir / new_filename
+
+        # Copy the file
+        shutil.copy2(full_source_path, dest_path)
+
+        # Build the relative path for storage
+        relative_path = f'images/{story_id}/cover/{new_filename}'
+
+        # Build version info
+        version_entry = {
+            'path': relative_path,
+            'model': 'copied_from_art_bible',
+            'generated_at': datetime.now().isoformat(),
+            'resolution': art_bible.image_resolution if hasattr(art_bible, 'image_resolution') else None,
+            'cost': 0  # No cost since it's a copy
+        }
+
+        current_app.logger.info(f"Copied art bible to cover: {relative_path}")
+
+        return jsonify({
+            'success': True,
+            'local_image_path': relative_path,
+            'version': version_entry
+        }), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error copying art bible to cover: {e}")
+        return jsonify({'error': f'Failed to copy art bible image: {str(e)}'}), 500
+
+
 @image_bp.route('/stories/<story_id>/art-bible/set-active', methods=['POST'])
 def set_active_art_bible_version(story_id):
     """
