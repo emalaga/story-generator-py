@@ -1,0 +1,211 @@
+{
+  "version": 1,
+  "updated_at": "2026-02-09T10:56:53.678394",
+  "logs": [
+    {
+      "id": "20260209103202533984",
+      "timestamp": "2026-02-09T10:32:02.533994",
+      "call_type": "art_bible",
+      "model": "gpt-image-1-mini",
+      "prompt": "Create a sample scene illustration in digital cartoon illustration style for a children's book the title \"The Inca Portal\". The book is about Coco a kid that travels in time to the time where the Incas ruled Cusco. Coco is wearing his school uniform and a bit confused for being in the Inca Empire. Coco is surrounded by some people from that time looking at him suspiciously Coco is confused. The scene should showcase the visual style, colors, lighting, and artistic approach that will be used throughout the book. No text, labels, color swatches, or technical diagrams. Just a beautiful example illustration that demonstrates the artistic direction.",
+      "payload": {
+        "size": "1024x1024",
+        "quality": "high",
+        "art_style": "digital cartoon illustration"
+      },
+      "response_summary": "Generated art bible image for \"the inca portal (with images)\"",
+      "reference_images": [
+        "images/fde43718-cc5e-4a30-b337-b36474aa8f27/characters/character_Coco_copied_1770421616957.png"
+      ],
+      "cost": 0.037543999999999994,
+      "duration_ms": null,
+      "error": null,
+      "project_id": "fde43718-cc5e-4a30-b337-b36474aa8f27",
+      "metadata": {}
+    },
+    {
+      "id": "20260209104026824473",
+      "timestamp": "2026-02-09T10:40:26.824484",
+      "call_type": "session",
+      "model": "gpt-4o",
+      "prompt": "Start visual consistency session for 'the inca portal (with images)' with art style 'digital cartoon illustration'",
+      "payload": {
+        "art_style": "digital cartoon illustration",
+        "story_title": "the inca portal (with images)"
+      },
+      "response_summary": "Session started: resp_08f9467e5e7ada8...",
+      "reference_images": [],
+      "cost": null,
+      "duration_ms": null,
+      "error": null,
+      "project_id": "fde43718-cc5e-4a30-b337-b36474aa8f27",
+      "metadata": {}
+    },
+    {
+      "id": "20260209104030457521",
+      "timestamp": "2026-02-09T10:40:30.457532",
+      "call_type": "session",
+      "model": "gpt-4o",
+      "prompt": "Load existing art bible image into session",
+      "payload": {
+        "image_path": "images/fde43718-cc5e-4a30-b337-b36474aa8f27/art_bible/art_bible_1770661922534.png",
+        "action": "load_reference"
+      },
+      "response_summary": "Loaded art bible into session (no new image generated)",
+      "reference_images": [],
+      "cost": null,
+      "duration_ms": null,
+      "error": null,
+      "project_id": "fde43718-cc5e-4a30-b337-b36474aa8f27",
+      "metadata": {
+        "reference_type": "art_bible"
+      }
+    },
+    {
+      "id": "20260209104034849046",
+      "timestamp": "2026-02-09T10:40:34.849061",
+      "call_type": "session",
+      "model": "gpt-4o",
+      "prompt": "Load existing character reference image for 'Coco'",
+      "payload": {
+        "image_path": "images/fde43718-cc5e-4a30-b337-b36474aa8f27/characters/character_Coco_copied_1770421616957.png",
+        "character_name": "Coco",
+        "action": "load_reference"
+      },
+      "response_summary": "Loaded character \"Coco\" into session (no new image generated)",
+      "reference_images": [],
+      "cost": null,
+      "duration_ms": null,
+      "error": null,
+      "project_id": "fde43718-cc5e-4a30-b337-b36474aa8f27",
+      "metadata": {
+        "reference_type": "character",
+        "character_name": "Coco"
+      }
+    },
+    {
+      "id": "20260209104039799655",
+      "timestamp": "2026-02-09T10:40:39.799677",
+      "call_type": "session",
+      "model": "gpt-4o",
+      "prompt": "Load existing character reference image for 'La profesora'",
+      "payload": {
+        "image_path": "images/fde43718-cc5e-4a30-b337-b36474aa8f27/characters/character_La_profesora_1770425085616.png",
+        "character_name": "La profesora",
+        "action": "load_reference"
+      },
+      "response_summary": "Loaded character \"La profesora\" into session (no new image generated)",
+      "reference_images": [],
+      "cost": null,
+      "duration_ms": null,
+      "error": null,
+      "project_id": "fde43718-cc5e-4a30-b337-b36474aa8f27",
+      "metadata": {
+        "reference_type": "character",
+        "character_name": "La profesora"
+      }
+    },
+    {
+      "id": "20260209104221901457",
+      "timestamp": "2026-02-09T10:42:21.901473",
+      "call_type": "art_bible",
+      "model": "gpt-image-1-mini",
+      "prompt": "Create a sample scene illustration in digital cartoon illustration style for a children's book about Coco, a kid that travels in time to the time where the Incas ruled Cusco. Use the reference image for Coco. Coco is wearing his school uniform and a bit confused for being in the Inca Empire. Coco is surrounded by some people from that time looking at him suspiciously Coco is confused. The scene should showcase the visual style, colors, lighting, and artistic approach that will be used throughout the book. No text, No title,s labels, color swatches, or technical diagrams. Just a beautiful example illustration that demonstrates the artistic direction.",
+      "payload": {
+        "size": "1024x1024",
+        "quality": "high",
+        "art_style": "digital cartoon illustration"
+      },
+      "response_summary": "Generated art bible image for \"the inca portal (with images)\"",
+      "reference_images": [
+        "images/fde43718-cc5e-4a30-b337-b36474aa8f27/characters/character_Coco_copied_1770421616957.png"
+      ],
+      "cost": 0.044635999999999995,
+      "duration_ms": null,
+      "error": null,
+      "project_id": "fde43718-cc5e-4a30-b337-b36474aa8f27",
+      "metadata": {}
+    },
+    {
+      "id": "20260209104414767712",
+      "timestamp": "2026-02-09T10:44:14.767732",
+      "call_type": "character_image",
+      "model": "gpt-image-1-mini",
+      "prompt": "A cartoon style illustration of Coco who is a Human with this appearance: Un joven curioso y aventurero wearing a school uniform with a white dress shirt with short sleeves, gray pants and black shoes. He wears glasses and has bright eyes reflecting dreams of epic adventures. He has light brown skin, black straight hair and black eyes. He is from the Andes and has rosy cheeks and a broad and slightly aquiline nose. He has a bit of a Belly and he is short. He is 10 years old. IMPORTANT: Create ONE SINGLE full-color illustration showing the character ONCE in a natural standing or sitting pose. Use vibrant, rich colors appropriate for a children's book. Plain white background. DO NOT create a character sheet, model sheet, turnaround, reference sheet, or grid. DO NOT show multiple views, angles, or copies of the character. DO NOT use black and white or grayscale. Just ONE colorful illustration of the character.",
+      "payload": {
+        "size": "1024x1024",
+        "quality": "high",
+        "character_name": "Coco",
+        "include_turnaround": true
+      },
+      "response_summary": "Generated character reference image for \"Coco\"",
+      "reference_images": [],
+      "cost": 0.045326,
+      "duration_ms": null,
+      "error": null,
+      "project_id": "fde43718-cc5e-4a30-b337-b36474aa8f27",
+      "metadata": {}
+    },
+    {
+      "id": "20260209104635971069",
+      "timestamp": "2026-02-09T10:46:35.971103",
+      "call_type": "prompt",
+      "model": "gpt-4o",
+      "prompt": "Cuando llegaron al museo, Coco y sus amigos quedaron asombrados por las grandes salas llenas de artefactos antiguos, pinturas coloridas y estatuas majestuosas. La profesora los llev\u00f3 a una sala donde se exhib\u00edan numerosos artefactos de los Incas. Coco no pod\u00eda quitar sus ojos de una joya brillante que parec\u00eda muy antigua. Su curiosidad se despert\u00f3.",
+      "payload": {
+        "art_style": "digital cartoon illustration",
+        "character_count": 5,
+        "has_art_bible": true,
+        "character_references_count": 0
+      },
+      "response_summary": "Generated image prompt (671 chars)",
+      "reference_images": [],
+      "cost": null,
+      "duration_ms": null,
+      "error": null,
+      "project_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "20260209105230792084",
+      "timestamp": "2026-02-09T10:52:30.792124",
+      "call_type": "prompt",
+      "model": "gpt-4o",
+      "prompt": "Cuando llegaron al museo, Coco y sus amigos quedaron asombrados por las grandes salas llenas de artefactos antiguos, pinturas coloridas y estatuas majestuosas. La profesora los llev\u00f3 a una sala donde se exhib\u00edan numerosos artefactos de los Incas. Coco no pod\u00eda quitar sus ojos de una joya brillante que parec\u00eda muy antigua. Su curiosidad se despert\u00f3.",
+      "payload": {
+        "art_style": "digital cartoon illustration",
+        "character_count": 0,
+        "has_art_bible": true,
+        "character_references_count": 0
+      },
+      "response_summary": "Generated image prompt (605 chars)",
+      "reference_images": [],
+      "cost": null,
+      "duration_ms": null,
+      "error": null,
+      "project_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "20260209105653678271",
+      "timestamp": "2026-02-09T10:56:53.678279",
+      "call_type": "page_image",
+      "model": "gpt-image-1-mini",
+      "prompt": "CRITICAL: Generate the next illustration for this children's book. You MUST strictly follow the digital cartoon illustration visual style defined in image references. Match the exact same colors, line weight, shading technique, and overall aesthetic. Coco should be drawn as in the character reference. Scene: The moment Coco, wide-eyed and mesmerized, first lays eyes on the ancient, brilliantly shining jewel amidst the Inca artifacts in the museum exhibit. You can see other kids away in the back looking at other inca artifacts. The kids are wearing the same school uniform walking around of gray pants or skirts and white shirts. Professional, vibrant, child-friendly children's book illustration.",
+      "payload": {
+        "size": "1024x1024",
+        "quality": "high",
+        "page_number": 2
+      },
+      "response_summary": "Generated page 2 image",
+      "reference_images": [
+        "images/fde43718-cc5e-4a30-b337-b36474aa8f27/characters/character_Coco_1770662654769.png"
+      ],
+      "cost": 0.047583999999999994,
+      "duration_ms": null,
+      "error": null,
+      "project_id": "fde43718-cc5e-4a30-b337-b36474aa8f27",
+      "metadata": {}
+    }
+  ]
+}

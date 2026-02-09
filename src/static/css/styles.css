@@ -2735,20 +2735,28 @@ select[disabled] {
     cursor: pointer;
 }
 
+.logs-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+    padding: 12px;
+    background: var(--bg-color);
+    border-radius: 6px;
+}
+
 .logs-filter {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 15px;
-    padding: 10px;
-    background: var(--bg-color);
-    border-radius: 6px;
+    gap: 8px;
 }
 
 .logs-filter label {
     font-weight: 500;
     color: var(--text-muted);
     font-size: 13px;
+    white-space: nowrap;
 }
 
 .logs-filter select {
@@ -2757,6 +2765,52 @@ select[disabled] {
     border-radius: 6px;
     font-size: 13px;
     background: var(--card-bg);
+}
+
+.logs-date-input {
+    padding: 5px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 13px;
+    background: var(--card-bg);
+    color: var(--text-color);
+}
+
+.logs-date-input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+}
+
+.logs-selection-bar {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 10px 12px;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 6px;
+    margin-bottom: 10px;
+}
+
+.logs-selection-bar.hidden {
+    display: none;
+}
+
+.logs-select-all {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-color);
+    cursor: pointer;
+}
+
+.logs-select-all input {
+    cursor: pointer;
+}
+
+#logs-selected-count {
+    font-size: 13px;
+    color: var(--text-muted);
 }
 
 .ai-logs-container {
@@ -2800,6 +2854,29 @@ select[disabled] {
     display: flex;
     align-items: center;
     gap: 12px;
+}
+
+.log-checkbox {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.log-checkbox input {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+}
+
+.log-expand-icon {
+    margin-left: auto;
+    color: var(--text-muted);
+    font-size: 10px;
+    transition: transform 0.2s ease;
+}
+
+.log-entry.expanded .log-expand-icon {
+    transform: rotate(180deg);
 }
 
 .log-type-badge {

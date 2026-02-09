@@ -903,28 +903,48 @@
                         <h2>AI Call Logs</h2>
                         <div class="logs-controls">
                             <button id="refresh-logs-btn" class="btn btn-secondary btn-small">Refresh</button>
-                            <button id="clear-logs-btn" class="btn btn-secondary btn-small">Clear Logs</button>
+                            <button id="delete-selected-logs-btn" class="btn btn-secondary btn-small" disabled>Delete Selected</button>
+                            <button id="clear-logs-btn" class="btn btn-secondary btn-small">Clear All</button>
                             <label class="logs-auto-refresh">
                                 <input type="checkbox" id="logs-auto-refresh" checked>
                                 Auto-refresh
                             </label>
                         </div>
                     </div>
-                    <p class="section-description">View all AI API calls including prompts, models, and responses.</p>
+                    <p class="section-description">View all AI API calls including prompts, models, and responses. Logs are persisted across sessions.</p>
 
-                    <div class="logs-filter">
-                        <label for="logs-filter-type">Filter by type:</label>
-                        <select id="logs-filter-type">
-                            <option value="all">All Calls</option>
-                            <option value="story">Story Generation</option>
-                            <option value="characters">Character Identification</option>
-                            <option value="art_bible">Art Bible</option>
-                            <option value="character_image">Character Images</option>
-                            <option value="page_image">Page Images</option>
-                            <option value="cover_image">Cover Images</option>
-                            <option value="prompt">Prompt Generation</option>
-                            <option value="session">Session Management</option>
-                        </select>
+                    <div class="logs-filter-row">
+                        <div class="logs-filter">
+                            <label for="logs-filter-type">Type:</label>
+                            <select id="logs-filter-type">
+                                <option value="all">All Calls</option>
+                                <option value="story">Story Generation</option>
+                                <option value="characters">Character Identification</option>
+                                <option value="art_bible">Art Bible</option>
+                                <option value="character_image">Character Images</option>
+                                <option value="page_image">Page Images</option>
+                                <option value="cover_image">Cover Images</option>
+                                <option value="prompt">Prompt Generation</option>
+                                <option value="session">Session Management</option>
+                            </select>
+                        </div>
+                        <div class="logs-filter">
+                            <label for="logs-filter-start-date">From:</label>
+                            <input type="date" id="logs-filter-start-date" class="logs-date-input">
+                        </div>
+                        <div class="logs-filter">
+                            <label for="logs-filter-end-date">To:</label>
+                            <input type="date" id="logs-filter-end-date" class="logs-date-input">
+                        </div>
+                        <button id="logs-clear-filters-btn" class="btn btn-secondary btn-small">Clear Filters</button>
+                    </div>
+
+                    <div class="logs-selection-bar hidden" id="logs-selection-bar">
+                        <label class="logs-select-all">
+                            <input type="checkbox" id="logs-select-all">
+                            Select All
+                        </label>
+                        <span id="logs-selected-count">0 selected</span>
                     </div>
 
                     <div id="ai-logs-container" class="ai-logs-container">

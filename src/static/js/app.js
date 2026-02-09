@@ -5078,13 +5078,24 @@ async function handleAddCharacterSubmit(e) {
 // ===== AI Logs Tab =====
 let logsAutoRefreshInterval = null;
 let currentLogsFilter = 'all';
+let currentLogsStartDate = '';
+let currentLogsEndDate = '';
+let selectedLogIds = new Set();
 
 async function loadAILogs() {
     const logsContainer = document.getElementById('ai-logs-list');
     if (!logsContainer) return;
 
     try {
-        const response = await fetch(`${API_BASE}/logs?type=${currentLogsFilter}&limit=200`);
+        let url = `${API_BASE}/logs?type=${currentLogsFilter}&limit=500`;
+        if (currentLogsStartDate) {
+            url += `&start_date=${currentLogsStartDate}`;
+        }
+        if (currentLogsEndDate) {
+            url += `&end_date=${currentLogsEndDate}`;
+        }
+
+        const response = await fetch(url);
         if (!response.ok) {
             throw new Error('Failed to fetch logs');
         }
@@ -5099,12 +5110,21 @@ async function loadAILogs() {
 
 function renderAILogs(logs, total) {
     const logsContainer = document.getElementById('ai-logs-list');
+    const selectionBar = document.getElementById('logs-selection-bar');
     if (!logsContainer) return;
+
+    // Clear selection when re-rendering
+    selectedLogIds.clear();
+    updateLogSelectionUI();
 
     if (!logs || logs.length === 0) {
         logsContainer.innerHTML = '<p class="logs-empty">No AI calls logged yet. Generate some content to see logs here.</p>';
+        if (selectionBar) selectionBar.classList.add('hidden');
         return;
     }
+
+    // Show selection bar when there are logs
+    if (selectionBar) selectionBar.classList.remove('hidden');
 
     // Calculate total cost
     const totalCost = logs.reduce((sum, log) => sum + (log.cost || 0), 0);
@@ -5115,6 +5135,10 @@ function renderAILogs(logs, total) {
             <div class="log-stat">
                 <span class="log-stat-label">Total Calls:</span>
                 <span class="log-stat-value">${total}</span>
+            </div>
+            <div class="log-stat">
+                <span class="log-stat-label">Showing:</span>
+                <span class="log-stat-value">${logs.length}</span>
             </div>
             <div class="log-stat">
                 <span class="log-stat-label">Estimated Cost:</span>
@@ -5140,15 +5164,19 @@ function renderAILogs(logs, total) {
             : (log.response_summary || 'No details available');
 
         html += `
-            <div class="log-entry" onclick="toggleLogEntry(this)">
+            <div class="log-entry" data-log-id="${log.id}">
                 <div class="log-entry-header">
+                    <label class="log-checkbox" onclick="event.stopPropagation()">
+                        <input type="checkbox" class="log-select-checkbox" data-log-id="${log.id}" onchange="toggleLogSelection('${log.id}', this.checked)">
+                    </label>
                     <span class="log-type-badge ${log.call_type}">${formatLogType(log.call_type)}</span>
                     <span class="log-model">${log.model || 'unknown'}</span>
                     ${log.cost ? `<span class="log-cost">$${log.cost.toFixed(4)}</span>` : ''}
                     ${log.error ? `<span class="log-error-indicator">ERROR</span>` : ''}
                     <span class="log-timestamp">${timeStr} - ${dateStr}</span>
+                    <span class="log-expand-icon" onclick="toggleLogEntry(this.closest('.log-entry'))">&#9660;</span>
                 </div>
-                <div class="log-summary">${escapeHtml(promptSummary)}</div>
+                <div class="log-summary" onclick="toggleLogEntry(this.closest('.log-entry'))">${escapeHtml(promptSummary)}</div>
                 <div class="log-details">
                     ${log.prompt ? `
                     <div class="log-detail-section">
@@ -5205,6 +5233,91 @@ function renderAILogs(logs, total) {
     });
 
     logsContainer.innerHTML = html;
+}
+
+function toggleLogSelection(logId, isSelected) {
+    if (isSelected) {
+        selectedLogIds.add(logId);
+    } else {
+        selectedLogIds.delete(logId);
+    }
+    updateLogSelectionUI();
+}
+
+function updateLogSelectionUI() {
+    const deleteBtn = document.getElementById('delete-selected-logs-btn');
+    const countSpan = document.getElementById('logs-selected-count');
+    const selectAllCheckbox = document.getElementById('logs-select-all');
+
+    if (deleteBtn) {
+        deleteBtn.disabled = selectedLogIds.size === 0;
+    }
+    if (countSpan) {
+        countSpan.textContent = `${selectedLogIds.size} selected`;
+    }
+
+    // Update select all checkbox state
+    if (selectAllCheckbox) {
+        const allCheckboxes = document.querySelectorAll('.log-select-checkbox');
+        if (allCheckboxes.length > 0 && selectedLogIds.size === allCheckboxes.length) {
+            selectAllCheckbox.checked = true;
+            selectAllCheckbox.indeterminate = false;
+        } else if (selectedLogIds.size > 0) {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = true;
+        } else {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = false;
+        }
+    }
+}
+
+function selectAllLogs(isSelected) {
+    const checkboxes = document.querySelectorAll('.log-select-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = isSelected;
+        const logId = checkbox.dataset.logId;
+        if (isSelected) {
+            selectedLogIds.add(logId);
+        } else {
+            selectedLogIds.delete(logId);
+        }
+    });
+    updateLogSelectionUI();
+}
+
+async function deleteSelectedLogs() {
+    if (selectedLogIds.size === 0) {
+        showError('No logs selected');
+        return;
+    }
+
+    if (!confirm(`Are you sure you want to delete ${selectedLogIds.size} selected log(s)?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/logs/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                log_ids: Array.from(selectedLogIds)
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to delete logs');
+        }
+
+        const result = await response.json();
+        showSuccess(result.message);
+        selectedLogIds.clear();
+        await loadAILogs();
+    } catch (error) {
+        showError('Failed to delete logs: ' + error.message);
+    }
 }
 
 function formatLogType(type) {
@@ -5266,12 +5379,57 @@ function setupAILogsTab() {
         clearBtn.addEventListener('click', clearAILogs);
     }
 
+    // Delete selected button
+    const deleteSelectedBtn = document.getElementById('delete-selected-logs-btn');
+    if (deleteSelectedBtn) {
+        deleteSelectedBtn.addEventListener('click', deleteSelectedLogs);
+    }
+
     // Filter dropdown
     const filterSelect = document.getElementById('logs-filter-type');
     if (filterSelect) {
         filterSelect.addEventListener('change', (e) => {
             currentLogsFilter = e.target.value;
             loadAILogs();
+        });
+    }
+
+    // Date filter inputs
+    const startDateInput = document.getElementById('logs-filter-start-date');
+    if (startDateInput) {
+        startDateInput.addEventListener('change', (e) => {
+            currentLogsStartDate = e.target.value;
+            loadAILogs();
+        });
+    }
+
+    const endDateInput = document.getElementById('logs-filter-end-date');
+    if (endDateInput) {
+        endDateInput.addEventListener('change', (e) => {
+            currentLogsEndDate = e.target.value;
+            loadAILogs();
+        });
+    }
+
+    // Clear filters button
+    const clearFiltersBtn = document.getElementById('logs-clear-filters-btn');
+    if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', () => {
+            currentLogsFilter = 'all';
+            currentLogsStartDate = '';
+            currentLogsEndDate = '';
+            document.getElementById('logs-filter-type').value = 'all';
+            document.getElementById('logs-filter-start-date').value = '';
+            document.getElementById('logs-filter-end-date').value = '';
+            loadAILogs();
+        });
+    }
+
+    // Select all checkbox
+    const selectAllCheckbox = document.getElementById('logs-select-all');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', (e) => {
+            selectAllLogs(e.target.checked);
         });
     }
 
