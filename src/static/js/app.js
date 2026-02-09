@@ -518,6 +518,9 @@ function updateImageGenerationTab() {
                     <div id="page-${page.page_number}-character-refs" class="page-character-refs">
                         <!-- Character checkboxes will be populated dynamically -->
                     </div>
+                    <div id="page-${page.page_number}-page-refs" class="page-page-refs">
+                        <!-- Page reference checkboxes will be populated dynamically -->
+                    </div>
                     <div class="image-actions">
                         <button class="btn-small btn-generate-image" id="page-${page.page_number}-generate-btn"
                                 onclick="generatePageImage(${page.page_number})"
@@ -552,6 +555,9 @@ function updateImageGenerationTab() {
 
         // Populate character references for this page
         populatePageCharacterRefs(page.page_number);
+
+        // Populate page references for this page
+        populatePageRefs(page.page_number);
     });
 }
 
@@ -634,6 +640,58 @@ function populatePageCharacterRefs(pageNumber) {
 }
 
 /**
+ * Populate the page reference selection list for a specific page's image generation.
+ * Shows other pages with generated images that can be used as visual references.
+ */
+function populatePageRefs(pageNumber) {
+    const container = document.getElementById(`page-${pageNumber}-page-refs`);
+    if (!container) return;
+
+    // Collect other pages that have generated images
+    const pagesWithImages = (currentStory.pages || []).filter(p =>
+        p.page_number !== pageNumber && (p.local_image_path || p.image_url)
+    );
+
+    // If no other pages have images, hide the section
+    if (pagesWithImages.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    let html = `
+        <div class="page-refs-header">
+            <label>Page References (optional, increases cost):</label>
+        </div>
+        <div class="page-refs-list">
+    `;
+
+    pagesWithImages.forEach(page => {
+        const imagePath = page.local_image_path;
+        const imageUrl = imagePath ? `/api/${imagePath}` : page.image_url;
+
+        html += `
+            <label class="page-char-ref-item page-ref-item">
+                <input type="checkbox" name="page-${pageNumber}-page-ref" value="${page.page_number}"
+                       data-image-path="${imagePath || ''}"
+                       data-page-number="${page.page_number}">
+                <img src="${imageUrl}" alt="Page ${page.page_number}" class="page-char-ref-thumb">
+                <span class="page-char-ref-name">Page ${page.page_number}</span>
+            </label>
+        `;
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+
+    // Add click handlers to toggle selected class
+    container.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+            checkbox.closest('.page-char-ref-item').classList.toggle('selected', checkbox.checked);
+        });
+    });
+}
+
+/**
  * Get the selected visual references for a specific page's image generation.
  * Includes both art bible and character references.
  * @param {number} pageNumber - The page number
@@ -645,6 +703,19 @@ function getSelectedPageCharacterRefs(pageNumber) {
         character_name: cb.getAttribute('data-character-name'),
         image_path: cb.getAttribute('data-image-path'),
         is_art_bible: cb.getAttribute('data-is-art-bible') === 'true'
+    }));
+}
+
+/**
+ * Get the selected page references for a specific page's image generation.
+ * @param {number} pageNumber - The page number
+ * @returns {Array} Array of objects with image_path and page_number
+ */
+function getSelectedPageRefs(pageNumber) {
+    const checkboxes = document.querySelectorAll(`input[name="page-${pageNumber}-page-ref"]:checked`);
+    return Array.from(checkboxes).map(cb => ({
+        image_path: cb.getAttribute('data-image-path'),
+        page_number: parseInt(cb.getAttribute('data-page-number'), 10)
     }));
 }
 
@@ -1710,6 +1781,13 @@ async function generatePageImage(pageNumber) {
             console.log(`[generatePageImage] Including ${selectedCharacterRefs.length} selected character references`);
         }
 
+        // Include selected page references if any are selected
+        const selectedPageRefs = getSelectedPageRefs(pageNumber);
+        if (selectedPageRefs.length > 0) {
+            requestData.selected_page_refs = selectedPageRefs;
+            console.log(`[generatePageImage] Including ${selectedPageRefs.length} page references`);
+        }
+
         // If user has edited the prompt, use it directly
         if (customPrompt) {
             requestData.custom_prompt = customPrompt;
@@ -1788,6 +1866,13 @@ async function generatePageImage(pageNumber) {
 
         // Refresh the preview with version thumbnails
         refreshPageImagePreview(pageNumber);
+
+        // Refresh page refs on all other pages (this page is now available as a reference)
+        currentStory.pages.forEach(p => {
+            if (p.page_number !== pageNumber) {
+                populatePageRefs(p.page_number);
+            }
+        });
 
         // Hide loading indicator
         loadingDiv.classList.add('hidden');
@@ -3802,6 +3887,13 @@ async function deletePageImage(pageNumber) {
 
         // Update the display using the refresh function
         refreshPageImagePreview(pageNumber);
+
+        // Refresh page refs on all other pages (this page may no longer be available as a reference)
+        currentStory.pages.forEach(p => {
+            if (p.page_number !== pageNumber) {
+                populatePageRefs(p.page_number);
+            }
+        });
 
         // Auto-save project
         await autoSaveProject();

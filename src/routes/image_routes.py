@@ -319,10 +319,74 @@ def generate_image_for_page(story_id, page_num):
                     print(f"[DEBUG]   EXCEPTION: {type(e).__name__}: {e}", flush=True)
                     current_app.logger.warning(f"  Failed to load reference image: {e}")
 
-            print(f"[DEBUG] Total reference_images_data: {len(reference_images_data)}", flush=True)
+            print(f"[DEBUG] Total reference_images_data (characters): {len(reference_images_data)}", flush=True)
             current_app.logger.info(f"  Loaded {len(reference_images_data)} reference images (art bible + characters)")
         else:
             print(f"[DEBUG] No selected_character_refs provided", flush=True)
+
+        # Get selected page references if provided
+        selected_page_refs = data.get('selected_page_refs', [])
+        if selected_page_refs:
+            import os
+            if not selected_character_refs:
+                # Ensure we have images_dir if character refs didn't already set it up
+                project_repo = current_app.config['REPOSITORIES']['project']
+                images_dir = project_repo.images_dir
+
+            print(f"[DEBUG] selected_page_refs received: {selected_page_refs}", flush=True)
+            current_app.logger.info(f"  selected_page_refs: {len(selected_page_refs)} page references")
+
+            for page_ref in selected_page_refs:
+                try:
+                    image_path = page_ref.get('image_path', '')
+                    ref_page_number = page_ref.get('page_number', 0)
+
+                    print(f"[DEBUG] Processing page reference: page={ref_page_number}, path='{image_path}'", flush=True)
+
+                    if not image_path:
+                        print(f"[DEBUG]   SKIPPING: empty image_path", flush=True)
+                        continue
+
+                    # Strip leading / and images/ prefix to get relative path within images_dir
+                    relative_path = image_path.lstrip('/')
+                    if relative_path.startswith('images/'):
+                        relative_path = relative_path[7:]  # Remove "images/" prefix
+
+                    # Construct full path using the images directory
+                    full_path = str(images_dir / relative_path)
+                    print(f"[DEBUG]   full_path: {full_path}, exists: {os.path.exists(full_path)}", flush=True)
+
+                    if os.path.exists(full_path):
+                        with open(full_path, 'rb') as f:
+                            image_data = f.read()
+                            image_size_kb = len(image_data) / 1024
+
+                            # Determine mime type
+                            if full_path.lower().endswith('.png'):
+                                mime_type = 'image/png'
+                            elif full_path.lower().endswith('.gif'):
+                                mime_type = 'image/gif'
+                            elif full_path.lower().endswith('.webp'):
+                                mime_type = 'image/webp'
+                            else:
+                                mime_type = 'image/jpeg'
+                            base64_data = base64.b64encode(image_data).decode('utf-8')
+
+                            reference_images_data.append({
+                                'data': base64_data,
+                                'mime_type': mime_type,
+                                'character_name': f'Page {ref_page_number}'
+                            })
+                            current_app.logger.info(f"  Loaded page reference for Page {ref_page_number}: {image_path} ({image_size_kb:.1f} KB)")
+                    else:
+                        print(f"[DEBUG]   ERROR: Page reference file not found!", flush=True)
+                        current_app.logger.warning(f"  Page reference image not found for Page {ref_page_number}: {image_path}")
+                except Exception as e:
+                    print(f"[DEBUG]   EXCEPTION: {type(e).__name__}: {e}", flush=True)
+                    current_app.logger.warning(f"  Failed to load page reference image: {e}")
+
+            print(f"[DEBUG] Total reference_images_data (all): {len(reference_images_data)}", flush=True)
+            current_app.logger.info(f"  Total reference images (character + page): {len(reference_images_data)}")
 
         if custom_prompt:
             # Use the custom prompt directly without regenerating

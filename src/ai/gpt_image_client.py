@@ -496,15 +496,18 @@ Respond briefly to acknowledge you're ready, then wait for my requests."""
                     # with text and image content items
                     message_content = []
 
-                    # Separate art bible from character references
+                    # Separate art bible, character references, and page references
                     art_bible_ref = None
                     char_refs = []
                     char_descriptions = []
+                    page_refs = []
 
                     for ref_img in reference_images:
                         ref_name = ref_img.get('character_name', 'Unknown')
                         if ref_name == 'Art Bible':
                             art_bible_ref = ref_img
+                        elif ref_name.startswith('Page '):
+                            page_refs.append(ref_img)
                         else:
                             char_refs.append(ref_img)
                             char_descriptions.append(ref_name)
@@ -536,6 +539,21 @@ Respond briefly to acknowledge you're ready, then wait for my requests."""
                             "image_url": data_url
                         })
 
+                    # Add page reference images
+                    for ref_img in page_refs:
+                        page_label = ref_img.get('character_name', 'Page')
+
+                        message_content.append({
+                            "type": "input_text",
+                            "text": f"SCENE REFERENCE ({page_label}): This is a previously generated illustration from this story. Maintain the same visual style, environment details, color palette, and character appearances as shown in this image:"
+                        })
+
+                        data_url = f"data:{ref_img['mime_type']};base64,{ref_img['data']}"
+                        message_content.append({
+                            "type": "input_image",
+                            "image_url": data_url
+                        })
+
                     # Build the enhanced prompt
                     prompt_parts = []
                     prompt_parts.append("CRITICAL INSTRUCTIONS:")
@@ -548,6 +566,12 @@ Respond briefly to acknowledge you're ready, then wait for my requests."""
                         prompt_parts.append(f"- I have provided reference images for the following characters: {char_list}.")
                         prompt_parts.append("- You MUST copy the EXACT appearance of each character from their reference image - same face, hair color, hair style, clothing, accessories, and all distinctive features.")
                         prompt_parts.append("- Do NOT change or reimagine how the characters look.")
+
+                    if page_refs:
+                        page_labels = [ref.get('character_name', 'Page') for ref in page_refs]
+                        page_list = ", ".join(page_labels)
+                        prompt_parts.append(f"- I have provided scene reference images from: {page_list}.")
+                        prompt_parts.append("- Maintain visual consistency with these previously generated scenes - same art style, color palette, lighting, and character appearances.")
 
                     prompt_parts.append(f"Now generate the following scene: {prompt}")
 
@@ -574,6 +598,11 @@ Respond briefly to acknowledge you're ready, then wait for my requests."""
                         ref_summary.extend(char_descriptions)
                         for ref_img in char_refs:
                             print(f"[GPTImageClient]   Character '{ref_img.get('character_name')}': {len(ref_img['data'])} chars base64", flush=True)
+                    if page_refs:
+                        page_labels = [ref.get('character_name', 'Page') for ref in page_refs]
+                        ref_summary.extend(page_labels)
+                        for ref_img in page_refs:
+                            print(f"[GPTImageClient]   Page ref '{ref_img.get('character_name')}': {len(ref_img['data'])} chars base64", flush=True)
                     ref_list = ", ".join(ref_summary)
                     print(f"[GPTImageClient]   Including {len(reference_images)} reference images: {ref_list}", flush=True)
                     print(f"[GPTImageClient]   Total message_content items: {len(message_content)}", flush=True)

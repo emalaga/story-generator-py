@@ -1152,6 +1152,51 @@ header h1 {
     font-weight: 600;
 }
 
+/* Page References */
+.page-page-refs {
+    margin: 10px 0 15px 0;
+}
+
+.page-refs-header {
+    margin-bottom: 8px;
+}
+
+.page-refs-header label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-color);
+}
+
+.page-refs-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.page-char-ref-item.page-ref-item {
+    background-color: #f0f9ff;
+    border-color: #93c5fd;
+}
+
+.page-char-ref-item.page-ref-item:hover {
+    border-color: #3b82f6;
+}
+
+.page-char-ref-item.page-ref-item.selected {
+    border-color: #3b82f6;
+    background-color: rgba(59, 130, 246, 0.15);
+}
+
+.page-char-ref-item.page-ref-item .page-char-ref-thumb {
+    border-radius: 4px;
+    border-color: #93c5fd;
+}
+
+.page-char-ref-item.page-ref-item .page-char-ref-name {
+    color: #1d4ed8;
+    font-weight: 600;
+}
+
 .image-actions {
     display: flex;
     gap: 10px;
