@@ -533,6 +533,11 @@ function updateImageGenerationTab() {
                                 ${(currentStory.art_bible && currentStory.art_bible.local_image_path) ? '' : 'disabled'}>
                             Use Art Bible
                         </button>
+                        <button class="btn-small btn-browse-library"
+                                onclick="openPageLibraryModal(${page.page_number})"
+                                title="Browse and copy a page image from another project">
+                            Browse Page Library
+                        </button>
                     </div>
                 </div>
             </div>
@@ -5083,6 +5088,154 @@ async function copyCharacterFromLibrary(sourceProjectId, imagePath, characterNam
 
     } catch (error) {
         showError(`Failed to copy character: ${error.message}`);
+    }
+}
+
+// ===== Page Library Modal Functions =====
+
+let pageLibraryTargetPage = null;
+
+async function openPageLibraryModal(targetPageNumber) {
+    if (!currentStory) {
+        showError('Please load a story first');
+        return;
+    }
+
+    pageLibraryTargetPage = targetPageNumber;
+
+    const modal = document.getElementById('page-library-modal');
+    const container = document.getElementById('page-library-projects');
+
+    modal.classList.remove('hidden');
+    container.innerHTML = '<p class="gallery-loading">Loading projects...</p>';
+
+    try {
+        const response = await fetch('/api/projects/library/pages');
+        if (!response.ok) throw new Error('Failed to load pages');
+
+        const data = await response.json();
+        const projects = (data.projects || []).filter(p => p.project_id !== currentStory.id);
+
+        if (projects.length === 0) {
+            container.innerHTML = '<p class="gallery-empty">No other projects with page images found.</p>';
+            return;
+        }
+
+        container.innerHTML = projects.map(project => `
+            <div class="page-library-project" data-project-id="${project.project_id}">
+                <div class="page-library-project-header" onclick="togglePageLibraryProject(this)">
+                    <span class="page-library-project-title">${project.story_title || project.project_name}</span>
+                    <span class="page-library-project-meta">${project.art_style || ''} &middot; ${project.pages.length} page${project.pages.length !== 1 ? 's' : ''}</span>
+                    <span class="page-library-expand-icon">&#9654;</span>
+                </div>
+                <div class="page-library-pages-row hidden">
+                    ${project.pages.map(page => `
+                        <div class="page-library-page-item"
+                             onclick="copyPageFromLibrary('${project.project_id}', '${page.local_image_path}', ${page.page_number})"
+                             title="${(page.text || '').substring(0, 80)}">
+                            <img src="/api/${page.local_image_path}" alt="Page ${page.page_number}" loading="lazy"
+                                 onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2212%22>No Image</text></svg>'">
+                            <span class="page-library-page-label">Page ${page.page_number}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+
+    } catch (error) {
+        console.error('Error loading page library:', error);
+        container.innerHTML = '<p class="gallery-error">Failed to load page library.</p>';
+    }
+}
+
+function togglePageLibraryProject(headerEl) {
+    const projectEl = headerEl.parentElement;
+    const pagesRow = projectEl.querySelector('.page-library-pages-row');
+    const expandIcon = projectEl.querySelector('.page-library-expand-icon');
+
+    const isExpanded = !pagesRow.classList.contains('hidden');
+    pagesRow.classList.toggle('hidden');
+    expandIcon.textContent = isExpanded ? '\u25B6' : '\u25BC';
+    projectEl.classList.toggle('expanded', !isExpanded);
+}
+
+function closePageLibraryModal() {
+    document.getElementById('page-library-modal').classList.add('hidden');
+    pageLibraryTargetPage = null;
+}
+
+async function copyPageFromLibrary(sourceProjectId, imagePath, sourcePageNumber) {
+    if (!currentStory || pageLibraryTargetPage === null) {
+        showError('No target page set');
+        return;
+    }
+
+    const targetPageNumber = pageLibraryTargetPage;
+    const page = currentStory.pages.find(p => p.page_number === targetPageNumber);
+    if (!page) {
+        showError('Target page not found');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/images/stories/${currentStory.id}/pages/${targetPageNumber}/copy-from-library`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                source_project_id: sourceProjectId,
+                image_path: imagePath,
+                source_page_number: sourcePageNumber
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to copy page image');
+        }
+
+        const result = await response.json();
+
+        // Initialize versions list if needed
+        if (!page.image_versions) {
+            page.image_versions = [];
+            if (page.local_image_path) {
+                page.image_versions.push({
+                    path: page.local_image_path,
+                    model: page.image_model,
+                    generated_at: page.image_generated_at,
+                    resolution: page.image_resolution,
+                    cost: page.image_cost
+                });
+            }
+        }
+
+        // Add the new version
+        page.image_versions.push(result.version);
+
+        // Set as the active image
+        page.local_image_path = result.local_image_path;
+        page.image_url = null;
+        page.image_model = result.version.model;
+        page.image_generated_at = result.version.generated_at;
+        page.image_resolution = result.version.resolution;
+        page.image_cost = result.version.cost;
+
+        // Close modal and refresh UI
+        closePageLibraryModal();
+        refreshPageImagePreview(targetPageNumber);
+
+        // Refresh page refs on all other pages
+        currentStory.pages.forEach(p => {
+            if (p.page_number !== targetPageNumber) {
+                populatePageRefs(p.page_number);
+            }
+        });
+
+        await autoSaveProject();
+        showSuccess(`Page image copied to page ${targetPageNumber}!`);
+
+    } catch (error) {
+        showError(`Failed to copy page image: ${error.message}`);
     }
 }
 

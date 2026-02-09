@@ -1676,3 +1676,50 @@ def list_all_characters():
     except Exception as e:
         current_app.logger.error(f"Error listing characters: {e}")
         return jsonify({'error': f'Failed to list characters: {str(e)}'}), 500
+
+
+@project_bp.route('/library/pages', methods=['GET'])
+def list_all_pages():
+    """
+    GET /api/projects/library/pages - List all projects with pages that have images
+
+    Returns projects grouped with their pages (only pages that have generated images).
+
+    Returns:
+        200: List of projects with page data
+        500: Server error
+    """
+    try:
+        project_repo = current_app.config['REPOSITORIES']['project']
+        projects = project_repo.list_all()
+
+        result = []
+        for project_meta in projects:
+            project = project_repo.get(project_meta['id'])
+            if project and project.story and project.story.pages:
+                pages_with_images = []
+                for page in project.story.pages:
+                    if page.local_image_path:
+                        pages_with_images.append({
+                            'page_number': page.page_number,
+                            'text': (page.text or '')[:100],
+                            'local_image_path': page.local_image_path
+                        })
+
+                if pages_with_images:
+                    result.append({
+                        'project_id': project_meta['id'],
+                        'project_name': project.name,
+                        'story_title': project.story.metadata.title if project.story.metadata else '',
+                        'art_style': project.story.metadata.art_style if project.story.metadata else '',
+                        'pages': pages_with_images
+                    })
+
+        # Sort by project name
+        result.sort(key=lambda x: x.get('story_title') or x.get('project_name') or '')
+
+        return jsonify({'projects': result}), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error listing pages: {e}")
+        return jsonify({'error': f'Failed to list pages: {str(e)}'}), 500

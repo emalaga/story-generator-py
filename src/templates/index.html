@@ -1048,6 +1048,22 @@
         </div>
     </div>
 
+    <!-- Page Library Modal -->
+    <div id="page-library-modal" class="library-modal hidden">
+        <div class="library-modal-overlay" onclick="closePageLibraryModal()"></div>
+        <div class="library-modal-content">
+            <div class="library-modal-header">
+                <h3>Select Page from Library</h3>
+                <button class="library-modal-close" onclick="closePageLibraryModal()">&times;</button>
+            </div>
+            <div class="library-modal-body">
+                <div id="page-library-projects" class="page-library-projects">
+                    <p class="gallery-loading">Loading projects...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Character Modal -->
     <div id="add-character-modal" class="library-modal hidden">
         <div class="library-modal-overlay" onclick="closeAddCharacterModal()"></div>

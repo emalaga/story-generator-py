@@ -50,12 +50,12 @@
         "image_cost": 0.047583999999999994,
         "image_versions": [
           {
-            "path": "images/fde43718-cc5e-4a30-b337-b36474aa8f27/pages/page_2_1770663413679.png",
-            "model": "gpt-image-1-mini",
-            "generated_at": "2026-02-09T18:56:53.718Z",
-            "resolution": "1024x1024",
             "cost": 0.047583999999999994,
-            "prompt": "CRITICAL: Generate the next illustration for this children's book. You MUST strictly follow the digital cartoon illustration visual style defined in image references. Match the exact same colors, line weight, shading technique, and overall aesthetic. Coco should be drawn as in the character reference. Scene: The moment Coco, wide-eyed and mesmerized, first lays eyes on the ancient, brilliantly shining jewel amidst the Inca artifacts in the museum exhibit. You can see other kids away in the back looking at other inca artifacts. The kids are wearing the same school uniform walking around of gray pants or skirts and white shirts. Professional, vibrant, child-friendly children's book illustration."
+            "generated_at": "2026-02-09T18:56:53.718Z",
+            "model": "gpt-image-1-mini",
+            "path": "images/fde43718-cc5e-4a30-b337-b36474aa8f27/pages/page_2_1770663413679.png",
+            "prompt": "CRITICAL: Generate the next illustration for this children's book. You MUST strictly follow the digital cartoon illustration visual style defined in image references. Match the exact same colors, line weight, shading technique, and overall aesthetic. Coco should be drawn as in the character reference. Scene: The moment Coco, wide-eyed and mesmerized, first lays eyes on the ancient, brilliantly shining jewel amidst the Inca artifacts in the museum exhibit. You can see other kids away in the back looking at other inca artifacts. The kids are wearing the same school uniform walking around of gray pants or skirts and white shirts. Professional, vibrant, child-friendly children's book illustration.",
+            "resolution": "1024x1024"
           }
         ]
       },
@@ -63,13 +63,22 @@
         "page_number": 3,
         "text": "Coco extendió la mano y tocó la joya. De repente, se sintió mareado y todo a su alrededor comenzó a girar. Cuando abrió los ojos, se encontró de pie en un valle exuberante, con montañas tan altas que parecían tocar el cielo. Coco se dio cuenta de que ya no estaba en el museo, sino en los tiempos de los Incas.",
         "image_url": null,
-        "image_prompt": null,
-        "local_image_path": null,
-        "image_model": null,
-        "image_generated_at": null,
-        "image_resolution": null,
-        "image_cost": null,
-        "image_versions": null
+        "image_prompt": "CRITICAL: Generate the next illustration for this children's book. You MUST strictly follow the digital cartoon illustration visual style defined in image references. Match the exact same colors, line weight, shading technique, and overall aesthetic. Scene: Coco is lying on the ground, recovering from fainted for a few seconds, opening one eye and holding his hand and looking a bit confused. He is in a street in Cusco in the time of the Incas, with towering mountains that seem to touch the sky, He is realizing he's no longer in the museum but in the time of the Incas. A couple of peasants walk by and look at him surprised. Maintain perfect visual consistency with all previous illustrations in this story. Professional, vibrant, child-friendly children's book illustration.",
+        "local_image_path": "images/fde43718-cc5e-4a30-b337-b36474aa8f27/pages/page_3_1770666668475.png",
+        "image_model": "gpt-image-1-mini",
+        "image_generated_at": "2026-02-09T19:51:08.519000+00:00",
+        "image_resolution": "1024x1024",
+        "image_cost": 0.041499999999999995,
+        "image_versions": [
+          {
+            "path": "images/fde43718-cc5e-4a30-b337-b36474aa8f27/pages/page_3_1770666668475.png",
+            "model": "gpt-image-1-mini",
+            "generated_at": "2026-02-09T19:51:08.519Z",
+            "resolution": "1024x1024",
+            "cost": 0.041499999999999995,
+            "prompt": "CRITICAL: Generate the next illustration for this children's book. You MUST strictly follow the digital cartoon illustration visual style defined in image references. Match the exact same colors, line weight, shading technique, and overall aesthetic. Scene: Coco is lying on the ground, recovering from fainted for a few seconds, opening one eye and holding his hand and looking a bit confused. He is in a street in Cusco in the time of the Incas, with towering mountains that seem to touch the sky, He is realizing he's no longer in the museum but in the time of the Incas. A couple of peasants walk by and look at him surprised. Maintain perfect visual consistency with all previous illustrations in this story. Professional, vibrant, child-friendly children's book illustration."
+          }
+        ]
       },
       {
         "page_number": 4,
@@ -307,12 +316,12 @@
     ],
     "cover_page": null,
     "pdf_options": null,
-    "image_session_id": "resp_08f9467e5e7ada8000698a2dbca3c0819dae7939b9c4b83773",
+    "image_session_id": "resp_029bcf7707b441f400698a3a7c532c8197a938b22337d9d663",
     "text_model": null,
     "text_generated_at": null,
     "text_edited_at": null,
-    "created_at": "2026-02-09T10:56:53.763921",
-    "updated_at": "2026-02-09T10:56:53.763925"
+    "created_at": "2026-02-09T11:51:08.577087",
+    "updated_at": "2026-02-09T11:51:08.577091"
   },
   "character_profiles": [
     {
@@ -357,6 +366,6 @@
     }
   ],
   "image_prompts": [],
-  "created_at": "2026-02-09T10:56:53.763932",
-  "updated_at": "2026-02-09T10:56:53.763933"
+  "created_at": "2026-02-09T11:51:08.577098",
+  "updated_at": "2026-02-09T11:51:08.577099"
 }

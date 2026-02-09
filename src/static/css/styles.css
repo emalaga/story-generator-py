@@ -2684,6 +2684,111 @@ select[disabled] {
     margin-bottom: 15px;
 }
 
+/* Page Library Modal - Two-level navigation */
+.page-library-projects {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.page-library-project {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--bg-color);
+}
+
+.page-library-project.expanded {
+    border-color: var(--primary-color);
+}
+
+.page-library-project-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.page-library-project-header:hover {
+    background-color: rgba(99, 102, 241, 0.05);
+}
+
+.page-library-project-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-color);
+    flex: 1;
+}
+
+.page-library-project-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.page-library-expand-icon {
+    font-size: 10px;
+    color: var(--text-muted);
+    transition: transform 0.2s ease;
+}
+
+.page-library-pages-row {
+    display: flex;
+    gap: 12px;
+    padding: 0 16px 16px 16px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.page-library-pages-row.hidden {
+    display: none;
+}
+
+.page-library-page-item {
+    flex-shrink: 0;
+    width: 120px;
+    cursor: pointer;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 2px solid transparent;
+    background: var(--card-bg);
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.page-library-page-item:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+.page-library-page-item img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    display: block;
+    background: var(--border-color);
+}
+
+.page-library-page-label {
+    display: block;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+/* Browse Library button */
+.btn-browse-library {
+    background-color: var(--info-color, #3b82f6) !important;
+}
+
+.btn-browse-library:hover {
+    background-color: #2563eb !important;
+}
+
 /* Responsive modal */
 @media (max-width: 768px) {
     .library-modal-content {

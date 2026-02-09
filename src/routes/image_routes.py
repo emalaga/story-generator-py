@@ -1071,6 +1071,93 @@ def use_art_bible_as_page_image(story_id, page_number):
         return jsonify({'error': f'Failed to copy art bible image: {str(e)}'}), 500
 
 
+@image_bp.route('/stories/<story_id>/pages/<int:page_number>/copy-from-library', methods=['POST'])
+def copy_page_from_library(story_id, page_number):
+    """
+    POST /api/images/stories/:id/pages/:page_number/copy-from-library
+
+    Copy a page image from another project as a new version for the specified page.
+
+    Request body:
+    {
+        "source_project_id": str (required),
+        "image_path": str (required),
+        "source_page_number": int (optional)
+    }
+
+    Returns:
+        200: Image copied successfully with new path and version info
+        400: Invalid request
+        404: Source image not found
+        500: Server error
+    """
+    import shutil
+    import uuid
+
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+
+        data = request.get_json()
+
+        if 'source_project_id' not in data:
+            return jsonify({'error': 'Missing required field: source_project_id'}), 400
+        if 'image_path' not in data:
+            return jsonify({'error': 'Missing required field: image_path'}), 400
+
+        source_project_id = data['source_project_id']
+        source_image_path = data['image_path']
+        source_page_number = data.get('source_page_number', 0)
+
+        project_repo = current_app.config['REPOSITORIES']['project']
+
+        # Build the full source path
+        storage_dir = project_repo.storage_dir
+        source_full_path = storage_dir / source_image_path
+
+        if not source_full_path.exists():
+            return jsonify({'error': 'Source image not found'}), 404
+
+        # Generate unique filename for the page copy
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        unique_id = str(uuid.uuid4())[:8]
+        extension = source_full_path.suffix or '.png'
+        new_filename = f"page_{page_number}_from_library_{timestamp}_{unique_id}{extension}"
+
+        # Destination path
+        project_images_dir = project_repo.get_project_images_dir(story_id)
+        pages_dir = project_images_dir / 'pages'
+        pages_dir.mkdir(parents=True, exist_ok=True)
+        dest_path = pages_dir / new_filename
+
+        # Copy the file
+        shutil.copy2(source_full_path, dest_path)
+
+        # Build the relative path for storage
+        relative_path = f'images/{story_id}/pages/{new_filename}'
+
+        # Build version info
+        version_entry = {
+            'path': relative_path,
+            'model': 'copied_from_library',
+            'generated_at': datetime.now().isoformat(),
+            'resolution': None,
+            'cost': 0
+        }
+
+        current_app.logger.info(f"Copied page {source_page_number} from project {source_project_id} to page {page_number}: {relative_path}")
+
+        return jsonify({
+            'success': True,
+            'local_image_path': relative_path,
+            'version': version_entry
+        }), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error copying page from library: {e}")
+        return jsonify({'error': f'Failed to copy page image: {str(e)}'}), 500
+
+
 @image_bp.route('/stories/<story_id>/cover/use-art-bible', methods=['POST'])
 def use_art_bible_as_cover_image(story_id):
     """
