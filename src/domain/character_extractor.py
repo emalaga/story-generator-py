@@ -89,11 +89,12 @@ Guidelines:
 Return ONLY valid JSON with "characters" array containing objects with "name" and "description" fields. No other text."""
 
         # Get AI response
-        response = await self.ai_client.generate_text(
+        result = await self.ai_client.generate_text(
             prompt,
             system_message=system_message,
             temperature=0.3  # Lower temperature for more consistent extraction
         )
+        response = result['text']
 
         # Debug logging
         print(f"[CHARACTER EXTRACTION] AI Response length: {len(response)} chars")
@@ -226,11 +227,12 @@ IMPORTANT REQUIREMENTS:
 Return ONLY the JSON response with no additional text."""
 
         # Get AI response
-        response = await self.ai_client.generate_text(
+        result = await self.ai_client.generate_text(
             prompt,
             system_message=system_message,
             temperature=0.3  # Lower temperature for consistency
         )
+        response = result['text']
 
         # Debug logging
         print(f"[CHARACTER PROFILE] AI Response for {character.name}:")

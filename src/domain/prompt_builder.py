@@ -30,6 +30,7 @@ class PromptBuilder:
             ai_client: Optional AI client for intelligent scene summarization
         """
         self.ai_client = ai_client
+        self._last_cost = 0.0
 
     def build_story_prompt(
         self,
@@ -301,6 +302,8 @@ class PromptBuilder:
         Returns:
             Concise scene description (40-60 words) focusing on the single most exciting moment
         """
+        self._last_cost = 0.0
+
         if not self.ai_client:
             # Fallback: sentence-aware truncation if no AI client available
             return self._smart_truncate_sentences(scene_text, 300)
@@ -352,13 +355,14 @@ Story page text:
 What is the ONE DRAMATIC MOMENT that would make the best illustration? Describe that specific instant with vivid, visual detail. Focus on the action, not a summary."""
 
         try:
-            summary = await self.ai_client.generate_text(
+            result = await self.ai_client.generate_text(
                 prompt,
                 system_message=system_message,
                 temperature=0.3,
                 max_tokens=200  # Ensure enough tokens for a complete 40-60 word summary
             )
-            summary = summary.strip()
+            summary = result['text'].strip()
+            self._last_cost = result.get('cost', 0.0)
 
             # Validate the summary - check for incomplete sentences
             # If the last sentence doesn't end with proper punctuation, it might be truncated
@@ -763,6 +767,8 @@ What is the ONE DRAMATIC MOMENT that would make the best illustration? Describe 
         Returns:
             Generated cover prompt
         """
+        self._last_cost = 0.0
+
         if not self.ai_client:
             # Fallback without AI - create a basic prompt
             return self._build_basic_cover_prompt(story_title, main_character, art_style, genre)
@@ -821,13 +827,14 @@ Story summary (for context - do NOT summarize, use it to identify the best cover
 What single dramatic moment or heroic pose would make the most compelling, movie-poster-style cover for this children's book? Describe that scene vividly."""
 
         try:
-            cover_prompt = await self.ai_client.generate_text(
+            result = await self.ai_client.generate_text(
                 prompt,
                 system_message=system_message,
                 temperature=0.7,
                 max_tokens=300
             )
-            cover_prompt = cover_prompt.strip()
+            cover_prompt = result['text'].strip()
+            self._last_cost = result.get('cost', 0.0)
 
             # Add art style and technical requirements
             final_prompt = (

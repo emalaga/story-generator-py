@@ -32,7 +32,7 @@ class OllamaClient(BaseAIClient):
         self.model = config.model
         self.timeout = config.timeout
 
-    async def generate_text(self, prompt: str, **kwargs) -> str:
+    async def generate_text(self, prompt: str, **kwargs) -> dict:
         """
         Generate text using Ollama.
 
@@ -46,7 +46,7 @@ class OllamaClient(BaseAIClient):
                 - repeat_penalty (float): Penalty for repetition
 
         Returns:
-            Generated text as a string
+            Dictionary with 'text' (generated text) and 'cost' (always 0.0 for local models)
 
         Raises:
             httpx.HTTPError: If the API request fails
@@ -93,4 +93,4 @@ class OllamaClient(BaseAIClient):
             response_data = response.json()
             generated_text = response_data.get('response', '')
 
-            return generated_text
+            return {'text': generated_text, 'cost': 0.0}

@@ -143,6 +143,28 @@ def estimate_gpt_image_cost(
     return cost_breakdown
 
 
+# GPT-4o pricing (USD per 1M tokens)
+GPT4O_INPUT_COST_PER_M = 5.00
+GPT4O_OUTPUT_COST_PER_M = 15.00
+
+
+def calculate_gpt4o_cost(
+    input_tokens: int,
+    output_tokens: int,
+    input_rate_per_million: float = GPT4O_INPUT_COST_PER_M,
+    output_rate_per_million: float = GPT4O_OUTPUT_COST_PER_M,
+) -> float:
+    """
+    Calculate total cost (USD) for a GPT-4o API call.
+
+    Returns:
+        Total cost in USD (float)
+    """
+    input_cost = (input_tokens / 1_000_000) * input_rate_per_million
+    output_cost = (output_tokens / 1_000_000) * output_rate_per_million
+    return round(input_cost + output_cost, 6)
+
+
 def format_cost(cost: float) -> str:
     """
     Format a cost value for display.

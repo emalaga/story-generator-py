@@ -17,7 +17,7 @@ from openai import AsyncOpenAI
 
 from src.ai.base_client import BaseImageClient
 from src.models.config import OpenAIConfig
-from src.utils.image_cost_calculator import estimate_gpt_image_cost, extract_usage_from_response
+from src.utils.image_cost_calculator import estimate_gpt_image_cost, extract_usage_from_response, calculate_gpt4o_cost
 
 logger = logging.getLogger(__name__)
 
@@ -138,7 +138,18 @@ Respond briefly to acknowledge you're ready, then wait for my requests."""
 
                 # Store the response ID as the session ID
                 self._sessions[story_id] = response.id
-                return response.id
+
+                # Calculate GPT-4o cost
+                usage_data = extract_usage_from_response(response)
+                cost = 0.0
+                if usage_data:
+                    cost = calculate_gpt4o_cost(
+                        usage_data.get('input_tokens', 0),
+                        usage_data.get('output_tokens', 0)
+                    )
+                    print(f"[GPTImageClient]   Session start cost: ${cost:.6f}", flush=True)
+
+                return response.id, cost
 
             except Exception as e:
                 print(f"[GPTImageClient]   Session start error: {type(e).__name__}: {e}", flush=True)
@@ -270,7 +281,17 @@ Respond briefly to acknowledge you're ready, then wait for my requests."""
 
                 logger.info(f"Reference image loaded into session, response_id: {response.id}")
 
-                return response.id
+                # Calculate GPT-4o cost
+                usage_data = extract_usage_from_response(response)
+                cost = 0.0
+                if usage_data:
+                    cost = calculate_gpt4o_cost(
+                        usage_data.get('input_tokens', 0),
+                        usage_data.get('output_tokens', 0)
+                    )
+                    print(f"[GPTImageClient]   Reference load cost: ${cost:.6f}", flush=True)
+
+                return response.id, cost
 
             except Exception as e:
                 print(f"[GPTImageClient]   Load reference FAILED: {type(e).__name__}: {e}", flush=True)
@@ -653,8 +674,14 @@ Respond briefly to acknowledge you're ready, then wait for my requests."""
                             quality=quality,
                             usage=usage_data
                         )
-                        print(f"[GPTImageClient]   Cost calculated: ${cost_info.get('total_estimated_cost', 0):.4f}", flush=True)
-                        logger.info(f"Cost calculated: ${cost_info.get('total_estimated_cost', 0):.4f}")
+                        # Also calculate GPT-4o text model cost
+                        text_input_tokens = usage_data.get('input_tokens', 0)
+                        text_output_tokens = usage_data.get('output_tokens', 0)
+                        gpt4o_text_cost = calculate_gpt4o_cost(text_input_tokens, text_output_tokens)
+                        cost_info['gpt4o_text_cost'] = gpt4o_text_cost
+                        cost_info['total_estimated_cost'] = cost_info.get('total_estimated_cost', 0) + gpt4o_text_cost
+                        print(f"[GPTImageClient]   Image cost: ${cost_info.get('total_estimated_cost', 0) - gpt4o_text_cost:.4f}, GPT-4o text cost: ${gpt4o_text_cost:.6f}, Total: ${cost_info.get('total_estimated_cost', 0):.4f}", flush=True)
+                        logger.info(f"Cost calculated: ${cost_info.get('total_estimated_cost', 0):.4f} (includes GPT-4o text: ${gpt4o_text_cost:.6f})")
                     except Exception as e:
                         print(f"[GPTImageClient]   Cost calculation failed: {e}", flush=True)
                         logger.warning(f"Cost calculation failed: {e}")
@@ -709,7 +736,7 @@ Respond briefly to acknowledge you're ready, then wait for my requests."""
         temp_story_id = f"_temp_{id(prompt)}"
         try:
             # Start a minimal session
-            await self.start_session(temp_story_id, "illustration", "")
+            await self.start_session(temp_story_id, "illustration", "")  # cost ignored for standalone generation
             return await self.generate_image(temp_story_id, prompt, **kwargs)
         finally:
             self.clear_session(temp_story_id)

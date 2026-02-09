@@ -103,7 +103,8 @@ def generate_image_prompt():
             scene_description,
             character_profiles=character_objects
         ))
-        current_app.logger.info(f"AI scene summary ({len(scene_summary)} chars): {scene_summary}")
+        summarize_cost = prompt_builder._last_cost
+        current_app.logger.info(f"AI scene summary ({len(scene_summary)} chars, cost: ${summarize_cost:.6f}): {scene_summary}")
 
         # Parse art bible if present
         art_bible = None
@@ -156,7 +157,8 @@ def generate_image_prompt():
                 'has_art_bible': art_bible is not None,
                 'character_references_count': len(character_references) if character_references else 0
             },
-            response_summary=f'Generated image prompt ({len(prompt)} chars)'
+            response_summary=f'Generated image prompt ({len(prompt)} chars)',
+            cost=summarize_cost
         )
 
         return jsonify({'prompt': prompt}), 200

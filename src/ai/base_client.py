@@ -6,6 +6,7 @@ enabling dependency injection and easy swapping of AI providers.
 """
 
 from abc import ABC, abstractmethod
+from typing import Any, Dict
 
 
 class BaseAIClient(ABC):
@@ -17,7 +18,7 @@ class BaseAIClient(ABC):
     """
 
     @abstractmethod
-    async def generate_text(self, prompt: str, **kwargs) -> str:
+    async def generate_text(self, prompt: str, **kwargs) -> Dict[str, Any]:
         """
         Generate text based on a prompt.
 
@@ -27,7 +28,7 @@ class BaseAIClient(ABC):
                      (e.g., max_tokens, temperature, model)
 
         Returns:
-            Generated text as a string
+            Dictionary with 'text' (generated text) and 'cost' (estimated USD cost)
 
         Raises:
             Exception: Provider-specific errors during generation

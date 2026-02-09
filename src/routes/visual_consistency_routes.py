@@ -280,7 +280,7 @@ def generate_art_bible_image():
         session_id = image_client.get_session_id(story_id)
         if not session_id:
             # Start new session
-            session_id = run_async(image_client.start_session(
+            session_id, _cost = run_async(image_client.start_session(
                 story_id=story_id,
                 art_style=art_style,
                 story_title=story_title
@@ -540,7 +540,7 @@ def generate_character_reference_image():
             # Need to start a session first - get art_style from request or use default
             art_style = data.get('art_style', 'cartoon')
             current_app.logger.info(f"Starting new session with art_style={art_style}")
-            run_async(image_client.start_session(
+            _session_id, _cost = run_async(image_client.start_session(
                 story_id=story_id,
                 art_style=art_style,
                 story_title=data.get('story_title', '')
@@ -954,7 +954,7 @@ def start_session():
         image_client.clear_session(story_id)
 
         # Start new session
-        session_id = run_async(image_client.start_session(
+        session_id, _cost = run_async(image_client.start_session(
             story_id=story_id,
             art_style=art_style,
             story_title=story_title

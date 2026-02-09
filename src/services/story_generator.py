@@ -45,6 +45,7 @@ class StoryGeneratorService:
         self.ai_client = ai_client
         self.prompt_builder = prompt_builder
         self.character_extractor = character_extractor
+        self._last_cost = 0.0
 
     async def generate_story(
         self,
@@ -129,12 +130,14 @@ CRITICAL REQUIREMENTS:
 - The story MUST have a satisfying conclusion
 - Target approximately {total_words_needed} words total"""
 
-        story_text = await self.ai_client.generate_text(
+        result = await self.ai_client.generate_text(
             prompt,
             temperature=0.8,
             max_tokens=max_tokens,
             system_message=system_message
         )
+        story_text = result['text']
+        self._last_cost = result.get('cost', 0.0)
 
         # Debug: Show generated story text
         print("="*80)

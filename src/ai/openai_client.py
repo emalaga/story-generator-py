@@ -11,6 +11,7 @@ from typing import Any, Dict, List
 
 from src.ai.base_client import BaseAIClient
 from src.models.config import OpenAIConfig
+from src.utils.image_cost_calculator import calculate_gpt4o_cost
 
 
 class OpenAIClient(BaseAIClient):
@@ -37,7 +38,7 @@ class OpenAIClient(BaseAIClient):
         self.text_model = config.text_model
         self.timeout = config.timeout
 
-    async def generate_text(self, prompt: str, **kwargs) -> str:
+    async def generate_text(self, prompt: str, **kwargs) -> Dict[str, Any]:
         """
         Generate text using OpenAI.
 
@@ -52,7 +53,7 @@ class OpenAIClient(BaseAIClient):
                 - system_message (str): Optional system message to guide behavior
 
         Returns:
-            Generated text as a string
+            Dictionary with 'text' (generated text) and 'cost' (estimated USD cost)
 
         Raises:
             ValueError: If API key is not configured
@@ -124,4 +125,12 @@ class OpenAIClient(BaseAIClient):
             response_data = response.json()
             generated_text = response_data['choices'][0]['message']['content']
 
-            return generated_text
+            # Calculate cost from usage data
+            cost = 0.0
+            usage = response_data.get('usage')
+            if usage:
+                input_tokens = usage.get('prompt_tokens', 0)
+                output_tokens = usage.get('completion_tokens', 0)
+                cost = calculate_gpt4o_cost(input_tokens, output_tokens)
+
+            return {'text': generated_text, 'cost': cost}

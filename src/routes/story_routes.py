@@ -149,6 +149,7 @@ def create_story():
                 'words_per_page': metadata.words_per_page
             },
             response_summary=f'Generated story "{metadata.title}" with {len(story.pages)} pages',
+            cost=story_generator._last_cost,
             project_id=story.id
         )
 
@@ -310,6 +311,7 @@ def _run_story_generation_in_background(task_id, app, data, app_config, defaults
                     'async': True
                 },
                 response_summary=f'Generated story "{metadata.title}" with {len(story.pages)} pages',
+                cost=story_generator._last_cost,
                 project_id=story.id
             )
 

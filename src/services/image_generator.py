@@ -156,12 +156,12 @@ class ImageGeneratorService:
         print(f"[ImageGenerator]   Starting new session...", flush=True)
         logger.info(f"Starting new session with art_style={art_style}, title={story_title}")
         try:
-            session_id = await self.image_client.start_session(
+            session_id, session_cost = await self.image_client.start_session(
                 story.id,
                 art_style,
                 story_title
             )
-            print(f"[ImageGenerator]   New session started with ID: {session_id}", flush=True)
+            print(f"[ImageGenerator]   New session started with ID: {session_id}, cost: ${session_cost:.6f}", flush=True)
             logger.info(f"New session started with ID: {session_id}")
 
             # Log the session start
@@ -171,6 +171,7 @@ class ImageGeneratorService:
                 prompt=f"Start visual consistency session for '{story_title}' with art style '{art_style}'",
                 payload={'art_style': art_style, 'story_title': story_title},
                 response_summary=f'Session started: {session_id[:20]}...',
+                cost=session_cost,
                 project_id=story.id
             )
         except Exception as e:
@@ -198,13 +199,13 @@ class ImageGeneratorService:
                 if story.art_bible.prompt:
                     description += f" Original prompt: {story.art_bible.prompt[:200]}"
 
-                await self.image_client.load_reference_image(
+                _ref_id, ref_cost = await self.image_client.load_reference_image(
                     story.id,
                     art_bible_full_path,
                     description,
                     reference_type="art_bible"
                 )
-                print(f"[ImageGenerator]   Art bible loaded into session successfully", flush=True)
+                print(f"[ImageGenerator]   Art bible loaded into session successfully, cost: ${ref_cost:.6f}", flush=True)
                 logger.info(f"Art bible loaded into session successfully")
 
                 # Log the art bible load
@@ -214,6 +215,7 @@ class ImageGeneratorService:
                     prompt=f"Load existing art bible image into session",
                     payload={'image_path': story.art_bible.local_image_path, 'action': 'load_reference'},
                     response_summary=f'Loaded art bible into session (no new image generated)',
+                    cost=ref_cost,
                     project_id=story.id,
                     metadata={'reference_type': 'art_bible'}
                 )
@@ -246,13 +248,13 @@ class ImageGeneratorService:
                         if char_ref.distinctive_features:
                             description += f" Features: {char_ref.distinctive_features}"
 
-                        await self.image_client.load_reference_image(
+                        _ref_id, ref_cost = await self.image_client.load_reference_image(
                             story.id,
                             char_full_path,
                             description,
                             reference_type="character"
                         )
-                        print(f"[ImageGenerator]   Character {char_ref.character_name} loaded", flush=True)
+                        print(f"[ImageGenerator]   Character {char_ref.character_name} loaded, cost: ${ref_cost:.6f}", flush=True)
                         logger.info(f"Character reference for {char_ref.character_name} loaded")
 
                         # Log the character load
@@ -262,6 +264,7 @@ class ImageGeneratorService:
                             prompt=f"Load existing character reference image for '{char_ref.character_name}'",
                             payload={'image_path': char_ref.local_image_path, 'character_name': char_ref.character_name, 'action': 'load_reference'},
                             response_summary=f'Loaded character "{char_ref.character_name}" into session (no new image generated)',
+                            cost=ref_cost,
                             project_id=story.id,
                             metadata={'reference_type': 'character', 'character_name': char_ref.character_name}
                         )
