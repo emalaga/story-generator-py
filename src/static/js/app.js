@@ -3732,7 +3732,7 @@ async function deletePageImage(pageNumber) {
         return;
     }
 
-    if (!confirm(`Are you sure you want to delete the image for page ${pageNumber}?`)) {
+    if (!confirm(`Are you sure you want to delete the active image for page ${pageNumber}?`)) {
         return;
     }
 
@@ -3757,17 +3757,38 @@ async function deletePageImage(pageNumber) {
             }
         }
 
-        // Clear page image data
-        page.image_url = null;
-        page.local_image_path = null;
-
-        // Update the display
-        const previewSection = document.getElementById(`page-${pageNumber}-image-preview`);
-        if (previewSection) {
-            previewSection.innerHTML = '<div class="image-placeholder">No image generated yet</div>';
+        // Remove the deleted version from image_versions array
+        if (page.image_versions && page.image_versions.length > 0) {
+            const deletedIndex = page.image_versions.findIndex(v => v.path === imagePath);
+            if (deletedIndex !== -1) {
+                page.image_versions.splice(deletedIndex, 1);
+            }
         }
 
-        console.log(`Page ${pageNumber} image deleted`);
+        // Check if there are remaining versions
+        if (page.image_versions && page.image_versions.length > 0) {
+            // Set the last remaining version as active
+            const newActiveVersion = page.image_versions[page.image_versions.length - 1];
+            page.local_image_path = newActiveVersion.path;
+            page.image_url = null; // Clear URL since we're using local path
+            page.image_model = newActiveVersion.model;
+            page.image_generated_at = newActiveVersion.generated_at;
+            page.image_resolution = newActiveVersion.resolution;
+            page.image_cost = newActiveVersion.cost;
+            console.log(`Page ${pageNumber} image deleted, switched to version: ${newActiveVersion.path}`);
+        } else {
+            // No versions left, clear all image data
+            page.image_url = null;
+            page.local_image_path = null;
+            page.image_model = null;
+            page.image_generated_at = null;
+            page.image_resolution = null;
+            page.image_cost = null;
+            console.log(`Page ${pageNumber} image deleted, no versions remaining`);
+        }
+
+        // Update the display using the refresh function
+        refreshPageImagePreview(pageNumber);
 
         // Auto-save project
         await autoSaveProject();
