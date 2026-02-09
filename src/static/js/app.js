@@ -524,6 +524,12 @@ function updateImageGenerationTab() {
                                 ${page.image_prompt ? '' : 'disabled'}>
                             ${(page.local_image_path || page.image_url) ? 'Regenerate' : 'Generate'} Image
                         </button>
+                        <button class="btn-small btn-use-artbible" id="page-${page.page_number}-use-artbible-btn"
+                                onclick="useArtBibleAsPageImage(${page.page_number})"
+                                title="Copy the art bible image as this page's image"
+                                ${(currentStory.art_bible && currentStory.art_bible.local_image_path) ? '' : 'disabled'}>
+                            Use Art Bible
+                        </button>
                     </div>
                 </div>
             </div>
@@ -3794,6 +3800,92 @@ async function deletePageImage(pageNumber) {
         await autoSaveProject();
     } catch (error) {
         showError(`Failed to delete page image: ${error.message}`);
+    }
+}
+
+async function useArtBibleAsPageImage(pageNumber) {
+    if (!currentStory) {
+        showError('No story loaded');
+        return;
+    }
+
+    // Check if art bible exists and has an image
+    if (!currentStory.art_bible || !currentStory.art_bible.local_image_path) {
+        showError('No art bible image available. Please generate an art bible first.');
+        return;
+    }
+
+    const page = currentStory.pages.find(p => p.page_number === pageNumber);
+    if (!page) {
+        showError('Page not found');
+        return;
+    }
+
+    try {
+        // Show loading state
+        const loadingEl = document.getElementById(`page-${pageNumber}-loading`);
+        if (loadingEl) {
+            loadingEl.classList.remove('hidden');
+            loadingEl.querySelector('span').textContent = 'Copying art bible...';
+        }
+
+        const response = await fetch(`${API_BASE}/images/stories/${currentStory.id}/pages/${pageNumber}/use-art-bible`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to copy art bible image');
+        }
+
+        const result = await response.json();
+
+        // Initialize versions list if needed
+        if (!page.image_versions) {
+            page.image_versions = [];
+            // Migrate existing image to versions list if present
+            if (page.local_image_path) {
+                page.image_versions.push({
+                    path: page.local_image_path,
+                    model: page.image_model,
+                    generated_at: page.image_generated_at,
+                    resolution: page.image_resolution,
+                    cost: page.image_cost
+                });
+            }
+        }
+
+        // Add the new version
+        page.image_versions.push(result.version);
+
+        // Update page with the new image
+        page.local_image_path = result.local_image_path;
+        page.image_url = null;
+        page.image_model = result.version.model;
+        page.image_generated_at = result.version.generated_at;
+        page.image_resolution = result.version.resolution;
+        page.image_cost = result.version.cost;
+
+        console.log(`Page ${pageNumber} now uses art bible image: ${result.local_image_path}`);
+
+        // Update the display
+        refreshPageImagePreview(pageNumber);
+
+        // Auto-save project
+        await autoSaveProject();
+
+    } catch (error) {
+        showError(`Failed to use art bible as page image: ${error.message}`);
+    } finally {
+        // Hide loading state
+        const loadingEl = document.getElementById(`page-${pageNumber}-loading`);
+        if (loadingEl) {
+            loadingEl.classList.add('hidden');
+            loadingEl.querySelector('span').textContent = 'Generating image...';
+        }
     }
 }
 

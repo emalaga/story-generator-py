@@ -1747,6 +1747,27 @@ footer {
     background-color: #dc2626;
 }
 
+/* ===== Use Art Bible Button ===== */
+.btn-use-artbible {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.3s;
+}
+
+.btn-use-artbible:hover:not(:disabled) {
+    background-color: var(--secondary-color);
+}
+
+.btn-use-artbible:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .image-action-buttons {
     display: flex;
     gap: 10px;
