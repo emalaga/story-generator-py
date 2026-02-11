@@ -492,6 +492,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupTabs();
     setupSettingsTab();
     syncImageModelDropdowns(); // Initialize all image model dropdowns from settings
+    // Sync top-bar text model dropdown from settings
+    const topBarTextModel = document.getElementById('text-model');
+    if (topBarTextModel) {
+        const settings = loadSettings();
+        topBarTextModel.value = settings.textModel;
+        topBarTextModel.addEventListener('change', () => {
+            const s = loadSettings();
+            s.textModel = topBarTextModel.value;
+            saveSettings(s);
+            const settingsSelect = document.getElementById('text-model-select');
+            if (settingsSelect) settingsSelect.value = topBarTextModel.value;
+        });
+    }
 
     // Restore state from URL
     const urlState = getURLState();
@@ -1300,7 +1313,7 @@ async function handleStoryGeneration(e) {
         words_per_page: parseInt(formData.get('words_per_page')) || 50,
         genre: formData.get('genre'),
         art_style: formData.get('art_style'),
-        text_model: settings.textModel,
+        text_model: formData.get('text_model') || settings.textModel,
     };
 
     // Add optional fields if provided
@@ -4780,6 +4793,12 @@ function updateSettingsTab() {
         textModelSelect.value = settings.textModel;
     }
 
+    // Also sync the top-bar text model dropdown
+    const topBarTextModel = document.getElementById('text-model');
+    if (topBarTextModel) {
+        topBarTextModel.value = settings.textModel;
+    }
+
     if (imageModelSelect) {
         imageModelSelect.value = settings.imageModel;
     }
@@ -4858,8 +4877,10 @@ function setupSettingsTab() {
             };
 
             if (saveSettings(settings)) {
-                // Sync all image model dropdowns to the new settings
+                // Sync all model dropdowns to the new settings
                 syncImageModelDropdowns();
+                const topBarTextModel = document.getElementById('text-model');
+                if (topBarTextModel) topBarTextModel.value = settings.textModel;
 
                 if (statusSpan) {
                     statusSpan.textContent = 'Settings saved!';

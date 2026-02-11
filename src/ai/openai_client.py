@@ -11,7 +11,7 @@ from typing import Any, Dict, List
 
 from src.ai.base_client import BaseAIClient
 from src.models.config import OpenAIConfig
-from src.utils.image_cost_calculator import calculate_gpt4o_cost
+from src.utils.image_cost_calculator import calculate_openai_text_cost
 
 
 class OpenAIClient(BaseAIClient):
@@ -125,12 +125,12 @@ class OpenAIClient(BaseAIClient):
             response_data = response.json()
             generated_text = response_data['choices'][0]['message']['content']
 
-            # Calculate cost from usage data
+            # Calculate cost from usage data using model-specific pricing
             cost = 0.0
             usage = response_data.get('usage')
             if usage:
                 input_tokens = usage.get('prompt_tokens', 0)
                 output_tokens = usage.get('completion_tokens', 0)
-                cost = calculate_gpt4o_cost(input_tokens, output_tokens)
+                cost = calculate_openai_text_cost(input_tokens, output_tokens, model=self.text_model)
 
             return {'text': generated_text, 'cost': cost}

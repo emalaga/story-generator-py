@@ -143,23 +143,49 @@ def estimate_gpt_image_cost(
     return cost_breakdown
 
 
-# GPT-4o pricing (USD per 1M tokens)
-GPT4O_INPUT_COST_PER_M = 5.00
-GPT4O_OUTPUT_COST_PER_M = 15.00
+# OpenAI text model pricing (USD per 1M tokens): (input, output)
+OPENAI_TEXT_PRICING = {
+    'gpt-4':          (30.00, 60.00),
+    'gpt-4-turbo':    (10.00, 30.00),
+    'gpt-4o':         (2.50,  10.00),
+    'gpt-4o-mini':    (0.15,  0.60),
+    'gpt-3.5-turbo':  (0.50,  1.50),
+}
+
+# Default fallback pricing
+DEFAULT_TEXT_INPUT_COST_PER_M = 2.50
+DEFAULT_TEXT_OUTPUT_COST_PER_M = 10.00
 
 
-def calculate_gpt4o_cost(
+def calculate_openai_text_cost(
     input_tokens: int,
     output_tokens: int,
-    input_rate_per_million: float = GPT4O_INPUT_COST_PER_M,
-    output_rate_per_million: float = GPT4O_OUTPUT_COST_PER_M,
+    model: str = 'gpt-4o',
 ) -> float:
     """
-    Calculate total cost (USD) for a GPT-4o API call.
+    Calculate total cost (USD) for an OpenAI text API call.
+
+    Looks up model-specific pricing. Falls back to GPT-4o rates for unknown models.
 
     Returns:
         Total cost in USD (float)
     """
+    input_rate, output_rate = OPENAI_TEXT_PRICING.get(
+        model, (DEFAULT_TEXT_INPUT_COST_PER_M, DEFAULT_TEXT_OUTPUT_COST_PER_M)
+    )
+    input_cost = (input_tokens / 1_000_000) * input_rate
+    output_cost = (output_tokens / 1_000_000) * output_rate
+    return round(input_cost + output_cost, 6)
+
+
+# Keep old name as alias for backward compatibility
+def calculate_gpt4o_cost(
+    input_tokens: int,
+    output_tokens: int,
+    input_rate_per_million: float = DEFAULT_TEXT_INPUT_COST_PER_M,
+    output_rate_per_million: float = DEFAULT_TEXT_OUTPUT_COST_PER_M,
+) -> float:
+    """Backward-compatible wrapper. Prefer calculate_openai_text_cost."""
     input_cost = (input_tokens / 1_000_000) * input_rate_per_million
     output_cost = (output_tokens / 1_000_000) * output_rate_per_million
     return round(input_cost + output_cost, 6)
