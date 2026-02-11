@@ -372,6 +372,7 @@ def _run_story_generation_in_background(task_id, app, data, app_config, defaults
                 'text_model': story.text_model,
                 'text_generated_at': story.text_generated_at.isoformat() if story.text_generated_at else None,
                 'text_edited_at': story.text_edited_at.isoformat() if story.text_edited_at else None,
+                'generation_cost': story_generator._last_cost,
                 'created_at': story.created_at.isoformat(),
                 'updated_at': story.updated_at.isoformat()
             }

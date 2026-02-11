@@ -302,6 +302,7 @@ class ProjectRepository:
             'text_model': story.text_model,
             'text_generated_at': serialize_datetime(story.text_generated_at) if story.text_generated_at else None,
             'text_edited_at': serialize_datetime(story.text_edited_at) if story.text_edited_at else None,
+            'cost_tracking': story.cost_tracking,
             'created_at': story.created_at.isoformat(),
             'updated_at': story.updated_at.isoformat()
         }
@@ -421,6 +422,7 @@ class ProjectRepository:
             text_model=data.get('text_model'),
             text_generated_at=parse_datetime(data.get('text_generated_at')),
             text_edited_at=parse_datetime(data.get('text_edited_at')),
+            cost_tracking=data.get('cost_tracking'),
             created_at=datetime.fromisoformat(data['created_at']),
             updated_at=datetime.fromisoformat(data['updated_at'])
         )

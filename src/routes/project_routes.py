@@ -197,6 +197,13 @@ def create_project():
                 image_versions=cover_page_data.get('image_versions')
             )
 
+        # Preserve existing cost_tracking from the saved project (frontend doesn't track this)
+        existing_cost_tracking = story_data.get('cost_tracking')
+        project_repo_check = current_app.config['REPOSITORIES']['project']
+        existing_project = project_repo_check.get(data['id'])
+        if existing_project and existing_project.story and existing_project.story.cost_tracking:
+            existing_cost_tracking = existing_project.story.cost_tracking
+
         # Create Story object
         story = Story(
             id=story_data.get('id', ''),
@@ -211,7 +218,8 @@ def create_project():
             vocabulary=story_data.get('vocabulary', []),
             text_model=story_data.get('text_model'),
             text_generated_at=datetime.fromisoformat(story_data['text_generated_at']) if story_data.get('text_generated_at') else None,
-            text_edited_at=datetime.fromisoformat(story_data['text_edited_at']) if story_data.get('text_edited_at') else None
+            text_edited_at=datetime.fromisoformat(story_data['text_edited_at']) if story_data.get('text_edited_at') else None,
+            cost_tracking=existing_cost_tracking
         )
 
         # Parse character profiles (if different from story characters)
@@ -1723,3 +1731,293 @@ def list_all_pages():
     except Exception as e:
         current_app.logger.error(f"Error listing pages: {e}")
         return jsonify({'error': f'Failed to list pages: {str(e)}'}), 500
+
+
+# ===== Cost Tracking Endpoints =====
+
+VALID_COST_CATEGORIES = {
+    'story_generation', 'character_extraction', 'art_bible',
+    'character_references', 'page_images', 'cover_image',
+    'prompts', 'sessions'
+}
+
+DEFAULT_COST_TRACKING = {
+    'total': 0.0,
+    'categories': {cat: 0.0 for cat in VALID_COST_CATEGORIES},
+    'history': []
+}
+
+
+@project_bp.route('/<project_id>/costs', methods=['POST'])
+def add_project_cost(project_id):
+    """
+    POST /api/projects/:id/costs - Add a cost entry to the project.
+
+    Request body:
+    {
+        "category": str (required),
+        "amount": float (required),
+        "description": str (optional)
+    }
+    """
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+
+        data = request.get_json()
+        category = data.get('category')
+        amount = data.get('amount')
+        description = data.get('description', '')
+
+        if not category or category not in VALID_COST_CATEGORIES:
+            return jsonify({'error': f'Invalid category. Must be one of: {", ".join(sorted(VALID_COST_CATEGORIES))}'}), 400
+
+        if amount is None or not isinstance(amount, (int, float)) or amount <= 0:
+            return jsonify({'error': 'Amount must be a positive number'}), 400
+
+        project_repo = current_app.config['REPOSITORIES']['project']
+        project = project_repo.get(project_id)
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+
+        # Initialize cost_tracking if needed
+        if not project.story.cost_tracking:
+            project.story.cost_tracking = {
+                'total': 0.0,
+                'categories': {cat: 0.0 for cat in VALID_COST_CATEGORIES},
+                'history': []
+            }
+
+        ct = project.story.cost_tracking
+
+        # Ensure all categories exist (backward compatibility)
+        if 'categories' not in ct:
+            ct['categories'] = {cat: 0.0 for cat in VALID_COST_CATEGORIES}
+        for cat in VALID_COST_CATEGORIES:
+            if cat not in ct['categories']:
+                ct['categories'][cat] = 0.0
+
+        # Add cost
+        ct['total'] = round(ct.get('total', 0.0) + amount, 6)
+        ct['categories'][category] = round(ct['categories'].get(category, 0.0) + amount, 6)
+
+        # Add history entry
+        if 'history' not in ct:
+            ct['history'] = []
+        ct['history'].append({
+            'timestamp': datetime.now().isoformat(),
+            'category': category,
+            'amount': round(amount, 6),
+            'description': description
+        })
+
+        # Cap history at 500 entries
+        if len(ct['history']) > 500:
+            ct['history'] = ct['history'][-500:]
+
+        # Save
+        project.story.cost_tracking = ct
+        project_repo.update(project_id, project)
+
+        return jsonify({'cost_tracking': ct}), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error adding project cost: {e}")
+        return jsonify({'error': f'Failed to add cost: {str(e)}'}), 500
+
+
+@project_bp.route('/<project_id>/costs', methods=['GET'])
+def get_project_costs(project_id):
+    """GET /api/projects/:id/costs - Get cost tracking data."""
+    try:
+        project_repo = current_app.config['REPOSITORIES']['project']
+        project = project_repo.get(project_id)
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+
+        ct = project.story.cost_tracking or {
+            'total': 0.0,
+            'categories': {cat: 0.0 for cat in VALID_COST_CATEGORIES},
+            'history': []
+        }
+
+        return jsonify({'cost_tracking': ct}), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error getting project costs: {e}")
+        return jsonify({'error': f'Failed to get costs: {str(e)}'}), 500
+
+
+@project_bp.route('/<project_id>/costs', methods=['DELETE'])
+def reset_project_costs(project_id):
+    """DELETE /api/projects/:id/costs - Reset all cost tracking data."""
+    try:
+        project_repo = current_app.config['REPOSITORIES']['project']
+        project = project_repo.get(project_id)
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+
+        project.story.cost_tracking = {
+            'total': 0.0,
+            'categories': {cat: 0.0 for cat in VALID_COST_CATEGORIES},
+            'history': []
+        }
+        project_repo.update(project_id, project)
+
+        return jsonify({'cost_tracking': project.story.cost_tracking}), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error resetting project costs: {e}")
+        return jsonify({'error': f'Failed to reset costs: {str(e)}'}), 500
+
+
+IMAGE_COST_CATEGORIES = {'art_bible', 'character_references', 'page_images', 'cover_image'}
+
+
+@project_bp.route('/<project_id>/costs/reload-images', methods=['POST'])
+def reload_image_costs(project_id):
+    """
+    POST /api/projects/:id/costs/reload-images - Rebuild image costs from project data.
+
+    Scans all images and their versions (pages, cover, art bible, character references)
+    and rebuilds the cost entries for image categories. Non-image costs are preserved.
+    """
+    try:
+        project_repo = current_app.config['REPOSITORIES']['project']
+        project = project_repo.get(project_id)
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+
+        story = project.story
+
+        # Initialize cost_tracking if needed
+        if not story.cost_tracking:
+            story.cost_tracking = {
+                'total': 0.0,
+                'categories': {cat: 0.0 for cat in VALID_COST_CATEGORIES},
+                'history': []
+            }
+
+        ct = story.cost_tracking
+
+        # Ensure categories dict exists
+        if 'categories' not in ct:
+            ct['categories'] = {cat: 0.0 for cat in VALID_COST_CATEGORIES}
+        if 'history' not in ct:
+            ct['history'] = []
+
+        # Remove existing image-related history entries and zero out image categories
+        ct['history'] = [
+            entry for entry in ct['history']
+            if entry.get('category') not in IMAGE_COST_CATEGORIES
+        ]
+        for cat in IMAGE_COST_CATEGORIES:
+            ct['categories'][cat] = 0.0
+
+        # Helper to add a cost entry
+        def add_image_cost(category, amount, description, timestamp=None):
+            cost = round(amount if amount else 0.0, 6)
+            ct['categories'][category] = round(ct['categories'].get(category, 0.0) + cost, 6)
+            ct['history'].append({
+                'timestamp': timestamp or datetime.now().isoformat(),
+                'category': category,
+                'amount': cost,
+                'description': description
+            })
+
+        # --- Art Bible ---
+        if story.art_bible:
+            ab = story.art_bible
+            if ab.image_versions:
+                for i, v in enumerate(ab.image_versions):
+                    ts = v.get('generated_at')
+                    model = v.get('model', 'unknown')
+                    add_image_cost(
+                        'art_bible', v.get('cost', 0.0),
+                        f"Art bible v{i+1} ({model})", ts
+                    )
+            elif ab.local_image_path:
+                ts = ab.image_generated_at.isoformat() if ab.image_generated_at else None
+                model = ab.image_model or 'unknown'
+                add_image_cost(
+                    'art_bible', ab.image_cost or 0.0,
+                    f"Art bible ({model})", ts
+                )
+
+        # --- Character References ---
+        if story.character_references:
+            for char_ref in story.character_references:
+                name = char_ref.character_name or 'Unknown'
+                if char_ref.image_versions:
+                    for i, v in enumerate(char_ref.image_versions):
+                        ts = v.get('generated_at')
+                        model = v.get('model', 'unknown')
+                        add_image_cost(
+                            'character_references', v.get('cost', 0.0),
+                            f"{name} v{i+1} ({model})", ts
+                        )
+                elif char_ref.local_image_path:
+                    ts = char_ref.image_generated_at.isoformat() if char_ref.image_generated_at else None
+                    model = char_ref.image_model or 'unknown'
+                    add_image_cost(
+                        'character_references', char_ref.image_cost or 0.0,
+                        f"{name} ({model})", ts
+                    )
+
+        # --- Page Images ---
+        if story.pages:
+            for page in story.pages:
+                pn = page.page_number
+                if page.image_versions:
+                    for i, v in enumerate(page.image_versions):
+                        ts = v.get('generated_at')
+                        model = v.get('model', 'unknown')
+                        add_image_cost(
+                            'page_images', v.get('cost', 0.0),
+                            f"Page {pn} v{i+1} ({model})", ts
+                        )
+                elif page.local_image_path:
+                    ts = page.image_generated_at.isoformat() if page.image_generated_at else None
+                    model = page.image_model or 'unknown'
+                    add_image_cost(
+                        'page_images', page.image_cost or 0.0,
+                        f"Page {pn} ({model})", ts
+                    )
+
+        # --- Cover Image ---
+        if story.cover_page:
+            cp = story.cover_page
+            if cp.image_versions:
+                for i, v in enumerate(cp.image_versions):
+                    ts = v.get('generated_at')
+                    model = v.get('model', 'unknown')
+                    add_image_cost(
+                        'cover_image', v.get('cost', 0.0),
+                        f"Cover v{i+1} ({model})", ts
+                    )
+            elif cp.local_image_path:
+                ts = cp.image_generated_at.isoformat() if cp.image_generated_at else None
+                model = cp.image_model or 'unknown'
+                add_image_cost(
+                    'cover_image', cp.image_cost or 0.0,
+                    f"Cover ({model})", ts
+                )
+
+        # Recalculate total from all categories
+        ct['total'] = round(sum(ct['categories'].get(cat, 0.0) for cat in VALID_COST_CATEGORIES), 6)
+
+        # Sort history by timestamp
+        ct['history'].sort(key=lambda e: e.get('timestamp') or '')
+
+        # Cap history
+        if len(ct['history']) > 500:
+            ct['history'] = ct['history'][-500:]
+
+        story.cost_tracking = ct
+        project_repo.update(project_id, project)
+
+        return jsonify({'cost_tracking': ct}), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error reloading image costs: {e}")
+        return jsonify({'error': f'Failed to reload image costs: {str(e)}'}), 500

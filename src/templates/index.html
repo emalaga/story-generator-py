@@ -22,6 +22,7 @@
             <button class="tab-button" data-tab="pdf-export">PDF Export</button>
             <button class="tab-button tab-icon" data-tab="library" title="Library">&#128218;</button>
             <button class="tab-button tab-icon" data-tab="ai-logs" title="AI Logs">&#128203;</button>
+            <button class="tab-button tab-icon" data-tab="costs" title="Cost Tracking">&#128176;</button>
             <button class="tab-button tab-icon" data-tab="settings" title="Settings">&#9881;</button>
         </div>
 
@@ -951,6 +952,38 @@
                         <div id="ai-logs-list" class="ai-logs-list">
                             <!-- Logs will be populated dynamically -->
                             <p class="logs-empty">No AI calls logged yet. Generate some content to see logs here.</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- COST TRACKING TAB -->
+            <div id="costs-tab" class="tab-content">
+                <section class="card">
+                    <div class="costs-header">
+                        <h2>Project Cost Tracking</h2>
+                        <div class="costs-controls">
+                            <button class="btn btn-secondary btn-small" onclick="updateCostTab()">Refresh</button>
+                            <button class="btn btn-secondary btn-small" onclick="reloadImageCosts()">Reload Image Costs</button>
+                            <button class="btn btn-secondary btn-small" onclick="resetProjectCosts()">Reset Costs</button>
+                        </div>
+                    </div>
+                    <p class="section-description">Track AI generation costs for this project.</p>
+
+                    <div id="costs-no-project" class="placeholder-card">
+                        <div class="placeholder-content">
+                            <h3>No Project Loaded</h3>
+                            <p>Please load or create a project to track costs.</p>
+                        </div>
+                    </div>
+
+                    <div id="costs-content" class="hidden">
+                        <div class="costs-total-section">
+                            <span class="costs-total-label">Total Project Cost:</span>
+                            <span class="costs-total-amount" id="costs-total">$0.00</span>
+                        </div>
+                        <div id="costs-breakdown">
+                            <p class="costs-empty">No costs recorded yet for this project.</p>
                         </div>
                     </div>
                 </section>

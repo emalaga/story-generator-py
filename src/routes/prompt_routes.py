@@ -161,7 +161,7 @@ def generate_image_prompt():
             cost=summarize_cost
         )
 
-        return jsonify({'prompt': prompt}), 200
+        return jsonify({'prompt': prompt, 'cost': summarize_cost}), 200
 
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
@@ -234,9 +234,10 @@ def generate_cover_prompt():
             genre=genre
         ))
 
-        current_app.logger.info(f"Generated cover prompt ({len(cover_prompt)} chars): {cover_prompt[:200]}...")
+        cover_cost = prompt_builder._last_cost
+        current_app.logger.info(f"Generated cover prompt ({len(cover_prompt)} chars, cost: ${cover_cost:.6f}): {cover_prompt[:200]}...")
 
-        return jsonify({'prompt': cover_prompt}), 200
+        return jsonify({'prompt': cover_prompt, 'cost': cover_cost}), 200
 
     except ValueError as e:
         return jsonify({'error': str(e)}), 400

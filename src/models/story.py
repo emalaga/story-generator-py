@@ -92,3 +92,5 @@ class Story:
     text_model: Optional[str] = None
     text_generated_at: Optional[datetime] = None
     text_edited_at: Optional[datetime] = None
+    # Project-level cost tracking
+    cost_tracking: Optional[Dict[str, Any]] = None

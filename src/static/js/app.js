@@ -50,6 +50,177 @@ function formatCost(cost) {
     return `$${cost.toFixed(3)}`;
 }
 
+// ===== Cost Tracking =====
+// Tracks a cost for the current project (fire-and-forget)
+async function trackProjectCost(category, amount, description) {
+    console.log(`[trackProjectCost] Called: category=${category}, amount=${amount}, description=${description}`);
+    if (!amount || amount <= 0) {
+        console.warn(`[trackProjectCost] Skipping: amount is ${amount}`);
+        return;
+    }
+
+    const projectId = currentProjectId || (currentStory && currentStory.id);
+    if (!projectId) {
+        console.warn('[trackProjectCost] No project ID available, skipping');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/projects/${projectId}/costs`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ category, amount, description })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log(`[Cost] ${category}: $${amount.toFixed(4)}, total: $${data.cost_tracking.total.toFixed(4)}`);
+            if (currentTab === 'costs') {
+                renderCostTab(data.cost_tracking);
+            }
+        } else {
+            const errorData = await response.text();
+            console.error(`[trackProjectCost] Server error ${response.status}: ${errorData}`);
+        }
+    } catch (error) {
+        console.warn('[trackProjectCost] Error:', error.message);
+    }
+}
+
+async function updateCostTab() {
+    const projectId = currentProjectId || (currentStory && currentStory.id);
+    const noProject = document.getElementById('costs-no-project');
+    const content = document.getElementById('costs-content');
+
+    if (!projectId) {
+        if (noProject) noProject.classList.remove('hidden');
+        if (content) content.classList.add('hidden');
+        return;
+    }
+
+    if (noProject) noProject.classList.add('hidden');
+    if (content) content.classList.remove('hidden');
+
+    try {
+        const response = await fetch(`${API_BASE}/projects/${projectId}/costs`);
+        if (!response.ok) throw new Error('Failed to load costs');
+        const data = await response.json();
+        renderCostTab(data.cost_tracking);
+    } catch (error) {
+        console.error('Error loading costs:', error);
+    }
+}
+
+function renderCostTab(costData) {
+    const container = document.getElementById('costs-breakdown');
+    const totalEl = document.getElementById('costs-total');
+    if (!container) return;
+
+    if (!costData || costData.total === 0) {
+        container.innerHTML = '<p class="costs-empty">No costs recorded yet for this project.</p>';
+        if (totalEl) totalEl.textContent = '$0.0000';
+        return;
+    }
+
+    if (totalEl) totalEl.textContent = `$${costData.total.toFixed(4)}`;
+
+    const categoryLabels = {
+        story_generation: 'Story Generation',
+        character_extraction: 'Character Extraction',
+        art_bible: 'Art Bible',
+        character_references: 'Character References',
+        page_images: 'Page Images',
+        cover_image: 'Cover Image',
+        prompts: 'Prompt Generation',
+        sessions: 'Visual Sessions'
+    };
+
+    let html = '<div class="costs-categories">';
+    for (const [key, value] of Object.entries(costData.categories || {})) {
+        if (value > 0) {
+            const label = categoryLabels[key] || key;
+            const percentage = ((value / costData.total) * 100).toFixed(1);
+            html += `
+                <div class="cost-category-row">
+                    <span class="cost-category-name">${label}</span>
+                    <div class="cost-category-bar-container">
+                        <div class="cost-category-bar" style="width: ${percentage}%"></div>
+                    </div>
+                    <span class="cost-category-amount">$${value.toFixed(4)}</span>
+                    <span class="cost-category-percent">${percentage}%</span>
+                </div>
+            `;
+        }
+    }
+    html += '</div>';
+
+    if (costData.history && costData.history.length > 0) {
+        html += '<h4>Recent Cost History</h4>';
+        html += '<div class="costs-history">';
+        const recentHistory = [...costData.history].reverse().slice(0, 50);
+        recentHistory.forEach(entry => {
+            const time = new Date(entry.timestamp).toLocaleString();
+            const label = categoryLabels[entry.category] || entry.category;
+            html += `
+                <div class="cost-history-entry">
+                    <span class="cost-history-category">${label}</span>
+                    <span class="cost-history-desc">${entry.description || ''}</span>
+                    <span class="cost-history-amount">$${entry.amount.toFixed(4)}</span>
+                    <span class="cost-history-time">${time}</span>
+                </div>
+            `;
+        });
+        html += '</div>';
+    }
+
+    container.innerHTML = html;
+}
+
+async function reloadImageCosts() {
+    const projectId = currentProjectId || (currentStory && currentStory.id);
+    if (!projectId) {
+        alert('No project loaded.');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/projects/${projectId}/costs/reload-images`, {
+            method: 'POST'
+        });
+        if (response.ok) {
+            const data = await response.json();
+            renderCostTab(data.cost_tracking);
+            console.log('[Cost] Image costs reloaded from project data');
+        } else {
+            const errorData = await response.text();
+            console.error(`[reloadImageCosts] Server error ${response.status}: ${errorData}`);
+            alert('Failed to reload image costs.');
+        }
+    } catch (error) {
+        console.error('Failed to reload image costs:', error);
+    }
+}
+
+async function resetProjectCosts() {
+    const projectId = currentProjectId || (currentStory && currentStory.id);
+    if (!projectId) return;
+
+    if (!confirm('Are you sure you want to reset all cost tracking data for this project?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/projects/${projectId}/costs`, {
+            method: 'DELETE'
+        });
+        if (response.ok) {
+            updateCostTab();
+        }
+    } catch (error) {
+        console.error('Failed to reset costs:', error);
+    }
+}
+
 // ===== Image Version Helpers =====
 // Renders version thumbnails for an image with multiple versions
 function renderVersionThumbnails(versions, activePath, type, identifier, smallSize = false) {
@@ -413,6 +584,8 @@ function switchTab(tabName, shouldUpdateUrl = true) {
         updateLibraryTab();
     } else if (tabName === 'ai-logs') {
         loadAILogs();
+    } else if (tabName === 'costs') {
+        updateCostTab();
     }
 }
 
@@ -1194,6 +1367,12 @@ async function handleStoryGeneration(e) {
                 console.log('Characters:', currentStory.characters);
                 console.log('Number of characters:', (currentStory.characters || []).length);
 
+                // Track story generation cost
+                if (currentStory.generation_cost) {
+                    trackProjectCost('story_generation', currentStory.generation_cost,
+                        `Generated story "${currentStory.metadata?.title || ''}"`);
+                }
+
                 // Reset Visual Consistency tab for new story
                 resetVisualConsistencyTab();
 
@@ -1710,6 +1889,11 @@ async function generateImagePrompt(pageNumber) {
 
         const result = await response.json();
 
+        // Track prompt generation cost
+        if (result.cost) {
+            trackProjectCost('prompts', result.cost, `Generated prompt for page ${pageNumber}`);
+        }
+
         // Update the page with the generated prompt
         page.image_prompt = result.prompt;
 
@@ -1864,6 +2048,11 @@ async function generatePageImage(pageNumber) {
         page.image_cost = result.image_cost;
         console.log(`[generatePageImage] page.local_image_path and metadata updated, cost: ${result.image_cost}, versions: ${page.image_versions.length}`);
 
+        // Track cost
+        if (result.image_cost) {
+            trackProjectCost('page_images', result.image_cost, `Generated image for page ${pageNumber}`);
+        }
+
         // Also save the prompt that was used
         if (usedPrompt) {
             page.image_prompt = usedPrompt;
@@ -1984,6 +2173,11 @@ async function generateCoverPagePrompt() {
 
         const result = await response.json();
 
+        // Track cover prompt generation cost
+        if (result.cost) {
+            trackProjectCost('prompts', result.cost, 'Generated cover page prompt');
+        }
+
         // Update the prompt textarea
         const promptTextarea = document.getElementById('cover-page-prompt');
         promptTextarea.value = result.prompt;
@@ -2101,6 +2295,11 @@ async function generateCoverPageImage() {
         currentStory.cover_page.image_generated_at = new Date().toISOString();
         currentStory.cover_page.image_resolution = size;
         currentStory.cover_page.image_cost = result.image_cost;
+
+        // Track cost
+        if (result.image_cost) {
+            trackProjectCost('cover_image', result.image_cost, 'Generated cover image');
+        }
 
         // Refresh the preview with version thumbnails
         refreshCoverPagePreview();
@@ -2903,6 +3102,11 @@ function setupArtBibleSection() {
             currentStory.art_bible.image_resolution = size;
             currentStory.art_bible.image_cost = result.image_cost;
 
+            // Track cost
+            if (result.image_cost) {
+                trackProjectCost('art_bible', result.image_cost, 'Generated art bible image');
+            }
+
             // Store session ID for conversation continuity
             if (result.session_id) {
                 currentStory.image_session_id = result.session_id;
@@ -3326,6 +3530,12 @@ async function generateCharacterImage(charIndex) {
                 image_versions: [versionEntry],
                 ...imageMetadata
             });
+        }
+
+        // Track cost
+        if (result.image_cost) {
+            trackProjectCost('character_references', result.image_cost,
+                `Generated character reference: ${character.name}`);
         }
 
         // Get the updated reference for version display
