@@ -224,8 +224,21 @@
                                 <div class="model-selection">
                                     <label for="character-model">Text Model:</label>
                                     <select id="character-model" name="character_model">
-                                        <option value="ollama:granite4:small-h" selected>ollama:granite4:small-h</option>
-                                        <option value="openai:gpt-4">openai:gpt-4</option>
+                                        <optgroup label="OpenAI">
+                                            <option value="openai:gpt-4o">GPT-4o</option>
+                                            <option value="openai:gpt-4o-mini">GPT-4o Mini</option>
+                                            <option value="openai:gpt-4-turbo">GPT-4 Turbo</option>
+                                            <option value="openai:gpt-4">GPT-4</option>
+                                            <option value="openai:gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                        </optgroup>
+                                        <optgroup label="Ollama (Local)">
+                                            <option value="ollama:llama3.2">Llama 3.2</option>
+                                            <option value="ollama:llama3.1">Llama 3.1</option>
+                                            <option value="ollama:mistral">Mistral</option>
+                                            <option value="ollama:mixtral">Mixtral</option>
+                                            <option value="ollama:granite4:small-h">Granite 4 Small-H</option>
+                                            <option value="ollama:qwen2.5">Qwen 2.5</option>
+                                        </optgroup>
                                     </select>
                                 </div>
                                 <button id="identify-characters-btn" class="btn btn-primary" onclick="identifyCharacters()">

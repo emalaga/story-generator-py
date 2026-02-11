@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-02-10T16:33:36.702386",
+  "updated_at": "2026-02-10T21:22:42.663391",
   "logs": [
     {
       "id": "20260209103202533984",
@@ -1150,6 +1150,72 @@
       "duration_ms": null,
       "error": null,
       "project_id": "40a485c6-bfc8-49d5-83e8-2a990020fa20",
+      "metadata": {}
+    },
+    {
+      "id": "20260210211412226353",
+      "timestamp": "2026-02-10T21:14:12.226400",
+      "call_type": "story",
+      "model": "openai:gpt-4o",
+      "prompt": "The story of a Carlos a 8 year old kid who loves soccer but he is not too good yet. He is not as fast or coordinated. His best friend Mario is excellent at soccer. They play together and Carlos admires and envies Mario. It is time for tryouts and they both try and Mario makes it but Carlos does not. Carlos tried hard but was not enough. At the end of the tryout Carlos stays behind practicing but sad. One of the coaches sees Carlos and approaches him. THey have a nice conversation and Carlos shares how he is feeling and how he thinks does have what it takes. The coach tells him that raw talent is not the most important and that there are other things that may matter even more. The coach encourages Carlos to try again in 6 months.",
+      "payload": {
+        "title": "The soccer fan (longer pages)",
+        "genre": "Adventure",
+        "age_group": "4-7 years",
+        "language": "Spanish",
+        "num_pages": 8,
+        "words_per_page": 180,
+        "async": true
+      },
+      "response_summary": "Generated story \"The soccer fan (longer pages)\" with 8 pages",
+      "reference_images": [],
+      "cost": 0.013465,
+      "duration_ms": null,
+      "error": null,
+      "project_id": "c9fb696c-76fd-483e-a2aa-ad2d2e2ed04c",
+      "metadata": {}
+    },
+    {
+      "id": "20260210211805902160",
+      "timestamp": "2026-02-10T21:18:05.902179",
+      "call_type": "story",
+      "model": "openai:gpt-4o",
+      "prompt": "The story of a Carlos a 8 year old kid who loves soccer but he is not too good yet. He is not as fast or coordinated. His best friend Mario is excellent at soccer. They play together and Carlos admires and envies Mario. It is time for tryouts and they both try and Mario makes it but Carlos does not. Carlos tried hard but was not enough. At the end of the tryout Carlos stays behind practicing but sad. One of the coaches sees Carlos and approaches him. THey have a nice conversation and Carlos shares how he is feeling and how he thinks does have what it takes. The coach tells him that raw talent is not the most important and that there are other things that may matter even more. The coach encourages Carlos to try again in 6 months and Carlos pauses his practice and thinks about what he heard with a renewed sense of hope. This is the first book of a series so the story ends without us knowing what happens with Carlos next.",
+      "payload": {
+        "title": "The soccer fan (longer pages)",
+        "genre": "Adventure",
+        "age_group": "4-7 years",
+        "language": "Spanish",
+        "num_pages": 8,
+        "words_per_page": 180,
+        "async": true
+      },
+      "response_summary": "Generated story \"The soccer fan (longer pages)\" with 8 pages",
+      "reference_images": [],
+      "cost": 0.01099,
+      "duration_ms": null,
+      "error": null,
+      "project_id": "1c4a0fbf-fd9e-48bc-ad5b-a8836495acc2",
+      "metadata": {}
+    },
+    {
+      "id": "20260210212242663326",
+      "timestamp": "2026-02-10T21:22:42.663339",
+      "call_type": "characters",
+      "model": "openai:gpt-4o-mini",
+      "prompt": "Extract characters from 8 pages of story text (async)",
+      "payload": {
+        "page_count": 8,
+        "text_length": 3822,
+        "project_id": "1c4a0fbf-fd9e-48bc-ad5b-a8836495acc2",
+        "async": true
+      },
+      "response_summary": "Extracted 3 characters: Carlos, Mario, El entrenador",
+      "reference_images": [],
+      "cost": null,
+      "duration_ms": null,
+      "error": null,
+      "project_id": "1c4a0fbf-fd9e-48bc-ad5b-a8836495acc2",
       "metadata": {}
     }
   ]

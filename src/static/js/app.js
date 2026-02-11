@@ -2443,6 +2443,55 @@ function setupCoverPageListeners() {
     }
 }
 
+// ===== Sync Form Fields to currentStory =====
+function syncFormToStory() {
+    if (!currentStory || !currentStory.metadata) return;
+
+    // Sync all metadata form fields
+    const fields = {
+        'title': 'title',
+        'language': 'language',
+        'age-group': 'age_group',
+        'complexity': 'complexity',
+        'vocabulary': 'vocabulary_diversity',
+        'num-pages': 'num_pages',
+        'words-per-page': 'words_per_page',
+        'genre': 'genre',
+        'art-style': 'art_style',
+        'custom-prompt': 'user_prompt'
+    };
+
+    for (const [elementId, metadataKey] of Object.entries(fields)) {
+        const el = document.getElementById(elementId);
+        if (el) {
+            const val = el.value.trim();
+            if (val) {
+                // Convert numeric fields
+                if (metadataKey === 'num_pages' || metadataKey === 'words_per_page') {
+                    currentStory.metadata[metadataKey] = parseInt(val, 10) || currentStory.metadata[metadataKey];
+                } else {
+                    currentStory.metadata[metadataKey] = val;
+                }
+            }
+        }
+    }
+
+    // Sync all page text from textareas into currentStory
+    let textChanged = false;
+    if (currentStory.pages) {
+        currentStory.pages.forEach((page, index) => {
+            const textArea = document.getElementById(`page-${index}-text`);
+            if (textArea && textArea.value.trim() !== page.text) {
+                page.text = textArea.value.trim();
+                textChanged = true;
+            }
+        });
+        if (textChanged) {
+            currentStory.text_edited_at = new Date().toISOString();
+        }
+    }
+}
+
 // ===== Handle Save Project =====
 async function handleSaveProject() {
     if (!currentStory) {
@@ -2450,11 +2499,8 @@ async function handleSaveProject() {
         return;
     }
 
-    // Sync the title from the form input to the story metadata
-    const titleInput = document.getElementById('title');
-    if (titleInput && titleInput.value.trim()) {
-        currentStory.metadata.title = titleInput.value.trim();
-    }
+    // Sync all form fields and page text to currentStory
+    syncFormToStory();
 
     // Use currentProjectId if available (loaded project), otherwise use story.id (new story)
     const projectId = currentProjectId || currentStory.id;
@@ -2515,6 +2561,9 @@ async function handleSaveProjectAs() {
         // User cancelled or entered empty name
         return;
     }
+
+    // Sync all form fields and page text before duplicating
+    syncFormToStory();
 
     // Generate a new project ID for the duplicate
     const newProjectId = crypto.randomUUID();
@@ -3722,11 +3771,8 @@ function setupCharacterRefFileInput() {
 async function autoSaveProject() {
     if (!currentStory) return;
 
-    // Sync the title from the form input to the story metadata (if form is visible)
-    const titleInput = document.getElementById('title');
-    if (titleInput && titleInput.value.trim()) {
-        currentStory.metadata.title = titleInput.value.trim();
-    }
+    // Sync all form fields and page text to currentStory
+    syncFormToStory();
 
     // Use currentProjectId if available (loaded project), otherwise use story.id (new story)
     const projectId = currentProjectId || currentStory.id;
