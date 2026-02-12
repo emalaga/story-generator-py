@@ -562,7 +562,7 @@ def generate_pdf(project_id):
         from reportlab.lib.pagesizes import letter, A4, A5, landscape
         from reportlab.lib.units import inch
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
         from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Image, PageBreak, Table, TableStyle, Flowable
         from reportlab.lib import colors
         from src.utils.font_manager import get_font_manager
@@ -781,7 +781,7 @@ def generate_pdf(project_id):
             fontSize=font_size,
             leading=font_size * 1.5,
             spaceAfter=12,
-            alignment=TA_JUSTIFY,
+            alignment=TA_LEFT,
             textColor=font_color
         )
 
@@ -1127,7 +1127,7 @@ def generate_pdf(project_id):
                             right_style = ParagraphStyle(
                                 'TextOverlayRight',
                                 parent=text_overlay_style,
-                                alignment=TA_LEFT,
+                                alignment=TA_RIGHT,
                             )
                             text_para = Paragraph(page.text, right_style)
                             if text_bg_enabled:
@@ -1206,7 +1206,7 @@ def generate_pdf(project_id):
                             right_style = ParagraphStyle(
                                 'TextOverlayBottomRight',
                                 parent=text_overlay_style,
-                                alignment=TA_LEFT,
+                                alignment=TA_RIGHT,
                             )
                             text_para = Paragraph(page.text, right_style)
                             if text_bg_enabled:
